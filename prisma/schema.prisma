@@ -1,0 +1,424 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS (SQLite doesn't support enums, so we use String with validation) ───
+// Role: PLATFORM_ADMIN, OWNER, BUSINESS_ADMIN, AGENT
+// CollectionType: DAILY, WEEKLY, MONTHLY
+// InterestModel: ADDON, UPFRONT
+// CustomerStatus: ACTIVE, CLOSED, DEFAULTER
+// LoanStatus: ACTIVE, OVERDUE, IN_GRACE, DEFAULTER, COMPLETED, COMPLETED_RENEWED, SETTLED, WRITTEN_OFF
+// DayOfWeek: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id                 String   @id @default(cuid())
+  username           String   @unique
+  passwordHash       String
+  fullName           String
+  phone              String?
+  role               String   // Role enum
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(true)
+  totpSecret         String?
+  totpEnabled        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  recoveryCodes         RecoveryCode[]
+  sessions              Session[]
+  ownedBusinesses       Business[]
+  businessAssignments   UserBusinessAssignment[]
+  villageAssignments    UserVillageAssignment[]
+  collectedPayments     Payment[]      @relation("CollectedBy")
+  assignedLoans         Loan[]         @relation("AssignedAgent")
+  cashHandoversGiven    CashHandover[] @relation("HandoverAgent")
+  cashHandoversReceived CashHandover[] @relation("HandoverReceiver")
+  expensesPaid          Expense[]      @relation("ExpensePaidBy")
+  auditLogs             AuditLog[]
+  supportAccessGranted  SupportAccess[] @relation("SupportGrantedBy")
+  supportAccessReceived SupportAccess[] @relation("SupportGrantedTo")
+}
+
+model RecoveryCode {
+  id     String  @id @default(cuid())
+  code   String
+  used   Boolean @default(false)
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token            String   @unique
+  activeBusinessId String?
+  expiresAt        DateTime
+  lastActivityAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+model SupportAccess {
+  id        String    @id @default(cuid())
+  ownerId   String
+  adminId   String
+  owner     User      @relation("SupportGrantedBy", fields: [ownerId], references: [id])
+  admin     User      @relation("SupportGrantedTo", fields: [adminId], references: [id])
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([ownerId])
+  @@index([adminId])
+}
+
+// ─── BUSINESS ─────────────────────────────────────────────────────────────────
+
+model Business {
+  id                   String  @id @default(cuid())
+  name                 String
+  city                 String
+  address              String?
+  phone                String?
+  logoPath             String?
+  receiptPrefix        String?
+
+  ownerId              String
+  owner                User    @relation(fields: [ownerId], references: [id])
+
+  collectionType       String  @default("DAILY")
+  defaultCollectionDay String?
+  interestModel        String  @default("ADDON")
+  collectOnSundays     Boolean @default(false)
+
+  gracePeriodDaily     Int     @default(30)
+  gracePeriodWeekly    Int     @default(4)
+  gracePeriodMonthly   Int     @default(1)
+
+  ratingGoodMaxPct     Int     @default(50)
+  ratingAverageMaxPct  Int     @default(100)
+
+  maxLoanByRating      String? // JSON string: {"4":5000000,"3":3000000,...} in paise
+
+  whatsappTemplate     String  @default("{{businessName}}: Received ₹{{amount}} on {{date}}. Outstanding: ₹{{outstanding}}. Thank you!")
+  autoLogoutMinutes    Int     @default(30)
+
+  receiptSeq           Int     @default(0)
+  loanSeq              Int     @default(0)
+  customerSeq          Int     @default(0)
+
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  villages          Village[]
+  customers         Customer[]
+  loans             Loan[]
+  payments          Payment[]
+  holidays          Holiday[]
+  expenseCategories ExpenseCategory[]
+  expenses          Expense[]
+  cashBookEntries   CashBookEntry[]
+  cashHandovers     CashHandover[]
+  auditLogs         AuditLog[]
+  userAssignments   UserBusinessAssignment[]
+  documents         Document[]
+
+  @@unique([ownerId, name])
+}
+
+model UserBusinessAssignment {
+  id         String   @id @default(cuid())
+  userId     String
+  businessId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, businessId])
+}
+
+model UserVillageAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  villageId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  village   Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, villageId])
+}
+
+// ─── VILLAGE ──────────────────────────────────────────────────────────────────
+
+model Village {
+  id         String   @id @default(cuid())
+  name       String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customers        Customer[]
+  agentAssignments UserVillageAssignment[]
+
+  @@unique([businessId, name])
+}
+
+// ─── CUSTOMER ─────────────────────────────────────────────────────────────────
+
+model Customer {
+  id             String   @id @default(cuid())
+  customerId     String   @unique
+  fullName       String
+  age            Int?
+  phone          String
+  altPhone       String?
+  address        String?
+  aadhaarHash    String?
+  aadhaarLast4   String?
+  photoPath      String?
+  guarantorName  String?
+  guarantorPhone String?
+  notes          String?
+  status         String   @default("ACTIVE")
+
+  villageId  String
+  village    Village  @relation(fields: [villageId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  loans     Loan[]
+  documents Document[]
+
+  @@index([businessId, phone])
+  @@index([businessId, fullName])
+  @@index([businessId, status])
+}
+
+// ─── LOAN ─────────────────────────────────────────────────────────────────────
+
+model Loan {
+  id                    String   @id @default(cuid())
+  loanNumber            String   @unique
+
+  customerId            String
+  customer              Customer @relation(fields: [customerId], references: [id])
+  businessId            String
+  business              Business @relation(fields: [businessId], references: [id])
+
+  loanAmount            Int
+  interestAmount        Int
+  totalRepayable        Int
+  amountGiven           Int
+
+  collectionType        String
+  collectionDay         String?
+  installmentAmount     Int
+  numberOfInstallments  Int
+  lastInstallmentAmount Int
+
+  startDate             String // YYYY-MM-DD (SQLite date)
+  expectedEndDate       String // YYYY-MM-DD
+
+  agentId               String?
+  agent                 User?    @relation("AssignedAgent", fields: [agentId], references: [id])
+
+  status                String   @default("ACTIVE")
+
+  renewedFromLoanId     String?  @unique
+  renewedFromLoan       Loan?    @relation("LoanRenewal", fields: [renewedFromLoanId], references: [id])
+  renewedToLoan         Loan?    @relation("LoanRenewal")
+
+  settlementAmount      Int?
+  settlementReason      String?
+  writeOffReason        String?
+  closedAt              String?
+
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  schedule LoanScheduleEntry[]
+  payments Payment[]
+  documents Document[]
+
+  @@index([businessId, status])
+  @@index([customerId])
+}
+
+model LoanScheduleEntry {
+  id                String @id @default(cuid())
+  loanId            String
+  loan              Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installmentNumber Int
+  dueDate           String // YYYY-MM-DD
+  amount            Int
+
+  @@unique([loanId, dueDate])
+  @@index([loanId, installmentNumber])
+}
+
+// ─── PAYMENT ──────────────────────────────────────────────────────────────────
+
+model Payment {
+  id            String   @id @default(cuid())
+  receiptNumber String   @unique
+
+  loanId     String
+  loan       Loan     @relation(fields: [loanId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  amount      Int
+  paymentDate String // YYYY-MM-DD
+
+  collectorId String
+  collector   User   @relation("CollectedBy", fields: [collectorId], references: [id])
+
+  note      String?
+  latitude  Float?
+  longitude Float?
+  isDeleted Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, paymentDate])
+  @@index([loanId, paymentDate])
+  @@index([collectorId, paymentDate])
+}
+
+// ─── HOLIDAY ──────────────────────────────────────────────────────────────────
+
+model Holiday {
+  id         String   @id @default(cuid())
+  date       String // YYYY-MM-DD
+  name       String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, date])
+}
+
+// ─── EXPENSE ──────────────────────────────────────────────────────────────────
+
+model ExpenseCategory {
+  id         String   @id @default(cuid())
+  name       String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  isActive   Boolean  @default(true)
+
+  expenses Expense[]
+
+  @@unique([businessId, name])
+}
+
+model Expense {
+  id         String          @id @default(cuid())
+  businessId String
+  business   Business        @relation(fields: [businessId], references: [id])
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+  amount     Int
+  date       String // YYYY-MM-DD
+  paidById   String
+  paidBy     User            @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  note       String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([businessId, date])
+}
+
+// ─── CASH BOOK ────────────────────────────────────────────────────────────────
+
+model CashBookEntry {
+  id                  String   @id @default(cuid())
+  businessId          String
+  business            Business @relation(fields: [businessId], references: [id])
+  date                String // YYYY-MM-DD
+  openingCash         Int
+  loansDisbursed      Int
+  collectionsReceived Int
+  handoversReceived   Int
+  expensesTotal       Int
+  closingCash         Int
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([businessId, date])
+}
+
+model CashHandover {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  agentId      String
+  agent        User     @relation("HandoverAgent", fields: [agentId], references: [id])
+  receivedById String
+  receivedBy   User     @relation("HandoverReceiver", fields: [receivedById], references: [id])
+  date         String // YYYY-MM-DD
+  amount       Int
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([businessId, date])
+  @@index([agentId, date])
+}
+
+// ─── DOCUMENT ─────────────────────────────────────────────────────────────────
+
+model Document {
+  id           String   @id @default(cuid())
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  loanId       String?
+  loan         Loan?     @relation(fields: [loanId], references: [id])
+  businessId   String
+  business     Business  @relation(fields: [businessId], references: [id])
+  type         String
+  filePath     String
+  originalName String
+  mimeType     String
+  createdAt    DateTime @default(now())
+
+  @@index([customerId])
+  @@index([loanId])
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  oldValues  String? // JSON string
+  newValues  String? // JSON string
+  reason     String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([entityType, entityId])
+}

@@ -1,0 +1,113 @@
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { assertBusinessAccess } from '@/lib/scope'
+import { assertPermission } from '@/lib/permissions'
+import { z } from 'zod'
+import { phoneSchema } from '@/lib/validators'
+
+interface Props {
+  params: Promise<{ businessId: string; customerId: string }>
+}
+
+const updateCustomerSchema = z.object({
+  fullName: z.string().min(2).optional(),
+  age: z.number().int().min(18).max(100).optional(),
+  phone: phoneSchema.optional(),
+  altPhone: phoneSchema.optional().or(z.literal('')),
+  address: z.string().optional(),
+  guarantorName: z.string().optional(),
+  guarantorPhone: phoneSchema.optional().or(z.literal('')),
+  notes: z.string().optional(),
+  photoPath: z.string().optional().nullable(),
+  villageId: z.string().optional(),
+  status: z.enum(['ACTIVE', 'CLOSED', 'DEFAULTER']).optional(),
+})
+
+export async function GET(request: Request, { params }: Props) {
+  const { businessId, customerId } = await params
+  const user = await getSession()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    await assertBusinessAccess(user, businessId)
+    assertPermission(user, 'view_customer')
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
+
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, businessId },
+    include: {
+      village: { select: { id: true, name: true } },
+      loans: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          loanNumber: true,
+          loanAmount: true,
+          totalRepayable: true,
+          status: true,
+          startDate: true,
+        },
+      },
+    },
+  })
+
+  if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+
+  return NextResponse.json(customer)
+}
+
+export async function PATCH(request: Request, { params }: Props) {
+  const { businessId, customerId } = await params
+  const user = await getSession()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    await assertBusinessAccess(user, businessId)
+    assertPermission(user, 'edit_customer')
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
+
+  const customer = await prisma.customer.findFirst({ where: { id: customerId, businessId } })
+  if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+
+  const body = await request.json()
+  const parsed = updateCustomerSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    )
+  }
+
+  const data: Record<string, unknown> = {}
+  if (parsed.data.fullName) data.fullName = parsed.data.fullName
+  if (parsed.data.age !== undefined) data.age = parsed.data.age
+  if (parsed.data.phone) {
+    data.phone = parsed.data.phone
+  }
+  if (parsed.data.altPhone !== undefined) data.altPhone = parsed.data.altPhone || null
+  if (parsed.data.address !== undefined) data.address = parsed.data.address || null
+  if (parsed.data.guarantorName !== undefined) data.guarantorName = parsed.data.guarantorName || null
+  if (parsed.data.guarantorPhone !== undefined) data.guarantorPhone = parsed.data.guarantorPhone || null
+  if (parsed.data.notes !== undefined) data.notes = parsed.data.notes || null
+  if (parsed.data.photoPath !== undefined) data.photoPath = parsed.data.photoPath || null
+  if (parsed.data.status) data.status = parsed.data.status
+  if (parsed.data.villageId) {
+    const village = await prisma.village.findFirst({
+      where: { id: parsed.data.villageId, businessId, isActive: true },
+    })
+    if (!village) return NextResponse.json({ error: 'Village not found' }, { status: 400 })
+    data.villageId = parsed.data.villageId
+  }
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+  }
+
+  const updated = await prisma.customer.update({ where: { id: customerId }, data })
+  return NextResponse.json(updated)
+}

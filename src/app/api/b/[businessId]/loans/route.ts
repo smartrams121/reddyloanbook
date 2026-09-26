@@ -1,0 +1,192 @@
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { assertBusinessAccess } from '@/lib/scope'
+import { assertPermission } from '@/lib/permissions'
+import { createLoanSchema } from '@/lib/validators'
+import { parseISODate, addDays, addWeeks, addMonths, isSunday, formatDateISO } from '@/lib/date'
+
+interface Props {
+  params: Promise<{ businessId: string }>
+}
+
+export async function GET(request: Request, { params }: Props) {
+  const { businessId } = await params
+  const user = await getSession()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    await assertBusinessAccess(user, businessId)
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status')
+  const customerId = searchParams.get('customerId')
+
+  const where: Record<string, unknown> = { businessId }
+  if (status) where.status = status
+  if (customerId) where.customerId = customerId
+
+  const loans = await prisma.loan.findMany({
+    where,
+    include: {
+      customer: { select: { id: true, fullName: true, customerId: true, phone: true } },
+      agent: { select: { id: true, fullName: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return NextResponse.json(loans)
+}
+
+export async function POST(request: Request, { params }: Props) {
+  const { businessId } = await params
+  const user = await getSession()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    await assertBusinessAccess(user, businessId)
+    assertPermission(user, 'create_loan')
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const parsed = createLoanSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    )
+  }
+
+  const {
+    customerId, loanAmount, interestAmount, collectionType, collectionDay,
+    installmentAmount, numberOfInstallments, startDate, agentId, notes, renewFromLoanId,
+    documents,
+  } = parsed.data
+
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, businessId, status: 'ACTIVE' },
+  })
+  if (!customer) {
+    return NextResponse.json({ error: 'Customer not found or inactive' }, { status: 400 })
+  }
+
+  const business = await prisma.business.findUnique({ where: { id: businessId } })
+  if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+
+  if (agentId) {
+    const agent = await prisma.userBusinessAssignment.findFirst({
+      where: { userId: agentId, businessId },
+    })
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
+    }
+  }
+
+  const totalRepayable = loanAmount + interestAmount
+  const amountGiven = business.interestModel === 'UPFRONT'
+    ? loanAmount - interestAmount
+    : loanAmount
+  const lastInstallmentAmount = totalRepayable - installmentAmount * (numberOfInstallments - 1)
+
+  // Generate schedule
+  const schedule: { installmentNumber: number; dueDate: string; amount: number }[] = []
+  let currentDate = parseISODate(startDate)
+
+  for (let i = 1; i <= numberOfInstallments; i++) {
+    // Skip Sundays unless business allows
+    if (!business.collectOnSundays) {
+      while (isSunday(currentDate)) {
+        currentDate = addDays(currentDate, 1)
+      }
+    }
+
+    const amt = i === numberOfInstallments ? lastInstallmentAmount : installmentAmount
+    schedule.push({
+      installmentNumber: i,
+      dueDate: formatDateISO(currentDate),
+      amount: amt,
+    })
+
+    // Advance to next due date
+    if (i < numberOfInstallments) {
+      if (collectionType === 'DAILY') {
+        currentDate = addDays(currentDate, 1)
+      } else if (collectionType === 'WEEKLY') {
+        currentDate = addWeeks(currentDate, 1)
+      } else {
+        currentDate = addMonths(currentDate, 1)
+      }
+    }
+  }
+
+  const expectedEndDate = schedule[schedule.length - 1].dueDate
+
+  const seq = business.loanSeq + 1
+  const prefix = business.receiptPrefix || 'L'
+  const loanNumber = `${prefix}${String(seq).padStart(5, '0')}`
+
+  const loan = await prisma.$transaction(async (tx) => {
+    await tx.business.update({
+      where: { id: businessId },
+      data: { loanSeq: seq },
+    })
+
+    if (renewFromLoanId) {
+      await tx.loan.update({
+        where: { id: renewFromLoanId },
+        data: { status: 'COMPLETED_RENEWED', closedAt: startDate },
+      })
+    }
+
+    const newLoan = await tx.loan.create({
+      data: {
+        loanNumber,
+        customerId,
+        businessId,
+        loanAmount,
+        interestAmount,
+        totalRepayable,
+        amountGiven,
+        collectionType,
+        collectionDay: collectionDay || null,
+        installmentAmount,
+        numberOfInstallments,
+        lastInstallmentAmount,
+        startDate,
+        expectedEndDate,
+        agentId: agentId || null,
+        renewedFromLoanId: renewFromLoanId || null,
+        notes: notes || null,
+        schedule: {
+          create: schedule,
+        },
+      },
+    })
+
+    if (documents && documents.length > 0) {
+      await tx.document.createMany({
+        data: documents.map((d) => ({
+          loanId: newLoan.id,
+          customerId,
+          businessId,
+          type: 'LOAN_PROOF',
+          filePath: d.filePath,
+          originalName: d.originalName,
+          mimeType: d.mimeType,
+        })),
+      })
+    }
+
+    return newLoan
+  })
+
+  return NextResponse.json(
+    { id: loan.id, loanNumber: loan.loanNumber, totalRepayable: loan.totalRepayable },
+    { status: 201 }
+  )
+}

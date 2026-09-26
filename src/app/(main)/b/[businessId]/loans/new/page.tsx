@@ -1,0 +1,860 @@
+'use client'
+
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+
+interface Village { id: string; name: string }
+interface Agent { id: string; fullName: string; role: string }
+interface CustomerResult { id: string; customerId: string; fullName: string; phone: string; village: { id: string; name: string }; status: string }
+interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; interestModel: string; collectOnSundays: boolean }
+interface ActiveLoan { id: string; loanNumber: string; loanAmount: number; totalRepayable: number; status: string; startDate: string }
+interface DocAttachment { filePath: string; originalName: string; mimeType: string; previewUrl?: string }
+
+type Step = 'customer' | 'warning' | 'loan'
+
+function formatPaiseShort(paise: number): string {
+  const rupees = paise / 100
+  if (rupees === Math.floor(rupees)) return `₹${Math.floor(rupees).toLocaleString('en-IN')}`
+  return `₹${rupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+export default function NewLoanPage() {
+  const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const businessId = params.businessId as string
+  const preselectedCustomerId = searchParams.get('customerId')
+
+  const [step, setStep] = useState<Step>('customer')
+  const [settings, setSettings] = useState<BusinessSettings | null>(null)
+  const [villages, setVillages] = useState<Village[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
+
+  // Customer step
+  const [customers, setCustomers] = useState<CustomerResult[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerResult | null>(null)
+  const [showNewCustomer, setShowNewCustomer] = useState(false)
+
+  // Active loan warning
+  const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([])
+  const [checkingLoans, setCheckingLoans] = useState(false)
+
+  // New customer fields
+  const [ncName, setNcName] = useState('')
+  const [ncPhone, setNcPhone] = useState('')
+  const [ncVillageId, setNcVillageId] = useState('')
+  const [ncAge, setNcAge] = useState('')
+  const [ncAddress, setNcAddress] = useState('')
+  const [ncGuarantorName, setNcGuarantorName] = useState('')
+  const [ncGuarantorPhone, setNcGuarantorPhone] = useState('')
+  const [ncCreating, setNcCreating] = useState(false)
+
+  // Loan step
+  const [loanAmountStr, setLoanAmountStr] = useState('')
+  const [interestAmountStr, setInterestAmountStr] = useState('')
+  const [collectionType, setCollectionType] = useState('DAILY')
+  const [collectionDay, setCollectionDay] = useState('')
+  const [installmentStr, setInstallmentStr] = useState('')
+  const [numInstallmentsStr, setNumInstallmentsStr] = useState('')
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
+  const [agentId, setAgentId] = useState('')
+  const [notes, setNotes] = useState('')
+
+  // Document attachments
+  const [documents, setDocuments] = useState<DocAttachment[]>([])
+  const [docUploading, setDocUploading] = useState(false)
+  const docInputRef = useRef<HTMLInputElement>(null)
+
+  const [error, setError] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/b/${businessId}/settings`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/villages`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/users`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/customers`).then(r => r.json()),
+    ]).then(([biz, vils, users, custs]) => {
+      setSettings(biz)
+      setCollectionType(biz.collectionType || 'DAILY')
+      if (biz.defaultCollectionDay) setCollectionDay(biz.defaultCollectionDay)
+      if (Array.isArray(vils)) setVillages(vils)
+      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+      if (Array.isArray(custs)) {
+        setCustomers(custs)
+        if (preselectedCustomerId) {
+          const found = custs.find((c: CustomerResult) => c.id === preselectedCustomerId)
+          if (found) selectCustomer(found)
+        }
+      }
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessId, preselectedCustomerId])
+
+  async function selectCustomer(customer: CustomerResult) {
+    setSelectedCustomer(customer)
+    setCheckingLoans(true)
+    try {
+      const res = await fetch(`/api/b/${businessId}/loans?customerId=${customer.id}`)
+      const loans = await res.json()
+      const active = Array.isArray(loans)
+        ? loans.filter((l: ActiveLoan) => ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN'].includes(l.status))
+        : []
+      setActiveLoans(active)
+      if (active.length > 0) {
+        setStep('warning')
+      } else {
+        setStep('loan')
+      }
+    } catch {
+      setStep('loan')
+    } finally {
+      setCheckingLoans(false)
+    }
+  }
+
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery.trim()) return customers.filter(c => c.status === 'ACTIVE')
+    const q = searchQuery.toLowerCase()
+    return customers.filter(c =>
+      c.status === 'ACTIVE' && (
+        c.fullName.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
+        c.customerId.toLowerCase().includes(q)
+      )
+    )
+  }, [customers, searchQuery])
+
+  // Track which of interest/installment was last manually edited
+  const [lastEdited, setLastEdited] = useState<'interest' | 'installment' | null>(null)
+
+  // Computed loan summary
+  const loanAmount = parseInt(loanAmountStr) || 0
+  const interestAmount = parseInt(interestAmountStr) || 0
+  const installmentAmount = parseInt(installmentStr) || 0
+  const numInstallments = parseInt(numInstallmentsStr) || 0
+
+  const totalRepayable = loanAmount + interestAmount
+  const amountGiven = settings?.interestModel === 'UPFRONT'
+    ? loanAmount - interestAmount
+    : loanAmount
+  const lastInstallment = numInstallments > 0
+    ? totalRepayable - installmentAmount * (numInstallments - 1)
+    : 0
+
+  function recalculate(principal: string, interest: string, installment: string, numInst: string, edited: 'interest' | 'installment' | null) {
+    const p = parseInt(principal) || 0
+    const n = parseInt(numInst) || 0
+    if (p <= 0 || n <= 0) return
+
+    if (edited === 'interest' || edited === null) {
+      const i = parseInt(interest) || 0
+      const total = p + i
+      setInstallmentStr(String(Math.floor(total / n)))
+    } else if (edited === 'installment') {
+      const inst = parseInt(installment) || 0
+      if (inst > 0) {
+        const calcInterest = (inst * n) - p
+        setInterestAmountStr(calcInterest >= 0 ? String(calcInterest) : '0')
+      }
+    }
+  }
+
+  function handlePrincipalChange(val: string) {
+    setLoanAmountStr(val)
+    recalculate(val, interestAmountStr, installmentStr, numInstallmentsStr, lastEdited)
+  }
+
+  function handleInterestChange(val: string) {
+    setInterestAmountStr(val)
+    setLastEdited('interest')
+    recalculate(loanAmountStr, val, installmentStr, numInstallmentsStr, 'interest')
+  }
+
+  function handleInstallmentChange(val: string) {
+    setInstallmentStr(val)
+    setLastEdited('installment')
+    recalculate(loanAmountStr, interestAmountStr, val, numInstallmentsStr, 'installment')
+  }
+
+  function handleNumInstallmentsChange(val: string) {
+    setNumInstallmentsStr(val)
+    recalculate(loanAmountStr, interestAmountStr, installmentStr, val, lastEdited)
+  }
+
+  async function handleCreateCustomer(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setNcCreating(true)
+    try {
+      const body: Record<string, unknown> = { fullName: ncName, phone: ncPhone, villageId: ncVillageId }
+      if (ncAge) body.age = parseInt(ncAge)
+      if (ncAddress) body.address = ncAddress
+      if (ncGuarantorName) body.guarantorName = ncGuarantorName
+      if (ncGuarantorPhone) body.guarantorPhone = ncGuarantorPhone
+
+      const res = await fetch(`/api/b/${businessId}/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to create customer')
+        return
+      }
+      const custsRes = await fetch(`/api/b/${businessId}/customers`)
+      const custs = await custsRes.json()
+      if (Array.isArray(custs)) {
+        setCustomers(custs)
+        const newCust = custs.find((c: CustomerResult) => c.id === data.id)
+        if (newCust) {
+          setShowNewCustomer(false)
+          selectCustomer(newCust)
+        }
+      }
+    } catch {
+      setError('Network error')
+    } finally {
+      setNcCreating(false)
+    }
+  }
+
+  async function handleDocUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    const remaining = 10 - documents.length
+    if (remaining <= 0) { setError('Maximum 10 attachments allowed'); return }
+    const toUpload = Array.from(files).slice(0, remaining)
+
+    setDocUploading(true)
+    setError('')
+    const newDocs: DocAttachment[] = []
+
+    for (const file of toUpload) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(`/api/b/${businessId}/upload?type=document`, { method: 'POST', body: formData })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error || `Failed to upload ${file.name}`); continue }
+        newDocs.push({
+          filePath: data.filePath,
+          originalName: data.originalName,
+          mimeType: data.mimeType,
+          previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+        })
+      } catch {
+        setError(`Failed to upload ${file.name}`)
+      }
+    }
+
+    setDocuments(prev => [...prev, ...newDocs])
+    setDocUploading(false)
+    if (docInputRef.current) docInputRef.current.value = ''
+  }
+
+  async function handleCreateLoan(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+
+    if (!selectedCustomer) {
+      setError('Select a customer first')
+      return
+    }
+    if (loanAmount <= 0) { setError('Loan amount must be positive'); return }
+    if (installmentAmount <= 0) { setError('Installment amount must be positive'); return }
+    if (numInstallments <= 0) { setError('Number of installments must be positive'); return }
+    if (lastInstallment <= 0) { setError('Last installment would be zero or negative. Adjust amounts.'); return }
+
+    setCreating(true)
+    try {
+      const body: Record<string, unknown> = {
+        customerId: selectedCustomer.id,
+        loanAmount: loanAmount * 100,
+        interestAmount: interestAmount * 100,
+        collectionType,
+        installmentAmount: installmentAmount * 100,
+        numberOfInstallments: numInstallments,
+        startDate,
+      }
+      if (collectionDay && collectionType === 'WEEKLY') body.collectionDay = collectionDay
+      if (agentId) body.agentId = agentId
+      if (notes) body.notes = notes
+      if (documents.length > 0) {
+        body.documents = documents.map(d => ({ filePath: d.filePath, originalName: d.originalName, mimeType: d.mimeType }))
+      }
+
+      const res = await fetch(`/api/b/${businessId}/loans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.details) {
+          setError(Object.values(data.details).flat().join(', '))
+        } else {
+          setError(data.error || 'Failed to create loan')
+        }
+        return
+      }
+      router.push(`/b/${businessId}/customers/${selectedCustomer.id}`)
+    } catch {
+      setError('Network error')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
+
+  const statusColors: Record<string, string> = {
+    ACTIVE: 'bg-green-100 text-green-700',
+    OVERDUE: 'bg-red-100 text-red-700',
+    IN_GRACE: 'bg-yellow-100 text-yellow-700',
+    DEFAULTER: 'bg-red-200 text-red-800',
+    FROZEN: 'bg-blue-100 text-blue-700',
+  }
+
+  return (
+    <div className="px-4 py-6 max-w-lg mx-auto">
+      <h1 className="text-xl font-bold text-gray-900 mb-1">New Loan</h1>
+
+      {/* Step Indicator */}
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => setStep('customer')}
+          className={`text-sm font-medium px-3 py-1 rounded-full ${step === 'customer' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+        >
+          1. Customer
+        </button>
+        <div className="w-6 h-px bg-gray-300" />
+        <button
+          onClick={() => selectedCustomer && (activeLoans.length > 0 ? setStep('warning') : setStep('loan'))}
+          className={`text-sm font-medium px-3 py-1 rounded-full ${step === 'loan' || step === 'warning' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'} ${!selectedCustomer ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!selectedCustomer}
+        >
+          2. Loan Details
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>
+      )}
+
+      {/* Loading indicator when checking loans */}
+      {checkingLoans && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+        </div>
+      )}
+
+      {/* ─── STEP 1: Select or Create Customer ─── */}
+      {step === 'customer' && !checkingLoans && (
+        <div className="space-y-4">
+          {/* Selected customer banner */}
+          {selectedCustomer && !showNewCustomer && (
+            <div className="card p-3 border-primary-300 bg-primary-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary-200 text-primary-700 flex items-center justify-center text-sm font-bold">
+                    {selectedCustomer.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.fullName}</p>
+                    <p className="text-xs text-gray-500">{selectedCustomer.customerId} &middot; {selectedCustomer.phone} &middot; {selectedCustomer.village.name}</p>
+                  </div>
+                </div>
+                <button onClick={() => { setSelectedCustomer(null); setActiveLoans([]); setSearchQuery('') }} className="text-xs text-gray-500">Change</button>
+              </div>
+              <button onClick={() => selectCustomer(selectedCustomer)} className="btn-primary w-full mt-3 text-sm">
+                Continue to Loan Details &rarr;
+              </button>
+            </div>
+          )}
+
+          {/* Search existing customers */}
+          {!selectedCustomer && !showNewCustomer && (
+            <>
+              <div>
+                <label className="label">Search Existing Customer</label>
+                <input
+                  className="input"
+                  placeholder="Name, phone, or customer ID"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {filteredCustomers.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => selectCustomer(c)}
+                    className="w-full text-left card p-3 flex items-center gap-3 hover:border-primary-300 transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">
+                      {c.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{c.fullName}</p>
+                      <p className="text-xs text-gray-500">{c.customerId} &middot; {c.phone} &middot; {c.village.name}</p>
+                    </div>
+                  </button>
+                ))}
+                {filteredCustomers.length === 0 && searchQuery && (
+                  <p className="text-sm text-gray-400 text-center py-4">No matching customers found</p>
+                )}
+              </div>
+
+              <div className="text-center pt-2">
+                <button onClick={() => setShowNewCustomer(true)} className="text-sm text-primary-600 font-medium">
+                  + Create New Customer
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Inline new customer form */}
+          {showNewCustomer && (
+            <form onSubmit={handleCreateCustomer} className="card p-4 space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold text-gray-900">New Customer</h3>
+                <button type="button" onClick={() => setShowNewCustomer(false)} className="text-xs text-gray-500">Cancel</button>
+              </div>
+              <div>
+                <label className="label">Full Name *</label>
+                <input className="input" value={ncName} onChange={(e) => setNcName(e.target.value)} required />
+              </div>
+              <div>
+                <label className="label">Phone *</label>
+                <input className="input" value={ncPhone} onChange={(e) => setNcPhone(e.target.value)} placeholder="10-digit mobile" required />
+              </div>
+              <div>
+                <label className="label">Village *</label>
+                <select className="input" value={ncVillageId} onChange={(e) => setNcVillageId(e.target.value)} required>
+                  <option value="">Select village</option>
+                  {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Age</label>
+                  <input type="number" className="input" value={ncAge} onChange={(e) => setNcAge(e.target.value)} min={18} max={100} />
+                </div>
+                <div>
+                  <label className="label">Address</label>
+                  <input className="input" value={ncAddress} onChange={(e) => setNcAddress(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Guarantor Name</label>
+                  <input className="input" value={ncGuarantorName} onChange={(e) => setNcGuarantorName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Guarantor Phone</label>
+                  <input className="input" value={ncGuarantorPhone} onChange={(e) => setNcGuarantorPhone(e.target.value)} />
+                </div>
+              </div>
+              <button type="submit" disabled={ncCreating} className="btn-primary w-full text-sm">
+                {ncCreating ? 'Creating...' : 'Create Customer & Continue'}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* ─── ACTIVE LOAN WARNING ─── */}
+      {step === 'warning' && selectedCustomer && (
+        <div className="space-y-4">
+          {/* Warning banner */}
+          <div className="rounded-lg border-2 border-yellow-300 bg-yellow-50 p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-yellow-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-bold text-yellow-800">Active Loan Exists</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  <span className="font-semibold">{selectedCustomer.fullName}</span> already has {activeLoans.length} active loan{activeLoans.length > 1 ? 's' : ''}. Please choose how to proceed.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Existing active loans list */}
+          <div className="space-y-2">
+            {activeLoans.map((loan) => {
+              const parts = loan.startDate.split('-')
+              const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : loan.startDate
+              return (
+                <div key={loan.id} className="card p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{loan.loanNumber}</p>
+                    <p className="text-xs text-gray-500">Started {dateStr}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900">{formatPaiseShort(loan.totalRepayable)}</p>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[loan.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {loan.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* 3 Options */}
+          <div className="space-y-2 pt-2">
+            <button
+              onClick={() => setStep('loan')}
+              className="w-full text-left card p-4 hover:border-primary-300 transition-colors flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Proceed with New Loan</p>
+                <p className="text-xs text-gray-500">Create another loan for this customer alongside the existing one</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => router.back()}
+              className="w-full text-left card p-4 hover:border-danger-300 transition-colors flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Cancel Loan Application</p>
+                <p className="text-xs text-gray-500">Go back without creating a new loan</p>
+              </div>
+            </button>
+
+            {activeLoans.length === 1 ? (
+              <Link
+                href={`/b/${businessId}/loans/${activeLoans[0].id}/edit`}
+                className="w-full text-left card p-4 hover:border-blue-300 transition-colors flex items-center gap-3 block"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Edit Existing Loan ({activeLoans[0].loanNumber})</p>
+                  <p className="text-xs text-gray-500">Modify the current active loan instead of creating a new one</p>
+                </div>
+              </Link>
+            ) : (
+              <div className="card p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Edit an Existing Loan</p>
+                    <p className="text-xs text-gray-500">Select which loan to edit</p>
+                  </div>
+                </div>
+                <div className="space-y-1 pl-13">
+                  {activeLoans.map((loan) => (
+                    <Link
+                      key={loan.id}
+                      href={`/b/${businessId}/loans/${loan.id}/edit`}
+                      className="block text-sm text-primary-600 font-medium hover:underline py-1"
+                    >
+                      {loan.loanNumber} — {formatPaiseShort(loan.totalRepayable)}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Change customer link */}
+          <div className="text-center pt-2">
+            <button
+              onClick={() => { setSelectedCustomer(null); setActiveLoans([]); setSearchQuery(''); setStep('customer') }}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              &larr; Select a Different Customer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── STEP 2: Loan Details ─── */}
+      {step === 'loan' && selectedCustomer && (
+        <form onSubmit={handleCreateLoan} className="space-y-5">
+          {/* Customer summary */}
+          <div className="card p-3 bg-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold">
+                {selectedCustomer.fullName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{selectedCustomer.fullName}</p>
+                <p className="text-xs text-gray-500">{selectedCustomer.customerId} &middot; {selectedCustomer.village.name}</p>
+              </div>
+              <button type="button" onClick={() => { setStep('customer'); setActiveLoans([]) }} className="ml-auto text-xs text-primary-600">Change</button>
+            </div>
+          </div>
+
+          {/* Existing loan reminder if they chose to proceed */}
+          {activeLoans.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-700">
+              Note: This customer has {activeLoans.length} existing active loan{activeLoans.length > 1 ? 's' : ''}.
+            </div>
+          )}
+
+          {/* Amount Section */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Amount</h2>
+
+            <div>
+              <label className="label">Principal Amount (₹) *</label>
+              <input
+                type="number"
+                className="input text-lg font-semibold"
+                value={loanAmountStr}
+                onChange={(e) => handlePrincipalChange(e.target.value)}
+                placeholder="e.g. 10000"
+                min={1}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Interest Amount (₹)</label>
+              <input
+                type="number"
+                className="input"
+                value={interestAmountStr}
+                onChange={(e) => handleInterestChange(e.target.value)}
+                placeholder="e.g. 1000"
+                min={0}
+              />
+              {settings && (
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Interest model: {settings.interestModel === 'UPFRONT' ? 'Upfront (deducted from given amount)' : 'Add-on (added to repayable)'}
+                </p>
+              )}
+              {lastEdited === 'installment' && interestAmount > 0 && (
+                <p className="text-[10px] text-primary-500 mt-1">Auto-calculated from installment × count - principal</p>
+              )}
+            </div>
+
+            {/* Summary */}
+            {loanAmount > 0 && (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Total Repayable</span>
+                  <span className="font-bold text-gray-900">₹{totalRepayable.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Amount Given to Customer</span>
+                  <span className="font-semibold text-primary-700">₹{amountGiven.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Repayment Schedule */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Repayment Schedule</h2>
+
+            <div>
+              <label className="label">Collection Type *</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['DAILY', 'WEEKLY', 'MONTHLY'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setCollectionType(type)}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                      collectionType === type
+                        ? 'bg-primary-600 text-white border-primary-600'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {collectionType === 'WEEKLY' && (
+              <div>
+                <label className="label">Collection Day</label>
+                <select className="input" value={collectionDay} onChange={(e) => setCollectionDay(e.target.value)}>
+                  <option value="">Select day</option>
+                  {days.map((d) => <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="label">Start Date *</label>
+              <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+
+            <div>
+              <label className="label">Number of Installments *</label>
+              <input
+                type="number"
+                className="input"
+                value={numInstallmentsStr}
+                onChange={(e) => handleNumInstallmentsChange(e.target.value)}
+                placeholder="e.g. 22"
+                min={1}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Installment Amount (₹) *</label>
+              <input
+                type="number"
+                className="input"
+                value={installmentStr}
+                onChange={(e) => handleInstallmentChange(e.target.value)}
+                placeholder="e.g. 500"
+                min={1}
+                required
+              />
+              {lastEdited === 'interest' && installmentAmount > 0 && (
+                <p className="text-[10px] text-primary-500 mt-1">Auto-calculated from total ÷ installments</p>
+              )}
+            </div>
+
+            {/* Schedule Preview */}
+            {installmentAmount > 0 && numInstallments > 0 && totalRepayable > 0 && (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Installment x Count</span>
+                  <span className="text-gray-900">₹{installmentAmount.toLocaleString('en-IN')} x {numInstallments}</span>
+                </div>
+                {lastInstallment !== installmentAmount && lastInstallment > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Last Installment</span>
+                    <span className="text-gray-900">₹{lastInstallment.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold">
+                  <span className="text-gray-700">Schedule Total</span>
+                  <span className={installmentAmount * (numInstallments - 1) + lastInstallment === totalRepayable ? 'text-success-600' : 'text-danger-600'}>
+                    ₹{(installmentAmount * (numInstallments - 1) + lastInstallment).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Agent & Notes */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional</h2>
+
+            {agents.length > 0 && (
+              <div>
+                <label className="label">Assigned Agent</label>
+                <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
+                  <option value="">No agent (Owner collects)</option>
+                  {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="label">Notes</label>
+              <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional loan notes" />
+            </div>
+
+            {/* Document Attachments */}
+            <div>
+              <label className="label">Attachments (ID proof, agreement, photos)</label>
+              <input
+                ref={docInputRef}
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => handleDocUpload(e.target.files)}
+              />
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  disabled={docUploading || documents.length >= 10}
+                  onClick={() => { if (docInputRef.current) { docInputRef.current.removeAttribute('capture'); docInputRef.current.click() } }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {docUploading ? 'Uploading...' : 'Add Files'}
+                </button>
+                <button
+                  type="button"
+                  disabled={docUploading || documents.length >= 10}
+                  onClick={() => { if (docInputRef.current) { docInputRef.current.setAttribute('capture', 'environment'); docInputRef.current.click() } }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Camera
+                </button>
+                <span className="text-[10px] text-gray-400 self-center">{documents.length}/10</span>
+              </div>
+
+              {documents.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {documents.map((doc, idx) => (
+                    <div key={idx} className="relative group rounded-lg border border-gray-200 overflow-hidden">
+                      {doc.previewUrl ? (
+                        <img src={doc.previewUrl} alt={doc.originalName} className="w-full h-20 object-cover" />
+                      ) : (
+                        <div className="w-full h-20 bg-gray-50 flex flex-col items-center justify-center">
+                          <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                          </svg>
+                          <span className="text-[9px] text-gray-500 mt-0.5 px-1 truncate max-w-full">PDF</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setDocuments(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs opacity-80 hover:opacity-100"
+                      >
+                        ×
+                      </button>
+                      <p className="text-[9px] text-gray-500 px-1 py-0.5 truncate">{doc.originalName}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-3">
+            <button type="submit" disabled={creating} className="btn-primary flex-1">
+              {creating ? 'Creating Loan...' : 'Create Loan'}
+            </button>
+            <button type="button" onClick={() => router.back()} className="btn-secondary flex-1">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
