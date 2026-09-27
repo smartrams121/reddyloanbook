@@ -25,6 +25,7 @@ export async function GET(request: Request, { params }: Props) {
   const startDate = searchParams.get('from')
   const endDate = searchParams.get('to')
   const villageId = searchParams.get('villageId')
+  const statuses = searchParams.get('statuses')
 
   if (!startDate || !endDate) {
     return NextResponse.json({ error: 'from and to dates are required' }, { status: 400 })
@@ -34,7 +35,7 @@ export async function GET(request: Request, { params }: Props) {
     case 'customers':
       return getCustomersReport(businessId, startDate, endDate)
     case 'loans':
-      return getLoansReport(businessId, startDate, endDate)
+      return getLoansReport(businessId, startDate, endDate, statuses)
     case 'villages':
       if (villageId) return getVillageCustomersReport(businessId, villageId, startDate, endDate)
       return getVillagesReport(businessId, startDate, endDate)
@@ -90,12 +91,35 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
   })
 }
 
-async function getLoansReport(businessId: string, from: string, to: string) {
+const ACTIVE_STATUSES = ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER']
+
+function loanHealth(expectedEndDate: string, status: string): string {
+  if (!ACTIVE_STATUSES.includes(status)) return '-'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(expectedEndDate + 'T00:00:00')
+  const due30 = new Date(due)
+  due30.setDate(due30.getDate() + 30)
+  if (today <= due) return 'On Track'
+  if (today <= due30) return 'Overdue'
+  return 'Critical'
+}
+
+async function getLoansReport(businessId: string, from: string, to: string, statuses: string | null) {
+  const where: Record<string, unknown> = {
+    businessId,
+    startDate: { gte: from, lte: to },
+  }
+
+  if (statuses) {
+    const statusList = statuses.split(',').map((s) => s.trim()).filter(Boolean)
+    if (statusList.length > 0) {
+      where.status = { in: statusList }
+    }
+  }
+
   const loans = await prisma.loan.findMany({
-    where: {
-      businessId,
-      startDate: { gte: from, lte: to },
-    },
+    where,
     include: {
       customer: { select: { customerId: true, fullName: true, phone: true, village: { select: { name: true } } } },
       agent: { select: { fullName: true } },
@@ -120,9 +144,11 @@ async function getLoansReport(businessId: string, from: string, to: string) {
       totalPaid: totalPaid / 100,
       outstanding: (l.totalRepayable - totalPaid) / 100,
       status: l.status,
+      healthStatus: loanHealth(l.expectedEndDate, l.status),
       collectionType: l.collectionType,
       agent: l.agent?.fullName || '-',
       startDate: l.startDate,
+      dueDate: l.expectedEndDate,
     }
   })
 
@@ -144,9 +170,11 @@ async function getLoansReport(businessId: string, from: string, to: string) {
       { key: 'totalPaid', label: 'Paid (₹)' },
       { key: 'outstanding', label: 'Outstanding (₹)' },
       { key: 'status', label: 'Status' },
+      { key: 'healthStatus', label: 'Health' },
       { key: 'collectionType', label: 'Collection' },
       { key: 'agent', label: 'Agent' },
       { key: 'startDate', label: 'Start Date' },
+      { key: 'dueDate', label: 'Due Date' },
     ],
     rows,
   })
@@ -164,6 +192,7 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
           loans: {
             where: { status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
             select: {
+              loanAmount: true,
               installmentAmount: true,
               payments: {
                 where: { isDeleted: false, paymentDate: { gte: from, lte: to } },
@@ -181,12 +210,14 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
     const activeCustomers = v.customers.filter((c) => c.status === 'ACTIVE').length
     const totalCustomers = v.customers.length
     let activeLoans = 0
+    let loanGivenTotal = 0
     let expectedTotal = 0
     let collectedTotal = 0
 
     v.customers.forEach((c) => {
       c.loans.forEach((l) => {
         activeLoans++
+        loanGivenTotal += l.loanAmount
         expectedTotal += l.installmentAmount
         collectedTotal += l.payments.reduce((s, p) => s + p.amount, 0)
       })
@@ -197,9 +228,9 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
       totalCustomers,
       activeCustomers,
       activeLoans,
+      loanGiven: loanGivenTotal / 100,
       expected: expectedTotal / 100,
       collected: collectedTotal / 100,
-      pending: (expectedTotal - collectedTotal) / 100,
     }
   })
 
@@ -213,9 +244,9 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
       { key: 'totalCustomers', label: 'Total Customers' },
       { key: 'activeCustomers', label: 'Active Customers' },
       { key: 'activeLoans', label: 'Active Loans' },
+      { key: 'loanGiven', label: 'Loan Given (₹)' },
       { key: 'expected', label: 'Expected (₹)' },
       { key: 'collected', label: 'Collected (₹)' },
-      { key: 'pending', label: 'Pending (₹)' },
     ],
     rows,
   })
@@ -305,9 +336,12 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
           phone: true,
           role: true,
           isActive: true,
+          villageAssignments: {
+            include: { village: { select: { name: true } } },
+          },
           assignedLoans: {
             where: { businessId, status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
-            select: { id: true },
+            select: { id: true, loanAmount: true },
           },
           collectedPayments: {
             where: { businessId, isDeleted: false, paymentDate: { gte: from, lte: to } },
@@ -321,12 +355,19 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
   const rows = assignments.map((a) => {
     const u = a.user
     const totalCollected = u.collectedPayments.reduce((s, p) => s + p.amount, 0)
+    const totalLoanGiven = u.assignedLoans.reduce((s, l) => s + l.loanAmount, 0)
+    const villageNames = u.villageAssignments
+      .map((va) => va.village?.name)
+      .filter(Boolean)
+      .join(', ')
     return {
       name: u.fullName,
       phone: u.phone || '-',
+      village: villageNames || '-',
       role: u.role.replace(/_/g, ' '),
       status: u.isActive ? 'Active' : 'Inactive',
       assignedLoans: u.assignedLoans.length,
+      loanAmountGiven: totalLoanGiven / 100,
       paymentsCollected: u.collectedPayments.length,
       amountCollected: totalCollected / 100,
     }
@@ -340,9 +381,11 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'phone', label: 'Phone' },
+      { key: 'village', label: 'Village' },
       { key: 'role', label: 'Role' },
       { key: 'status', label: 'Status' },
       { key: 'assignedLoans', label: 'Assigned Loans' },
+      { key: 'loanAmountGiven', label: 'Loan Given (₹)' },
       { key: 'paymentsCollected', label: 'Payments Collected' },
       { key: 'amountCollected', label: 'Amount Collected (₹)' },
     ],

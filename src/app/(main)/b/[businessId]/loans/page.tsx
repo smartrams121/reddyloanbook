@@ -2,13 +2,14 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
-import { formatPaiseShort } from '@/lib/money'
-import { formatDateDisplay } from '@/lib/date'
 import Link from 'next/link'
+
+import SearchBox from '../customers/SearchBox'
+import LoanListClient from './LoanListClient'
 
 interface Props {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; health?: string; search?: string }>
 }
 
 const STATUS_FILTERS = [
@@ -22,20 +23,23 @@ const STATUS_FILTERS = [
 
 const ACTIVE_STATUSES = ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER']
 
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case 'ACTIVE': return 'bg-success-50 text-success-700'
-    case 'OVERDUE':
-    case 'IN_GRACE': return 'bg-warning-50 text-warning-700'
-    case 'DEFAULTER': return 'bg-danger-50 text-danger-700'
-    case 'FROZEN': return 'bg-blue-50 text-blue-700'
-    case 'INACTIVE': return 'bg-gray-100 text-gray-500'
-    case 'COMPLETED':
-    case 'COMPLETED_RENEWED':
-    case 'SETTLED': return 'bg-primary-50 text-primary-700'
-    case 'WRITTEN_OFF': return 'bg-red-50 text-red-700'
-    default: return 'bg-gray-100 text-gray-500'
+function loanHealthColor(expectedEndDate: string, status: string): { key: string; border: string; label: string; labelClass: string } {
+  if (!ACTIVE_STATUSES.includes(status)) {
+    return { key: '', border: '', label: '', labelClass: '' }
   }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(expectedEndDate + 'T00:00:00')
+  const due30 = new Date(due)
+  due30.setDate(due30.getDate() + 30)
+
+  if (today <= due) {
+    return { key: 'green', border: 'border-l-4 border-l-green-500', label: 'On Track', labelClass: 'bg-green-100 text-green-700' }
+  }
+  if (today <= due30) {
+    return { key: 'amber', border: 'border-l-4 border-l-amber-500', label: 'Overdue', labelClass: 'bg-amber-100 text-amber-700' }
+  }
+  return { key: 'red', border: 'border-l-4 border-l-red-500', label: 'Critical', labelClass: 'bg-red-100 text-red-700' }
 }
 
 export default async function LoansPage({ params, searchParams }: Props) {
@@ -62,6 +66,18 @@ export default async function LoansPage({ params, searchParams }: Props) {
     where.status = filters.status
   }
 
+  const searchQuery = filters.search?.trim().toLowerCase()
+  if (searchQuery) {
+    where.OR = [
+      { loanNumber: { contains: searchQuery } },
+      { customer: { fullName: { contains: searchQuery } } },
+      { customer: { phone: { contains: searchQuery } } },
+      { customer: { customerId: { contains: searchQuery } } },
+      { customer: { guarantorName: { contains: searchQuery } } },
+      { agent: { fullName: { contains: searchQuery } } },
+    ]
+  }
+
   const loans = await prisma.loan.findMany({
     where,
     include: {
@@ -79,26 +95,54 @@ export default async function LoansPage({ params, searchParams }: Props) {
   })
   const paidMap = new Map(paidPerLoan.map((p) => [p.loanId, p._sum.amount || 0]))
 
+  const loansWithHealth = loans.map((loan) => ({
+    ...loan,
+    health: loanHealthColor(loan.expectedEndDate, loan.status),
+  }))
+
+  const healthFilter = filters.health || ''
+  const filteredLoans = healthFilter
+    ? loansWithHealth.filter((l) => l.health.key === healthFilter)
+    : loansWithHealth
+
+  const healthCounts = { green: 0, amber: 0, red: 0 }
+  loansWithHealth.forEach((l) => {
+    if (l.health.key === 'green') healthCounts.green++
+    else if (l.health.key === 'amber') healthCounts.amber++
+    else if (l.health.key === 'red') healthCounts.red++
+  })
+
+  function buildUrl(statusKey: string, healthKey: string) {
+    const parts: string[] = []
+    if (statusKey) parts.push(`status=${statusKey}`)
+    if (healthKey) parts.push(`health=${healthKey}`)
+    if (searchQuery) parts.push(`search=${encodeURIComponent(searchQuery)}`)
+    return `/b/${businessId}/loans${parts.length ? '?' + parts.join('&') : ''}`
+  }
+
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Loans</h1>
-          <p className="text-sm text-gray-500">{business?.name} &middot; {loans.length} loans</p>
+          <p className="text-sm text-gray-500">{business?.name} &middot; {filteredLoans.length} loans</p>
         </div>
         <Link href={`/b/${businessId}/loans/new`} className="btn-primary text-sm">
           + New Loan
         </Link>
       </div>
 
+      {/* Search */}
+      <SearchBox initialQuery={filters.search || ''} />
+
       {/* Status Filters */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+      <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
         {STATUS_FILTERS.map((f) => {
           const active = (filters.status || '') === f.key
           return (
             <Link
               key={f.key}
-              href={`/b/${businessId}/loans${f.key ? `?status=${f.key}` : ''}`}
+              href={buildUrl(f.key, healthFilter)}
               className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                 active
                   ? (f.activeClass || 'bg-primary-600 text-white')
@@ -111,65 +155,56 @@ export default async function LoansPage({ params, searchParams }: Props) {
         })}
       </div>
 
-      {/* Loan List */}
-      <div className="space-y-2">
-        {loans.map((loan) => {
-          const paid = paidMap.get(loan.id) || 0
-          const outstanding = loan.totalRepayable - paid
-          const progress = loan.totalRepayable > 0 ? Math.round((paid / loan.totalRepayable) * 100) : 0
-
-          return (
-            <Link
-              key={loan.id}
-              href={`/b/${businessId}/customers/${loan.customer.id}`}
-              className="card p-3 block hover:border-primary-300 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{loan.customer.fullName}</p>
-                  <p className="text-xs text-gray-500">
-                    {loan.loanNumber} &middot; {loan.customer.phone}
-                    {loan.agent ? ` &middot; ${loan.agent.fullName}` : ''}
-                  </p>
-                </div>
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ml-2 ${statusBadgeClass(loan.status)}`}>
-                  {loan.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                <span>Lent: {formatPaiseShort(loan.amountGiven)}</span>
-                <span>Repayable: {formatPaiseShort(loan.totalRepayable)}</span>
-                <span>Due: {formatPaiseShort(outstanding)}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${progress >= 100 ? 'bg-success-500' : 'bg-primary-500'}`}
-                    style={{ width: `${Math.min(100, progress)}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 shrink-0">{progress}%</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1.5">
-                <span>{loan.collectionType} &middot; {formatPaiseShort(loan.installmentAmount)}/inst</span>
-                <span>Started {formatDateDisplay(loan.startDate)}</span>
-              </div>
-            </Link>
-          )
-        })}
-
-        {loans.length === 0 && (
-          <div className="card p-8 text-center">
-            <p className="text-gray-500 mb-4">No loans found.</p>
-            <Link href={`/b/${businessId}/loans/new`} className="btn-primary">
-              Create First Loan
-            </Link>
-          </div>
-        )}
+      {/* Health Status Filter */}
+      <div className="flex gap-2 mb-4 items-center">
+        <span className="text-xs text-gray-500 font-medium">Health:</span>
+        <Link
+          href={buildUrl(filters.status || '', '')}
+          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${!healthFilter ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          All
+        </Link>
+        <Link
+          href={buildUrl(filters.status || '', 'green')}
+          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${healthFilter === 'green' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+        >
+          On Track ({healthCounts.green})
+        </Link>
+        <Link
+          href={buildUrl(filters.status || '', 'amber')}
+          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${healthFilter === 'amber' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
+        >
+          Overdue ({healthCounts.amber})
+        </Link>
+        <Link
+          href={buildUrl(filters.status || '', 'red')}
+          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${healthFilter === 'red' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
+        >
+          Critical ({healthCounts.red})
+        </Link>
       </div>
+
+      {/* Loan List with Bulk Actions */}
+      <LoanListClient
+        businessId={businessId}
+        loans={filteredLoans.map((loan) => ({
+          id: loan.id,
+          loanNumber: loan.loanNumber,
+          loanAmount: loan.loanAmount,
+          amountGiven: loan.amountGiven,
+          totalRepayable: loan.totalRepayable,
+          installmentAmount: loan.installmentAmount,
+          collectionType: loan.collectionType,
+          startDate: loan.startDate,
+          expectedEndDate: loan.expectedEndDate,
+          status: loan.status,
+          pausedAt: loan.pausedAt,
+          customer: loan.customer,
+          agent: loan.agent,
+          health: loan.health,
+          paid: paidMap.get(loan.id) || 0,
+        }))}
+      />
     </div>
   )
 }

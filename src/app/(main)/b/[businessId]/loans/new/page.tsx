@@ -311,6 +311,18 @@ export default function NewLoanPage() {
     }
   }
 
+  const computedDueDate = useMemo(() => {
+    if (!startDate || numInstallments <= 0) return ''
+    const d = new Date(startDate + 'T00:00:00')
+    if (isNaN(d.getTime())) return ''
+    for (let i = 0; i < numInstallments; i++) {
+      if (collectionType === 'DAILY') d.setDate(d.getDate() + 1)
+      else if (collectionType === 'WEEKLY') d.setDate(d.getDate() + 7)
+      else d.setMonth(d.getMonth() + 1)
+    }
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+  }, [startDate, numInstallments, collectionType])
+
   const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
   const statusColors: Record<string, string> = {
@@ -761,23 +773,36 @@ export default function NewLoanPage() {
                     ₹{(installmentAmount * (numInstallments - 1) + lastInstallment).toLocaleString('en-IN')}
                   </span>
                 </div>
+                {computedDueDate && (
+                  <div className="flex justify-between pt-1 border-t border-gray-200">
+                    <span className="text-gray-500">Due Date</span>
+                    <span className="font-semibold text-primary-700">{computedDueDate}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Agent & Notes */}
+          {/* Agent Assignment */}
           <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Agent</h2>
 
-            {agents.length > 0 && (
-              <div>
-                <label className="label">Assigned Agent</label>
+            <div>
+              <label className="label">Who is giving this loan?</label>
+              {agents.length > 0 ? (
                 <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                  <option value="">No agent (Owner collects)</option>
+                  <option value="">Select agent</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
                 </select>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-gray-400 py-2">No agents assigned to this business. Add agents from the Team page.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Notes & Attachments */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional</h2>
 
             <div>
               <label className="label">Notes</label>

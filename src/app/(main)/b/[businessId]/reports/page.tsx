@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 
 interface Column { key: string; label: string }
@@ -46,6 +46,19 @@ export default function ReportsPage() {
 
   const [villages, setVillages] = useState<{ id: string; name: string }[]>([])
   const [villageId, setVillageId] = useState('')
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
+  const statusDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        setStatusDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const [columns, setColumns] = useState<Column[]>([])
   const [rows, setRows] = useState<Record<string, unknown>[]>([])
@@ -85,6 +98,7 @@ export default function ReportsPage() {
     try {
       let url = `/api/b/${businessId}/reports?entity=${entity}&from=${from}&to=${to}`
       if (entity === 'villages' && villageId) url += `&villageId=${villageId}`
+      if (entity === 'loans' && selectedStatuses.size > 0) url += `&statuses=${Array.from(selectedStatuses).join(',')}`
       const res = await fetch(url)
       const data = await res.json()
       if (!res.ok) {
@@ -102,10 +116,16 @@ export default function ReportsPage() {
     }
   }
 
-  function handleDownload(format: 'xlsx' | 'pdf') {
+  function buildDownloadUrl(format: 'xlsx' | 'pdf') {
     const { from, to } = getDateRange()
     let url = `/api/b/${businessId}/reports/download?entity=${entity}&from=${from}&to=${to}&format=${format}`
     if (entity === 'villages' && villageId) url += `&villageId=${villageId}`
+    if (entity === 'loans' && selectedStatuses.size > 0) url += `&statuses=${Array.from(selectedStatuses).join(',')}`
+    return url
+  }
+
+  function handleDownload(format: 'xlsx' | 'pdf') {
+    const url = buildDownloadUrl(format)
 
     if (format === 'pdf') {
       window.open(url, '_blank')
@@ -114,6 +134,51 @@ export default function ReportsPage() {
       a.href = url
       a.download = `${entity}_report_${from}_${to}.xlsx`
       a.click()
+    }
+  }
+
+  const [sharing, setSharing] = useState(false)
+
+  async function handleWhatsAppShare(format: 'xlsx' | 'pdf') {
+    const { from, to } = getDateRange()
+    const url = buildDownloadUrl(format)
+
+    const ext = format === 'pdf' ? 'pdf' : 'xlsx'
+    const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    const fileName = `${entity}_report_${formatDD(from).replace(/\//g, '-')}_to_${formatDD(to).replace(/\//g, '-')}.${ext}`
+
+    setSharing(true)
+    setError('')
+
+    try {
+      const res = await fetch(url)
+      if (!res.ok) { setError('Failed to generate report'); return }
+      const blob = await res.blob()
+      const file = new File([blob], fileName, { type: mime })
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${entity.charAt(0).toUpperCase() + entity.slice(1)} Report`,
+          text: `${entity.charAt(0).toUpperCase() + entity.slice(1)} Report (${formatDD(from)} – ${formatDD(to)})`,
+          files: [file],
+        })
+      } else {
+        const blobUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.download = fileName
+        a.click()
+        URL.revokeObjectURL(blobUrl)
+
+        const text = encodeURIComponent(`${entity.charAt(0).toUpperCase() + entity.slice(1)} Report (${formatDD(from)} – ${formatDD(to)})`)
+        window.open(`https://wa.me/?text=${text}`, '_blank')
+      }
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        setError('Failed to share report')
+      }
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -182,13 +247,100 @@ export default function ReportsPage() {
           <select
             className="input"
             value={entity}
-            onChange={(e) => { setEntity(e.target.value as Entity); setViewed(false); setVillageId('') }}
+            onChange={(e) => { setEntity(e.target.value as Entity); setViewed(false); setVillageId(''); setSelectedStatuses(new Set()) }}
           >
             {entities.map((e) => (
               <option key={e.value} value={e.value}>{e.label}</option>
             ))}
           </select>
         </div>
+
+        {/* Status multi-select — shown when entity is Loans */}
+        {entity === 'loans' && (
+          <div>
+            <label className="label">Status Filter</label>
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                className="input text-left flex items-center justify-between w-full"
+              >
+                <span className={selectedStatuses.size === 0 ? 'text-gray-400' : 'text-gray-900'}>
+                  {selectedStatuses.size === 0
+                    ? 'All Statuses'
+                    : Array.from(selectedStatuses).map(s => s.replace(/_/g, ' ')).join(', ')}
+                </span>
+                <svg className={`w-4 h-4 text-gray-400 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              {statusDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
+                  {[
+                    'ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN', 'INACTIVE',
+                    'COMPLETED', 'COMPLETED_RENEWED', 'SETTLED', 'WRITTEN_OFF',
+                  ].map((s) => {
+                    const checked = selectedStatuses.has(s)
+                    return (
+                      <label key={s} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setSelectedStatuses((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(s)) next.delete(s)
+                              else next.add(s)
+                              return next
+                            })
+                            setViewed(false)
+                          }}
+                          className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-gray-700">{s.replace(/_/g, ' ')}</span>
+                      </label>
+                    )
+                  })}
+                  {selectedStatuses.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedStatuses(new Set()); setViewed(false) }}
+                      className="w-full text-left px-3 py-2 text-xs text-primary-600 hover:bg-gray-50 border-t border-gray-100"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedStatuses.size > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {Array.from(selectedStatuses).map((s) => (
+                  <span
+                    key={s}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700"
+                  >
+                    {s.replace(/_/g, ' ')}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatuses((prev) => {
+                          const next = new Set(prev)
+                          next.delete(s)
+                          return next
+                        })
+                        setViewed(false)
+                      }}
+                      className="text-primary-400 hover:text-primary-600"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Village selector — shown when entity is Villages */}
         {entity === 'villages' && (
@@ -257,6 +409,31 @@ export default function ReportsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 12c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c-.621 0-1.125-.504-1.125-1.125v-1.5" />
             </svg>
             XLSX
+          </button>
+        </div>
+
+        {/* WhatsApp Share */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => handleWhatsAppShare('pdf')}
+            disabled={loading || sharing}
+            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] transition-colors disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            </svg>
+            {sharing ? 'Sharing...' : 'Share PDF'}
+          </button>
+
+          <button
+            onClick={() => handleWhatsAppShare('xlsx')}
+            disabled={loading || sharing}
+            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] transition-colors disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            </svg>
+            {sharing ? 'Sharing...' : 'Share XLSX'}
           </button>
         </div>
       </div>

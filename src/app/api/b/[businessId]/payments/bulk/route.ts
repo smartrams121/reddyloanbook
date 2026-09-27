@@ -17,6 +17,8 @@ const bulkPaymentSchema = z.object({
     loanId: z.string().min(1),
     amount: z.number().int().positive(),
   })).min(1).max(200),
+  paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  collectorId: z.string().min(1).optional(),
 })
 
 export async function POST(request: Request, { params }: Props) {
@@ -41,7 +43,32 @@ export async function POST(request: Request, { params }: Props) {
   }
 
   const { payments: entries } = parsed.data
-  const paymentDate = todayIST()
+  const today = todayIST()
+  const paymentDate = parsed.data.paymentDate || today
+  let collector = user.id
+  if (parsed.data.collectorId) {
+    const assignment = await prisma.userBusinessAssignment.findFirst({
+      where: { userId: parsed.data.collectorId, businessId },
+    })
+    if (!assignment) {
+      return NextResponse.json({ error: 'Selected collector is not assigned to this business' }, { status: 400 })
+    }
+    collector = parsed.data.collectorId
+  }
+
+  const todayDate = new Date(today + 'T00:00:00')
+  const payDate = new Date(paymentDate + 'T00:00:00')
+  if (isNaN(payDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid payment date' }, { status: 400 })
+  }
+  if (payDate > todayDate) {
+    return NextResponse.json({ error: 'Payment date cannot be in the future' }, { status: 400 })
+  }
+  const minDate = new Date(todayDate)
+  minDate.setMonth(minDate.getMonth() - 1)
+  if (payDate < minDate) {
+    return NextResponse.json({ error: 'Payment date cannot be more than 1 month in the past' }, { status: 400 })
+  }
   const count = entries.length
 
   const results = await prisma.$transaction(async (tx) => {
@@ -67,6 +94,11 @@ export async function POST(request: Request, { params }: Props) {
         throw new Error(`Loan ${loan.loanNumber} is ${loan.status.replace(/_/g, ' ').toLowerCase()} — cannot post payment`)
       }
 
+      const loanStartDate = new Date(loan.startDate + 'T00:00:00')
+      if (payDate < loanStartDate) {
+        throw new Error(`Posting date is older than loan creation date for ${loan.loanNumber}. Please change the posting date.`)
+      }
+
       const paidAgg = await tx.payment.aggregate({
         where: { loanId, isDeleted: false },
         _sum: { amount: true },
@@ -86,7 +118,7 @@ export async function POST(request: Request, { params }: Props) {
           businessId,
           amount,
           paymentDate,
-          collectorId: user.id,
+          collectorId: collector,
         },
       })
 

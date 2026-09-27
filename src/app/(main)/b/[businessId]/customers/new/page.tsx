@@ -8,6 +8,8 @@ interface Village {
   name: string
 }
 
+const DEFAULT_JOB_TYPES = ['Shop', 'Business', 'Farmer', 'Labour', 'Driver', 'Others']
+
 export default function NewCustomerPage() {
   const params = useParams()
   const router = useRouter()
@@ -21,6 +23,9 @@ export default function NewCustomerPage() {
   const [villageId, setVillageId] = useState('')
   const [address, setAddress] = useState('')
   const [aadhaar, setAadhaar] = useState('')
+  const [jobType, setJobType] = useState('')
+  const [customJobType, setCustomJobType] = useState('')
+  const [jobTypes, setJobTypes] = useState<string[]>(DEFAULT_JOB_TYPES)
   const [guarantorName, setGuarantorName] = useState('')
   const [guarantorPhone, setGuarantorPhone] = useState('')
   const [notes, setNotes] = useState('')
@@ -32,11 +37,33 @@ export default function NewCustomerPage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [showNewVillage, setShowNewVillage] = useState(false)
+  const [newVillageName, setNewVillageName] = useState('')
+  const [creatingVillage, setCreatingVillage] = useState(false)
+  const [villageError, setVillageError] = useState('')
+
+  const [showNewJobType, setShowNewJobType] = useState(false)
+
   useEffect(() => {
     fetch(`/api/b/${businessId}/villages`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setVillages(data)
+      })
+      .catch(() => {})
+
+    fetch(`/api/b/${businessId}/customers`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const existing = new Set(DEFAULT_JOB_TYPES)
+          data.forEach((c: { jobType?: string }) => {
+            if (c.jobType && !existing.has(c.jobType)) {
+              existing.add(c.jobType)
+            }
+          })
+          setJobTypes(Array.from(existing))
+        }
       })
       .catch(() => {})
   }, [businessId])
@@ -48,6 +75,8 @@ export default function NewCustomerPage() {
     setAge('')
     setAddress('')
     setAadhaar('')
+    setJobType('')
+    setCustomJobType('')
     setGuarantorName('')
     setGuarantorPhone('')
     setNotes('')
@@ -83,7 +112,56 @@ export default function NewCustomerPage() {
     }
   }
 
-  async function handleSubmit(continueAdding: boolean) {
+  async function createVillage() {
+    if (!newVillageName.trim()) return
+    setVillageError('')
+    setCreatingVillage(true)
+
+    try {
+      const res = await fetch(`/api/b/${businessId}/villages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newVillageName.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setVillageError(data.error || 'Failed to create village')
+        return
+      }
+      setVillages(prev => [...prev, { id: data.id, name: data.name }])
+      setVillageId(data.id)
+      setNewVillageName('')
+      setShowNewVillage(false)
+    } catch {
+      setVillageError('Network error')
+    } finally {
+      setCreatingVillage(false)
+    }
+  }
+
+  function handleJobTypeChange(value: string) {
+    if (value === '__new__') {
+      setShowNewJobType(true)
+      setJobType('')
+    } else {
+      setShowNewJobType(false)
+      setCustomJobType('')
+      setJobType(value)
+    }
+  }
+
+  function addCustomJobType() {
+    const name = customJobType.trim()
+    if (!name) return
+    if (!jobTypes.includes(name)) {
+      setJobTypes(prev => [...prev, name])
+    }
+    setJobType(name)
+    setCustomJobType('')
+    setShowNewJobType(false)
+  }
+
+  async function handleSubmit(action: 'back' | 'continue' | 'loan') {
     setError('')
     setSuccess('')
     setLoading(true)
@@ -98,6 +176,7 @@ export default function NewCustomerPage() {
       if (age) body.age = parseInt(age, 10)
       if (address) body.address = address
       if (aadhaar) body.aadhaar = aadhaar
+      if (jobType) body.jobType = jobType
       if (guarantorName) body.guarantorName = guarantorName
       if (guarantorPhone) body.guarantorPhone = guarantorPhone
       if (notes) body.notes = notes
@@ -120,9 +199,11 @@ export default function NewCustomerPage() {
         return
       }
 
-      if (continueAdding) {
-        setSuccess(`${fullName} created. Add next customer.`)
+      if (action === 'continue') {
+        setSuccess(`${fullName} created (${data.customerId}). Add next customer.`)
         resetForm()
+      } else if (action === 'loan') {
+        router.push(`/b/${businessId}/loans/new?customerId=${data.id}`)
       } else {
         router.push(`/b/${businessId}/customers`)
       }
@@ -138,7 +219,7 @@ export default function NewCustomerPage() {
       <h1 className="text-xl font-bold text-gray-900 mb-1">New Customer</h1>
       <p className="text-sm text-gray-500 mb-6">Register a new customer</p>
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(false) }} className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit('back') }} className="space-y-4">
         {success && (
           <div className="bg-success-50 text-success-700 text-sm px-4 py-3 rounded-lg">{success}</div>
         )}
@@ -207,14 +288,57 @@ export default function NewCustomerPage() {
           <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile" required />
         </div>
 
+        {/* Village with inline creation */}
         <div>
           <label className="label">Village *</label>
-          <select className="input" value={villageId} onChange={(e) => setVillageId(e.target.value)} required>
-            <option value="">Select village</option>
-            {villages.map((v) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
-          </select>
+          {!showNewVillage ? (
+            <div className="flex gap-2">
+              <select className="input flex-1" value={villageId} onChange={(e) => setVillageId(e.target.value)} required>
+                <option value="">Select village</option>
+                {villages.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowNewVillage(true)}
+                className="text-xs px-3 py-1.5 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors whitespace-nowrap"
+              >
+                + New
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  value={newVillageName}
+                  onChange={(e) => setNewVillageName(e.target.value)}
+                  placeholder="Enter new village name"
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createVillage() } }}
+                />
+                <button
+                  type="button"
+                  onClick={createVillage}
+                  disabled={creatingVillage || !newVillageName.trim()}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {creatingVillage ? 'Creating...' : 'Create'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowNewVillage(false); setNewVillageName(''); setVillageError('') }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              {villageError && (
+                <p className="text-xs text-danger-600">{villageError}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -226,6 +350,46 @@ export default function NewCustomerPage() {
             <label className="label">Alt Phone</label>
             <input className="input" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} />
           </div>
+        </div>
+
+        {/* Job Type with inline creation */}
+        <div>
+          <label className="label">Job Type</label>
+          {!showNewJobType ? (
+            <select className="input" value={jobType} onChange={(e) => handleJobTypeChange(e.target.value)}>
+              <option value="">Select job type</option>
+              {jobTypes.map((jt) => (
+                <option key={jt} value={jt}>{jt}</option>
+              ))}
+              <option value="__new__">+ Add New Job Type</option>
+            </select>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                className="input flex-1"
+                value={customJobType}
+                onChange={(e) => setCustomJobType(e.target.value)}
+                placeholder="Enter new job type"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomJobType() } }}
+              />
+              <button
+                type="button"
+                onClick={addCustomJobType}
+                disabled={!customJobType.trim()}
+                className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowNewJobType(false); setCustomJobType('') }}
+                className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
 
         <div>
@@ -254,14 +418,24 @@ export default function NewCustomerPage() {
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
-        <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={loading} className="btn-primary flex-1">
-            {loading ? 'Creating...' : 'Create'}
+        <div className="flex flex-col gap-2 pt-2">
+          <div className="flex gap-3">
+            <button type="submit" disabled={loading} className="btn-primary flex-1">
+              {loading ? 'Creating...' : 'Create'}
+            </button>
+            <button type="button" disabled={loading} onClick={() => handleSubmit('continue')} className="btn-secondary flex-1">
+              {loading ? 'Creating...' : 'Create & Next'}
+            </button>
+          </div>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleSubmit('loan')}
+            className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Creating...' : 'Create & New Loan'}
           </button>
-          <button type="button" disabled={loading} onClick={() => handleSubmit(true)} className="btn-secondary flex-1">
-            {loading ? 'Creating...' : 'Create & Next'}
-          </button>
-          <button type="button" onClick={() => router.back()} className="btn-secondary flex-1">
+          <button type="button" onClick={() => router.back()} className="btn-secondary w-full">
             Cancel
           </button>
         </div>

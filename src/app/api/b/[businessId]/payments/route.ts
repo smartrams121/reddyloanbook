@@ -15,6 +15,7 @@ const createPaymentSchema = z.object({
   loanId: z.string().min(1),
   amount: z.number().int().positive(),
   paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  collectorId: z.string().min(1).optional(),
   note: z.string().optional(),
 })
 
@@ -73,6 +74,31 @@ export async function POST(request: Request, { params }: Props) {
 
   const { loanId, amount, note } = parsed.data
   const paymentDate = parsed.data.paymentDate || todayIST()
+  let collector = user.id
+  if (parsed.data.collectorId) {
+    const assignment = await prisma.userBusinessAssignment.findFirst({
+      where: { userId: parsed.data.collectorId, businessId },
+    })
+    if (!assignment) {
+      return NextResponse.json({ error: 'Selected collector is not assigned to this business' }, { status: 400 })
+    }
+    collector = parsed.data.collectorId
+  }
+
+  const today = todayIST()
+  const todayDate = new Date(today + 'T00:00:00')
+  const payDate = new Date(paymentDate + 'T00:00:00')
+  if (isNaN(payDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid payment date' }, { status: 400 })
+  }
+  if (payDate > todayDate) {
+    return NextResponse.json({ error: 'Payment date cannot be in the future' }, { status: 400 })
+  }
+  const minDate = new Date(todayDate)
+  minDate.setMonth(minDate.getMonth() - 1)
+  if (payDate < minDate) {
+    return NextResponse.json({ error: 'Payment date cannot be more than 1 month in the past' }, { status: 400 })
+  }
 
   const loan = await prisma.loan.findFirst({
     where: { id: loanId, businessId },
@@ -81,6 +107,11 @@ export async function POST(request: Request, { params }: Props) {
 
   if (['COMPLETED', 'COMPLETED_RENEWED', 'SETTLED', 'WRITTEN_OFF', 'INACTIVE'].includes(loan.status)) {
     return NextResponse.json({ error: `Cannot post payment to a ${loan.status.replace(/_/g, ' ').toLowerCase()} loan` }, { status: 400 })
+  }
+
+  const loanStartDate = new Date(loan.startDate + 'T00:00:00')
+  if (payDate < loanStartDate) {
+    return NextResponse.json({ error: 'Posting date is older than loan creation date. Please change the posting date.' }, { status: 400 })
   }
 
   // Check total paid so far
@@ -105,7 +136,7 @@ export async function POST(request: Request, { params }: Props) {
       businessId,
       amount,
       paymentDate,
-      collectorId: user.id,
+      collectorId: collector,
       note: note || null,
     },
   })

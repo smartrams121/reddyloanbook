@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 
+interface Agent { id: string; fullName: string; role: string }
 interface CustomerResult {
   id: string; customerId: string; fullName: string; phone: string
   village: { id: string; name: string }; status: string
@@ -41,6 +42,7 @@ export default function RecordPaymentPage() {
   const businessId = params.businessId as string
 
   const [step, setStep] = useState<Step>('search')
+  const [agents, setAgents] = useState<Agent[]>([])
   const [customers, setCustomers] = useState<CustomerResult[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerResult | null>(null)
@@ -51,17 +53,41 @@ export default function RecordPaymentPage() {
   const [loadingLoans, setLoadingLoans] = useState(false)
 
   const [amountStr, setAmountStr] = useState('')
+  const [collectorId, setCollectorId] = useState('')
   const [note, setNote] = useState('')
+  const [postingDate, setPostingDate] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
+
+  const todayStr = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  const minDateStr = (() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  function formatDisplayDate(iso: string): string {
+    const [y, m, d] = iso.split('-')
+    return `${d}/${m}/${y}`
+  }
 
   const [receipt, setReceipt] = useState<{ receiptNumber: string; amount: number; createdAt: string; updatedAt: string } | null>(null)
 
   useEffect(() => {
-    fetch(`/api/b/${businessId}/customers`)
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setCustomers(data) })
-      .catch(() => {})
+    Promise.all([
+      fetch(`/api/b/${businessId}/customers`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/users`).then(r => r.json()),
+    ]).then(([custs, users]) => {
+      if (Array.isArray(custs)) setCustomers(custs)
+      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+    }).catch(() => {})
   }, [businessId])
 
   const filteredCustomers = useMemo(() => {
@@ -116,7 +142,7 @@ export default function RecordPaymentPage() {
     }
   }
 
-  async function handlePostPayment(e: React.FormEvent) {
+  async function handlePostPayment(e: React.FormEvent, goNext = false) {
     e.preventDefault()
     if (!selectedLoan) return
     setError('')
@@ -139,6 +165,8 @@ export default function RecordPaymentPage() {
         body: JSON.stringify({
           loanId: selectedLoan.id,
           amount: amountPaise,
+          paymentDate: postingDate,
+          collectorId: collectorId || undefined,
           note: note || undefined,
         }),
       })
@@ -147,8 +175,21 @@ export default function RecordPaymentPage() {
         setError(data.error || 'Failed to post payment')
         return
       }
-      setReceipt({ receiptNumber: data.receiptNumber, amount: data.amount, createdAt: data.createdAt, updatedAt: data.updatedAt })
-      setStep('success')
+      if (goNext) {
+        setStep('search')
+        setSelectedCustomer(null)
+        setSelectedLoan(null)
+        setCustomerLoans([])
+        setLoanPaidMap({})
+        setAmountStr('')
+        setCollectorId('')
+        setNote('')
+        setSearchQuery('')
+        setError('')
+      } else {
+        setReceipt({ receiptNumber: data.receiptNumber, amount: data.amount, createdAt: data.createdAt, updatedAt: data.updatedAt })
+        setStep('success')
+      }
     } catch {
       setError('Network error')
     } finally {
@@ -163,6 +204,7 @@ export default function RecordPaymentPage() {
     setCustomerLoans([])
     setLoanPaidMap({})
     setAmountStr('')
+    setCollectorId('')
     setNote('')
     setReceipt(null)
     setError('')
@@ -352,6 +394,53 @@ export default function RecordPaymentPage() {
             )
           })()}
 
+          {/* Posting & Submission Date */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Date</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Posting Date *</label>
+                <input
+                  type="date"
+                  className="input text-sm"
+                  value={postingDate}
+                  onChange={(e) => setPostingDate(e.target.value)}
+                  min={minDateStr}
+                  max={todayStr}
+                  required
+                />
+                {postingDate !== todayStr && (
+                  <p className="text-[10px] text-amber-600 mt-1">Backdated to {formatDisplayDate(postingDate)}</p>
+                )}
+              </div>
+              <div>
+                <label className="label">Submission Date</label>
+                <input
+                  type="text"
+                  className="input text-sm bg-gray-50 cursor-not-allowed"
+                  value={formatDisplayDate(todayStr)}
+                  disabled
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Collected By */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Collected By</h2>
+            <div>
+              <label className="label">Who collected this payment?</label>
+              {agents.length > 0 ? (
+                <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                  <option value="">Myself (logged-in user)</option>
+                  {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                </select>
+              ) : (
+                <p className="text-sm text-gray-400 py-2">No agents assigned to this business.</p>
+              )}
+            </div>
+          </div>
+
           {/* Payment amount */}
           <div className="card p-4 space-y-4">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Payment</h2>
@@ -407,11 +496,19 @@ export default function RecordPaymentPage() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button type="submit" disabled={posting} className="btn-primary flex-1 btn-lg">
               {posting ? 'Posting...' : 'Post Payment'}
             </button>
-            <button type="button" onClick={handleNewPayment} className="btn-secondary flex-1">
+            <button
+              type="button"
+              disabled={posting}
+              onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, true)}
+              className="flex-1 btn-lg text-sm font-medium rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
+            >
+              {posting ? '...' : 'Post & Next'}
+            </button>
+            <button type="button" onClick={handleNewPayment} className="btn-secondary px-4">
               Cancel
             </button>
           </div>
@@ -433,10 +530,9 @@ export default function RecordPaymentPage() {
               <p>Receipt: <span className="font-mono font-semibold text-gray-700">{receipt.receiptNumber}</span></p>
               <p>Customer: <span className="font-semibold text-gray-700">{selectedCustomer.fullName}</span></p>
               <p>Loan: <span className="font-semibold text-gray-700">{selectedLoan.loanNumber}</span></p>
-              <p>Created: <span className="font-semibold text-gray-700">{formatDateTime(receipt.createdAt)}</span></p>
-              {receipt.updatedAt !== receipt.createdAt && (
-                <p>Updated: <span className="font-semibold text-gray-700">{formatDateTime(receipt.updatedAt)}</span></p>
-              )}
+              <p>Posting Date: <span className="font-semibold text-gray-700">{formatDisplayDate(postingDate)}</span></p>
+              {collectorId && <p>Collected By: <span className="font-semibold text-gray-700">{agents.find(a => a.id === collectorId)?.fullName}</span></p>}
+              <p>Submitted: <span className="font-semibold text-gray-700">{formatDateTime(receipt.createdAt)}</span></p>
             </div>
           </div>
 

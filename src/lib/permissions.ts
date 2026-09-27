@@ -39,6 +39,9 @@ type Action =
   | 'manage_expenses'
   | 'manage_holidays'
   | 'manage_expense_categories'
+  | 'delete_loan'
+  | 'freeze_loan'
+  | 'manage_loan_status'
   | 'grant_support_access'
 
 const PERMISSION_MATRIX: Record<string, Action[]> = {
@@ -82,6 +85,9 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'manage_expenses',
     'manage_holidays',
     'manage_expense_categories',
+    'delete_loan',
+    'freeze_loan',
+    'manage_loan_status',
     'grant_support_access',
   ],
   [Role.BUSINESS_ADMIN]: [
@@ -115,6 +121,9 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'manage_cash_book',
     'manage_expenses',
     'manage_holidays',
+    'delete_loan',
+    'freeze_loan',
+    'manage_loan_status',
     'manage_expense_categories',
   ],
   [Role.AGENT]: [

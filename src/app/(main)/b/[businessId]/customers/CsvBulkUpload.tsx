@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 interface CsvRow {
   fullName: string; phone: string; villageName: string; age?: string
-  altPhone?: string; address?: string; aadhaar?: string
+  altPhone?: string; address?: string; aadhaar?: string; jobType?: string
   guarantorName?: string; guarantorPhone?: string; notes?: string
 }
 
@@ -61,9 +61,9 @@ export default function CsvBulkUpload({ businessId, villageNames }: Props) {
   const [csvResult, setCsvResult] = useState<{ created: number; customers: { customerId: string; fullName: string }[] } | null>(null)
 
   function downloadTemplate() {
-    const header = 'fullName,phone,villageName,age,altPhone,address,aadhaar,guarantorName,guarantorPhone,notes'
-    const example1 = `Rajesh Kumar,9876543210,${villageNames[0] || 'Village1'},35,,Main Road Near Temple,,,,`
-    const example2 = `Lakshmi Devi,8765432109,${villageNames[0] || 'Village1'},28,,,,,Suresh Kumar,9123456789`
+    const header = 'fullName,phone,villageName,age,altPhone,address,aadhaar,jobType,guarantorName,guarantorPhone,notes'
+    const example1 = `Rajesh Kumar,9876543210,${villageNames[0] || 'Village1'},35,,Main Road Near Temple,,Shop,,,`
+    const example2 = `Lakshmi Devi,8765432109,${villageNames[0] || 'Village1'},28,,,,Farmer,,Suresh Kumar,9123456789`
     const csv = [header, example1, example2].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)

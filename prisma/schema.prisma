@@ -189,6 +189,7 @@ model Customer {
   aadhaarHash    String?
   aadhaarLast4   String?
   photoPath      String?
+  jobType        String?
   guarantorName  String?
   guarantorPhone String?
   notes          String?
@@ -243,6 +244,7 @@ model Loan {
   renewedFromLoan       Loan?    @relation("LoanRenewal", fields: [renewedFromLoanId], references: [id])
   renewedToLoan         Loan?    @relation("LoanRenewal")
 
+  pausedAt              String?
   settlementAmount      Int?
   settlementReason      String?
   writeOffReason        String?

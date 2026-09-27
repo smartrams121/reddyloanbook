@@ -108,6 +108,7 @@ export async function POST(request: Request, { params }: Props) {
         address: parsed.data.address || null,
         aadhaarHash: aadhaarHash || null,
         aadhaarLast4: aadhaarLast4 || null,
+        jobType: parsed.data.jobType || null,
         guarantorName: parsed.data.guarantorName || null,
         guarantorPhone: parsed.data.guarantorPhone || null,
         notes: parsed.data.notes || null,

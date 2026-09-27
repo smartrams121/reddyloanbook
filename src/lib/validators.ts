@@ -68,6 +68,7 @@ export const createCustomerSchema = z.object({
   villageId: z.string().min(1, 'Village is required'),
   address: z.string().optional(),
   aadhaar: aadhaarSchema,
+  jobType: z.string().optional(),
   guarantorName: z.string().optional(),
   guarantorPhone: phoneSchema.optional().or(z.literal('')),
   notes: z.string().optional(),

@@ -7,9 +7,10 @@ interface Props {
   ownerId: string
   isActive: boolean
   ownerName: string
+  hasBusinesses: boolean
 }
 
-export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
+export default function OwnerActions({ ownerId, isActive, ownerName, hasBusinesses }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -58,6 +59,30 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
     }
   }
 
+  async function deleteOwner() {
+    if (hasBusinesses) {
+      alert(`Cannot delete ${ownerName}. Remove or reassign their businesses first.`)
+      setOpen(false)
+      return
+    }
+
+    if (!confirm(`Are you sure you want to permanently delete ${ownerName}? This action cannot be undone.`)) return
+
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/owners/${ownerId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert(data.error || 'Failed to delete owner')
+      }
+    } finally {
+      setLoading(false)
+      setOpen(false)
+    }
+  }
+
   return (
     <div className="relative">
       <button
@@ -75,6 +100,12 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-20 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
             <button
+              onClick={() => { setOpen(false); router.push(`/admin/owners/${ownerId}/edit`) }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+            >
+              ✏️ Edit Owner
+            </button>
+            <button
               onClick={toggleStatus}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
@@ -85,6 +116,13 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
               🔑 Reset Password
+            </button>
+            <div className="border-t border-gray-100 my-1" />
+            <button
+              onClick={deleteOwner}
+              className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50"
+            >
+              🗑️ Delete Owner
             </button>
           </div>
         </>

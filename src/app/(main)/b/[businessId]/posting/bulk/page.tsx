@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 
+interface Agent { id: string; fullName: string; role: string }
 interface Village { id: string; name: string; _count: { customers: number } }
 interface LoanEntry {
   id: string; loanNumber: string; installmentAmount: number
@@ -36,21 +37,46 @@ export default function VillageBulkPostingPage() {
   const params = useParams()
   const businessId = params.businessId as string
 
+  const [agents, setAgents] = useState<Agent[]>([])
   const [villages, setVillages] = useState<Village[]>([])
   const [selectedVillage, setSelectedVillage] = useState('')
+  const [collectorId, setCollectorId] = useState('')
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<PaymentRow[]>([])
   const [error, setError] = useState('')
   const [posting, setPosting] = useState(false)
   const [result, setResult] = useState<{ count: number; totalAmount: number } | null>(null)
+  const [postingDate, setPostingDate] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
+
+  const todayStr = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  const minDateStr = (() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  function formatDisplayDate(iso: string): string {
+    const [y, m, d] = iso.split('-')
+    return `${d}/${m}/${y}`
+  }
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
-    fetch(`/api/b/${businessId}/villages`)
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setVillages(data) })
-      .catch(() => {})
+    Promise.all([
+      fetch(`/api/b/${businessId}/villages`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/users`).then(r => r.json()),
+    ]).then(([vils, users]) => {
+      if (Array.isArray(vils)) setVillages(vils)
+      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+    }).catch(() => {})
   }, [businessId])
 
   const loadVillageData = useCallback(async (villageId: string) => {
@@ -146,7 +172,7 @@ export default function VillageBulkPostingPage() {
       const res = await fetch(`/api/b/${businessId}/payments/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payments }),
+        body: JSON.stringify({ payments, paymentDate: postingDate, collectorId: collectorId || undefined }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -163,6 +189,7 @@ export default function VillageBulkPostingPage() {
 
   function handleReset() {
     setSelectedVillage('')
+    setCollectorId('')
     setRows([])
     setResult(null)
     setError('')
@@ -231,6 +258,53 @@ export default function VillageBulkPostingPage() {
               ))}
             </select>
           </div>
+
+          {/* Posting Date */}
+          {selectedVillage && (
+            <div className="mb-5 card p-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Posting Date *</label>
+                  <input
+                    type="date"
+                    className="input text-sm"
+                    value={postingDate}
+                    onChange={(e) => setPostingDate(e.target.value)}
+                    min={minDateStr}
+                    max={todayStr}
+                    required
+                  />
+                  {postingDate !== todayStr && (
+                    <p className="text-[10px] text-amber-600 mt-1">Backdated to {formatDisplayDate(postingDate)}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="label">Submission Date</label>
+                  <input
+                    type="text"
+                    className="input text-sm bg-gray-50 cursor-not-allowed"
+                    value={formatDisplayDate(todayStr)}
+                    disabled
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Collected By */}
+          {selectedVillage && (
+            <div className="mb-5 card p-4">
+              <label className="label">Who collected this payment?</label>
+              {agents.length > 0 ? (
+                <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                  <option value="">Myself (logged-in user)</option>
+                  {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                </select>
+              ) : (
+                <p className="text-sm text-gray-400 py-2">No agents assigned to this business.</p>
+              )}
+            </div>
+          )}
 
           {loading && (
             <div className="flex items-center justify-center py-8">

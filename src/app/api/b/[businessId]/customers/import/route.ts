@@ -18,6 +18,7 @@ interface CsvRow {
   altPhone?: string
   address?: string
   aadhaar?: string
+  jobType?: string
   guarantorName?: string
   guarantorPhone?: string
   notes?: string
@@ -175,6 +176,7 @@ export async function POST(request: Request, { params }: Props) {
           address: data.address?.trim() || null,
           aadhaarHash,
           aadhaarLast4,
+          jobType: data.jobType?.trim() || null,
           guarantorName: data.guarantorName?.trim() || null,
           guarantorPhone: data.guarantorPhone?.trim() || null,
           notes: data.notes?.trim() || null,

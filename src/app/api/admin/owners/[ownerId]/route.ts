@@ -3,11 +3,12 @@ import { getSession, hashPassword, invalidateUserSessions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertPermission } from '@/lib/permissions'
 import { z } from 'zod'
-import { phoneSchema, passwordSchema } from '@/lib/validators'
+import { phoneSchema, passwordSchema, usernameSchema } from '@/lib/validators'
 
 const updateOwnerSchema = z.object({
   fullName: z.string().min(2).optional(),
   phone: phoneSchema.optional(),
+  username: usernameSchema.optional(),
   isActive: z.boolean().optional(),
   resetPassword: passwordSchema.optional(),
 })
@@ -71,11 +72,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Owner not found' }, { status: 404 })
   }
 
-  const { fullName, phone, isActive, resetPassword } = parsed.data
+  const { fullName, phone, username, isActive, resetPassword } = parsed.data
   const updateData: Record<string, unknown> = {}
 
   if (fullName !== undefined) updateData.fullName = fullName
   if (phone !== undefined) updateData.phone = phone
+  if (username !== undefined && username !== owner.username) {
+    const existing = await prisma.user.findFirst({ where: { username } })
+    if (existing) {
+      return NextResponse.json({ error: 'Username already taken', details: { username: ['Username already taken'] } }, { status: 400 })
+    }
+    updateData.username = username
+  }
   if (isActive !== undefined) updateData.isActive = isActive
   if (resetPassword !== undefined) {
     updateData.passwordHash = await hashPassword(resetPassword)
@@ -97,4 +105,34 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     phone: updated.phone,
     isActive: updated.isActive,
   })
+}
+
+export async function DELETE(_request: Request, { params }: RouteParams) {
+  const { ownerId } = await params
+  const user = await getSession()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  assertPermission(user, 'manage_owners')
+
+  const owner = await prisma.user.findFirst({
+    where: { id: ownerId, role: 'OWNER' },
+    include: { ownedBusinesses: { select: { id: true, name: true } } },
+  })
+
+  if (!owner) {
+    return NextResponse.json({ error: 'Owner not found' }, { status: 404 })
+  }
+
+  if (owner.ownedBusinesses.length > 0) {
+    const names = owner.ownedBusinesses.map(b => b.name).join(', ')
+    return NextResponse.json(
+      { error: `Cannot delete owner with active businesses: ${names}. Remove or reassign businesses first.` },
+      { status: 400 }
+    )
+  }
+
+  await invalidateUserSessions(ownerId)
+  await prisma.user.delete({ where: { id: ownerId } })
+
+  return NextResponse.json({ success: true })
 }
