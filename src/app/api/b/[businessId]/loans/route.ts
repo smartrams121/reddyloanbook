@@ -31,8 +31,12 @@ export async function GET(request: Request, { params }: Props) {
 
   const loans = await prisma.loan.findMany({
     where,
-    include: {
-      customer: { select: { id: true, fullName: true, customerId: true, phone: true } },
+    select: {
+      id: true, loanNumber: true, loanAmount: true, totalRepayable: true,
+      installmentAmount: true, numberOfInstallments: true, status: true,
+      startDate: true, expectedEndDate: true, collectionType: true,
+      amountGiven: true, interestAmount: true, pausedAt: true,
+      customer: { select: { id: true, fullName: true, customerId: true, phone: true, village: { select: { name: true } } } },
       agent: { select: { id: true, fullName: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -69,13 +73,16 @@ export async function POST(request: Request, { params }: Props) {
   } = parsed.data
 
   const customer = await prisma.customer.findFirst({
-    where: { id: customerId, businessId, status: 'ACTIVE' },
+    where: { id: customerId, businessId },
   })
   if (!customer) {
-    return NextResponse.json({ error: 'Customer not found or inactive' }, { status: 400 })
+    return NextResponse.json({ error: 'Customer not found' }, { status: 400 })
   }
 
-  const business = await prisma.business.findUnique({ where: { id: businessId } })
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { id: true, interestModel: true, collectOnSundays: true, loanSeq: true, receiptPrefix: true },
+  })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
   if (agentId) {
@@ -130,60 +137,65 @@ export async function POST(request: Request, { params }: Props) {
   const prefix = business.receiptPrefix || 'L'
   const loanNumber = `${prefix}${String(seq).padStart(5, '0')}`
 
-  const loan = await prisma.$transaction(async (tx) => {
-    await tx.business.update({
-      where: { id: businessId },
-      data: { loanSeq: seq },
-    })
-
-    if (renewFromLoanId) {
-      await tx.loan.update({
-        where: { id: renewFromLoanId },
-        data: { status: 'COMPLETED_RENEWED', closedAt: startDate },
+  let loan
+  try {
+    loan = await prisma.$transaction(async (tx) => {
+      await tx.business.update({
+        where: { id: businessId },
+        data: { loanSeq: seq },
       })
-    }
 
-    const newLoan = await tx.loan.create({
-      data: {
-        loanNumber,
-        customerId,
-        businessId,
-        loanAmount,
-        interestAmount,
-        totalRepayable,
-        amountGiven,
-        collectionType,
-        collectionDay: collectionDay || null,
-        installmentAmount,
-        numberOfInstallments,
-        lastInstallmentAmount,
-        startDate,
-        expectedEndDate,
-        agentId: agentId || null,
-        renewedFromLoanId: renewFromLoanId || null,
-        notes: notes || null,
-        schedule: {
-          create: schedule,
-        },
-      },
-    })
+      if (renewFromLoanId) {
+        await tx.loan.update({
+          where: { id: renewFromLoanId },
+          data: { status: 'COMPLETED', closedAt: startDate },
+        })
+      }
 
-    if (documents && documents.length > 0) {
-      await tx.document.createMany({
-        data: documents.map((d) => ({
-          loanId: newLoan.id,
+      const newLoan = await tx.loan.create({
+        data: {
+          loanNumber,
           customerId,
           businessId,
-          type: 'LOAN_PROOF',
-          filePath: d.filePath,
-          originalName: d.originalName,
-          mimeType: d.mimeType,
-        })),
+          loanAmount,
+          interestAmount,
+          totalRepayable,
+          amountGiven,
+          collectionType,
+          collectionDay: collectionDay || null,
+          installmentAmount,
+          numberOfInstallments,
+          lastInstallmentAmount,
+          startDate,
+          expectedEndDate,
+          agentId: agentId || null,
+          renewedFromLoanId: renewFromLoanId || null,
+          notes: notes || null,
+          schedule: {
+            create: schedule,
+          },
+        },
       })
-    }
 
-    return newLoan
-  })
+      if (documents && documents.length > 0) {
+        await tx.document.createMany({
+          data: documents.map((d) => ({
+            loanId: newLoan.id,
+            customerId,
+            businessId,
+            type: 'LOAN_PROOF',
+            filePath: d.filePath,
+            originalName: d.originalName,
+            mimeType: d.mimeType,
+          })),
+        })
+      }
+
+      return newLoan
+    })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+  }
 
   return NextResponse.json(
     { id: loan.id, loanNumber: loan.loanNumber, totalRepayable: loan.totalRepayable },

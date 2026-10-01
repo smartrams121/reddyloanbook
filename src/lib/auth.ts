@@ -20,7 +20,6 @@ export interface AuthUser {
   role: Role
   isActive: boolean
   mustChangePassword: boolean
-  totpEnabled: boolean
   activeBusinessId: string | null
   businessIds: string[]
   villageIds: string[]
@@ -143,7 +142,6 @@ export async function getSession(): Promise<AuthUser | null> {
     role: user.role as Role,
     isActive: user.isActive,
     mustChangePassword: user.mustChangePassword,
-    totpEnabled: user.totpEnabled,
     activeBusinessId: session.activeBusinessId,
     businessIds,
     villageIds: user.villageAssignments.map((a) => a.villageId),

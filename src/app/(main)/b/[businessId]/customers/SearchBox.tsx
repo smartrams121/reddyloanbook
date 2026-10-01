@@ -42,7 +42,7 @@ export default function SearchBox({ initialQuery }: { initialQuery: string }) {
       </svg>
       <input
         className="input pl-9 pr-8"
-        placeholder="Search by name, phone, village, address, aadhaar..."
+        placeholder="Search by name, phone, location, address, aadhaar..."
         value={query}
         onChange={(e) => handleChange(e.target.value)}
         autoComplete="off"

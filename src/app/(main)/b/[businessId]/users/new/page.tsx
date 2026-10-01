@@ -7,7 +7,14 @@ import Link from 'next/link'
 interface Village {
   id: string
   name: string
-  isActive: boolean
+  businessId: string
+  isActive?: boolean
+}
+
+interface Business {
+  id: string
+  name: string
+  city: string
 }
 
 export default function NewUserPage() {
@@ -17,25 +24,43 @@ export default function NewUserPage() {
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'BUSINESS_ADMIN' | 'AGENT'>('AGENT')
+  const [selectedBusinesses, setSelectedBusinesses] = useState<string[]>([businessId])
   const [selectedVillages, setSelectedVillages] = useState<string[]>([])
-  const [villages, setVillages] = useState<Village[]>([])
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [allVillages, setAllVillages] = useState<Village[]>([])
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/b/${businessId}/villages`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setVillages(data.filter((v: Village) => v.isActive))
-        }
+    Promise.all([
+      fetch('/api/owner/businesses').then((r) => r.ok ? r.json() : []),
+      fetch('/api/owner/villages').then((r) => r.ok ? r.json() : []),
+    ])
+      .then(([bizData, villageData]) => {
+        if (Array.isArray(bizData)) setBusinesses(bizData)
+        if (Array.isArray(villageData)) setAllVillages(villageData)
       })
       .catch(() => {})
-  }, [businessId])
+  }, [])
+
+  function toggleBusiness(bid: string) {
+    setSelectedBusinesses((prev) => {
+      const next = prev.includes(bid) ? prev.filter((b) => b !== bid) : [...prev, bid]
+      const removedBiz = prev.includes(bid) && !next.includes(bid) ? bid : null
+      if (removedBiz) {
+        const villageIdsToRemove = allVillages
+          .filter((v) => v.businessId === removedBiz)
+          .map((v) => v.id)
+        setSelectedVillages((sv) => sv.filter((vid) => !villageIdsToRemove.includes(vid)))
+      }
+      return next
+    })
+  }
 
   function toggleVillage(vid: string) {
     setSelectedVillages((prev) =>
@@ -43,10 +68,18 @@ export default function NewUserPage() {
     )
   }
 
+  const filteredVillages = allVillages.filter((v) => selectedBusinesses.includes(v.businessId))
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setFieldErrors({})
+
+    if (selectedBusinesses.length === 0) {
+      setError('Assign at least one business')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -56,10 +89,11 @@ export default function NewUserPage() {
         body: JSON.stringify({
           fullName,
           phone,
+          email: email || null,
           username,
           password,
           role,
-          businessIds: [businessId],
+          businessIds: selectedBusinesses,
           villageIds: role === 'AGENT' ? selectedVillages : undefined,
         }),
       })
@@ -68,7 +102,7 @@ export default function NewUserPage() {
 
       if (!res.ok) {
         if (data.details) setFieldErrors(data.details)
-        setError(data.error || 'Failed to create user')
+        setError(data.error || 'Failed to create employee')
         setLoading(false)
         return
       }
@@ -89,10 +123,10 @@ export default function NewUserPage() {
     <div className="px-4 py-6 max-w-md mx-auto">
       <div className="mb-6">
         <Link href={`/b/${businessId}/users`} className="text-sm text-primary-600 hover:underline">
-          ← Back to Users
+          ← Back to Employees
         </Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-2">Add New User</h1>
-        <p className="text-sm text-gray-500">User will be required to change password on first login.</p>
+        <h1 className="text-xl font-bold text-gray-900 mt-2">Add New Employee</h1>
+        <p className="text-sm text-gray-500">Employee will be required to change password on first login.</p>
       </div>
 
       <div className="card p-6">
@@ -150,6 +184,21 @@ export default function NewUserPage() {
           </div>
 
           <div>
+            <label htmlFor="email" className="label">Email (optional)</label>
+            <input
+              id="email"
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="employee@example.com"
+            />
+            {getFieldError('email') && (
+              <p className="text-xs text-danger-600 mt-1">{getFieldError('email')}</p>
+            )}
+          </div>
+
+          <div>
             <label htmlFor="username" className="label">Username</label>
             <input
               id="username"
@@ -182,21 +231,54 @@ export default function NewUserPage() {
             )}
           </div>
 
-          {role === 'AGENT' && villages.length > 0 && (
+          {businesses.length > 1 && (
             <div>
-              <label className="label">Assign Villages</label>
+              <label className="label">Assign Businesses</label>
+              <p className="text-xs text-gray-500 mb-2">Select which businesses this employee can access</p>
               <div className="space-y-2 mt-1">
-                {villages.map((v) => (
-                  <label key={v.id} className="flex items-center gap-2 cursor-pointer">
+                {businesses.map((b) => (
+                  <label key={b.id} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={selectedVillages.includes(v.id)}
-                      onChange={() => toggleVillage(v.id)}
+                      checked={selectedBusinesses.includes(b.id)}
+                      onChange={() => toggleBusiness(b.id)}
                       className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-sm text-gray-700">{v.name}</span>
+                    <span className="text-sm text-gray-700">
+                      {b.name} <span className="text-gray-400">({b.city})</span>
+                    </span>
                   </label>
                 ))}
+              </div>
+              {getFieldError('businessIds') && (
+                <p className="text-xs text-danger-600 mt-1">{getFieldError('businessIds')}</p>
+              )}
+            </div>
+          )}
+
+          {role === 'AGENT' && filteredVillages.length > 0 && (
+            <div>
+              <label className="label">Assign Locations</label>
+              <div className="space-y-2 mt-1">
+                {filteredVillages.map((v) => {
+                  const biz = businesses.find((b) => b.id === v.businessId)
+                  return (
+                    <label key={v.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedVillages.includes(v.id)}
+                        onChange={() => toggleVillage(v.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {v.name}
+                        {businesses.length > 1 && biz && (
+                          <span className="text-gray-400 ml-1">— {biz.name}</span>
+                        )}
+                      </span>
+                    </label>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -206,7 +288,7 @@ export default function NewUserPage() {
               Cancel
             </Link>
             <button type="submit" disabled={loading} className="btn-primary flex-1">
-              {loading ? 'Creating...' : 'Create User'}
+              {loading ? 'Creating...' : 'Create Employee'}
             </button>
           </div>
         </form>

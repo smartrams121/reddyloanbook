@@ -48,7 +48,7 @@ export default async function OwnersPage() {
                 }`}>
                   {owner.isActive ? 'Active' : 'Suspended'}
                 </span>
-                <OwnerActions ownerId={owner.id} isActive={owner.isActive} ownerName={owner.fullName} hasBusinesses={owner.ownedBusinesses.length > 0} />
+                <OwnerActions ownerId={owner.id} isActive={owner.isActive} ownerName={owner.fullName} />
               </div>
             </div>
             <div className="flex flex-wrap gap-1 mt-2">

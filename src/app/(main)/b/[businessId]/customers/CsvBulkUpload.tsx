@@ -62,8 +62,8 @@ export default function CsvBulkUpload({ businessId, villageNames }: Props) {
 
   function downloadTemplate() {
     const header = 'fullName,phone,villageName,age,altPhone,address,aadhaar,jobType,guarantorName,guarantorPhone,notes'
-    const example1 = `Rajesh Kumar,9876543210,${villageNames[0] || 'Village1'},35,,Main Road Near Temple,,Shop,,,`
-    const example2 = `Lakshmi Devi,8765432109,${villageNames[0] || 'Village1'},28,,,,Farmer,,Suresh Kumar,9123456789`
+    const example1 = `Rajesh Kumar,9876543210,${villageNames[0] || 'Location1'},35,,Main Road Near Temple,,Shop,,,`
+    const example2 = `Lakshmi Devi,8765432109,${villageNames[0] || 'Location1'},28,,,,Farmer,,Suresh Kumar,9123456789`
     const csv = [header, example1, example2].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -224,7 +224,7 @@ export default function CsvBulkUpload({ businessId, villageNames }: Props) {
                   <th className="px-2 py-1.5 text-left font-medium text-gray-500">#</th>
                   <th className="px-2 py-1.5 text-left font-medium text-gray-500">Name</th>
                   <th className="px-2 py-1.5 text-left font-medium text-gray-500">Phone</th>
-                  <th className="px-2 py-1.5 text-left font-medium text-gray-500">Village</th>
+                  <th className="px-2 py-1.5 text-left font-medium text-gray-500">Location</th>
                   <th className="px-2 py-1.5 text-left font-medium text-gray-500">Status</th>
                 </tr>
               </thead>

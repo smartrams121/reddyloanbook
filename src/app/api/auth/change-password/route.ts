@@ -27,13 +27,5 @@ export async function POST(request: NextRequest) {
     data: { passwordHash, mustChangePassword: false },
   })
 
-  let redirectTo = '/dashboard'
-  if (
-    !user.totpEnabled &&
-    (user.role === Role.PLATFORM_ADMIN || user.role === Role.OWNER)
-  ) {
-    redirectTo = '/setup-2fa'
-  }
-
-  return NextResponse.json({ success: true, redirectTo })
+  return NextResponse.json({ success: true, redirectTo: '/dashboard' })
 }

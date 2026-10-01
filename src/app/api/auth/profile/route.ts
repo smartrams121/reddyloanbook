@@ -40,7 +40,7 @@ export async function GET() {
     select: { id: true, username: true, fullName: true, role: true, phone: true },
   })
 
-  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  if (!dbUser) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
   let businesses: { id: string; name: string; city: string; isActive: boolean }[] = []
   if (dbUser.role === Role.OWNER) {
@@ -80,7 +80,7 @@ export async function PATCH(request: Request) {
     const { currentPassword, newPassword } = parsed.data
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!dbUser) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
     const valid = await verifyPassword(currentPassword, dbUser.passwordHash)
     if (!valid) return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 })
@@ -97,7 +97,7 @@ export async function PATCH(request: Request) {
     const response = NextResponse.json({ success: true })
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE === 'true',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24,

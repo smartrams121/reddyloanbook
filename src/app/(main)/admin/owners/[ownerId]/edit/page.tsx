@@ -8,6 +8,7 @@ interface OwnerData {
   id: string
   fullName: string
   phone: string
+  email: string | null
   username: string
 }
 
@@ -18,6 +19,7 @@ export default function EditOwnerPage() {
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
@@ -30,6 +32,7 @@ export default function EditOwnerPage() {
       .then((data: OwnerData) => {
         setFullName(data.fullName || '')
         setPhone(data.phone || '')
+        setEmail(data.email || '')
         setUsername(data.username || '')
       })
       .catch(() => setError('Failed to load owner details'))
@@ -46,7 +49,7 @@ export default function EditOwnerPage() {
       const res = await fetch(`/api/admin/owners/${ownerId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, phone, username }),
+        body: JSON.stringify({ fullName, phone, email: email || null, username }),
       })
 
       const data = await res.json()
@@ -125,6 +128,21 @@ export default function EditOwnerPage() {
             />
             {getFieldError('phone') && (
               <p className="text-xs text-danger-600 mt-1">{getFieldError('phone')}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="email" className="label">Email (optional)</label>
+            <input
+              id="email"
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="owner@example.com"
+            />
+            {getFieldError('email') && (
+              <p className="text-xs text-danger-600 mt-1">{getFieldError('email')}</p>
             )}
           </div>
 

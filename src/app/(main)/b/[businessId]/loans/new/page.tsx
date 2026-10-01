@@ -49,6 +49,17 @@ export default function NewLoanPage() {
   const [ncAddress, setNcAddress] = useState('')
   const [ncGuarantorName, setNcGuarantorName] = useState('')
   const [ncGuarantorPhone, setNcGuarantorPhone] = useState('')
+  const [ncAltPhone, setNcAltPhone] = useState('')
+  const [ncAadhaar, setNcAadhaar] = useState('')
+  const [ncJobType, setNcJobType] = useState('')
+  const [ncCustomJobType, setNcCustomJobType] = useState('')
+  const [ncShowNewJobType, setNcShowNewJobType] = useState(false)
+  const [ncJobTypes, setNcJobTypes] = useState<string[]>(['Shop', 'Business', 'Farmer', 'Labour', 'Driver', 'Others'])
+  const [ncNotes, setNcNotes] = useState('')
+  const [ncPhotoPath, setNcPhotoPath] = useState('')
+  const [ncPhotoPreview, setNcPhotoPreview] = useState('')
+  const [ncUploading, setNcUploading] = useState(false)
+  const ncFileInputRef = useRef<HTMLInputElement>(null)
   const [ncCreating, setNcCreating] = useState(false)
 
   // Loan step
@@ -87,6 +98,10 @@ export default function NewLoanPage() {
       if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
       if (Array.isArray(custs)) {
         setCustomers(custs)
+        const defaultJobs = ['Shop', 'Business', 'Farmer', 'Labour', 'Driver', 'Others']
+        const existing = new Set(defaultJobs)
+        custs.forEach((c: { jobType?: string }) => { if (c.jobType && !existing.has(c.jobType)) existing.add(c.jobType) })
+        setNcJobTypes(Array.from(existing))
         if (preselectedCustomerId) {
           const found = custs.find((c: CustomerResult) => c.id === preselectedCustomerId)
           if (found) selectCustomer(found)
@@ -103,7 +118,7 @@ export default function NewLoanPage() {
       const res = await fetch(`/api/b/${businessId}/loans?customerId=${customer.id}`)
       const loans = await res.json()
       const active = Array.isArray(loans)
-        ? loans.filter((l: ActiveLoan) => ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN'].includes(l.status))
+        ? loans.filter((l: ActiveLoan) => l.status !== 'COMPLETED' && l.status !== 'DEFAULTER')
         : []
       setActiveLoans(active)
       if (active.length > 0) {
@@ -119,10 +134,10 @@ export default function NewLoanPage() {
   }
 
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers.filter(c => c.status === 'ACTIVE')
+    if (!searchQuery.trim()) return customers
     const q = searchQuery.toLowerCase()
     return customers.filter(c =>
-      c.status === 'ACTIVE' && (
+      (
         c.fullName.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
         c.customerId.toLowerCase().includes(q)
@@ -187,6 +202,35 @@ export default function NewLoanPage() {
     recalculate(loanAmountStr, interestAmountStr, installmentStr, val, lastEdited)
   }
 
+  async function handleNcPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setNcPhotoPreview(URL.createObjectURL(file))
+    setNcUploading(true)
+    setError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch(`/api/b/${businessId}/upload`, { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Photo upload failed'); setNcPhotoPreview(''); return }
+      setNcPhotoPath(data.photoPath)
+    } catch { setError('Photo upload failed'); setNcPhotoPreview('') }
+    finally { setNcUploading(false) }
+  }
+
+  function handleNcJobTypeChange(value: string) {
+    if (value === '__new__') { setNcShowNewJobType(true); setNcJobType('') }
+    else { setNcShowNewJobType(false); setNcCustomJobType(''); setNcJobType(value) }
+  }
+
+  function addNcCustomJobType() {
+    const name = ncCustomJobType.trim()
+    if (!name) return
+    if (!ncJobTypes.includes(name)) setNcJobTypes(prev => [...prev, name])
+    setNcJobType(name); setNcCustomJobType(''); setNcShowNewJobType(false)
+  }
+
   async function handleCreateCustomer(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -194,9 +238,14 @@ export default function NewLoanPage() {
     try {
       const body: Record<string, unknown> = { fullName: ncName, phone: ncPhone, villageId: ncVillageId }
       if (ncAge) body.age = parseInt(ncAge)
+      if (ncAltPhone) body.altPhone = ncAltPhone
       if (ncAddress) body.address = ncAddress
+      if (ncAadhaar) body.aadhaar = ncAadhaar
+      if (ncJobType) body.jobType = ncJobType
       if (ncGuarantorName) body.guarantorName = ncGuarantorName
       if (ncGuarantorPhone) body.guarantorPhone = ncGuarantorPhone
+      if (ncNotes) body.notes = ncNotes
+      if (ncPhotoPath) body.photoPath = ncPhotoPath
 
       const res = await fetch(`/api/b/${businessId}/customers`, {
         method: 'POST',
@@ -328,9 +377,8 @@ export default function NewLoanPage() {
   const statusColors: Record<string, string> = {
     ACTIVE: 'bg-green-100 text-green-700',
     OVERDUE: 'bg-red-100 text-red-700',
-    IN_GRACE: 'bg-yellow-100 text-yellow-700',
-    DEFAULTER: 'bg-red-200 text-red-800',
-    FROZEN: 'bg-blue-100 text-blue-700',
+    DEFAULTER: 'bg-red-50 text-red-700',
+    COMPLETED: 'bg-blue-100 text-blue-700',
   }
 
   return (
@@ -440,18 +488,50 @@ export default function NewLoanPage() {
                 <h3 className="text-sm font-semibold text-gray-900">New Customer</h3>
                 <button type="button" onClick={() => setShowNewCustomer(false)} className="text-xs text-gray-500">Cancel</button>
               </div>
+
+              {/* Photo */}
+              <div>
+                <label className="label">Photo</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
+                    {ncPhotoPreview ? (
+                      <img src={ncPhotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                      </svg>
+                    )}
+                  </div>
+                  <input ref={ncFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleNcPhotoSelect} />
+                  <div className="flex gap-2">
+                    <button type="button" disabled={ncUploading} onClick={() => { if (ncFileInputRef.current) { ncFileInputRef.current.removeAttribute('capture'); ncFileInputRef.current.click() } }} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                      {ncUploading ? 'Uploading...' : 'Gallery'}
+                    </button>
+                    <button type="button" disabled={ncUploading} onClick={() => { if (ncFileInputRef.current) { ncFileInputRef.current.setAttribute('capture', 'environment'); ncFileInputRef.current.click() } }} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                      Camera
+                    </button>
+                    {ncPhotoPreview && (
+                      <button type="button" onClick={() => { setNcPhotoPath(''); setNcPhotoPreview(''); if (ncFileInputRef.current) ncFileInputRef.current.value = '' }} className="text-xs px-3 py-1.5 rounded-lg bg-danger-50 text-danger-600 hover:bg-danger-100 transition-colors">
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="label">Full Name *</label>
                 <input className="input" value={ncName} onChange={(e) => setNcName(e.target.value)} required />
               </div>
               <div>
                 <label className="label">Phone *</label>
-                <input className="input" value={ncPhone} onChange={(e) => setNcPhone(e.target.value)} placeholder="10-digit mobile" required />
+                <input className="input" value={ncPhone} onChange={(e) => setNcPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" required />
               </div>
               <div>
-                <label className="label">Village *</label>
+                <label className="label">Location *</label>
                 <select className="input" value={ncVillageId} onChange={(e) => setNcVillageId(e.target.value)} required>
-                  <option value="">Select village</option>
+                  <option value="">Select location</option>
                   {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
                 </select>
               </div>
@@ -461,9 +541,36 @@ export default function NewLoanPage() {
                   <input type="number" className="input" value={ncAge} onChange={(e) => setNcAge(e.target.value)} min={18} max={100} />
                 </div>
                 <div>
-                  <label className="label">Address</label>
-                  <input className="input" value={ncAddress} onChange={(e) => setNcAddress(e.target.value)} />
+                  <label className="label">Alt Phone</label>
+                  <input className="input" value={ncAltPhone} onChange={(e) => setNcAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} />
                 </div>
+              </div>
+
+              {/* Job Type */}
+              <div>
+                <label className="label">Job Type</label>
+                {!ncShowNewJobType ? (
+                  <select className="input" value={ncJobType} onChange={(e) => handleNcJobTypeChange(e.target.value)}>
+                    <option value="">Select job type</option>
+                    {ncJobTypes.map((jt) => <option key={jt} value={jt}>{jt}</option>)}
+                    <option value="__new__">+ Add New Job Type</option>
+                  </select>
+                ) : (
+                  <div className="flex gap-2">
+                    <input className="input flex-1" value={ncCustomJobType} onChange={(e) => setNcCustomJobType(e.target.value)} placeholder="Enter new job type" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNcCustomJobType() } }} />
+                    <button type="button" onClick={addNcCustomJobType} disabled={!ncCustomJobType.trim()} className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap">Add</button>
+                    <button type="button" onClick={() => { setNcShowNewJobType(false); setNcCustomJobType('') }} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Cancel</button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="label">Address</label>
+                <textarea className="input" rows={2} value={ncAddress} onChange={(e) => setNcAddress(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Aadhaar Number</label>
+                <input className="input" value={ncAadhaar} onChange={(e) => setNcAadhaar(e.target.value.replace(/\D/g, '').slice(0, 12))} placeholder="12 digits (stored securely)" maxLength={12} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -472,8 +579,12 @@ export default function NewLoanPage() {
                 </div>
                 <div>
                   <label className="label">Guarantor Phone</label>
-                  <input className="input" value={ncGuarantorPhone} onChange={(e) => setNcGuarantorPhone(e.target.value)} />
+                  <input className="input" value={ncGuarantorPhone} onChange={(e) => setNcGuarantorPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} />
                 </div>
+              </div>
+              <div>
+                <label className="label">Notes</label>
+                <textarea className="input" rows={2} value={ncNotes} onChange={(e) => setNcNotes(e.target.value)} />
               </div>
               <button type="submit" disabled={ncCreating} className="btn-primary w-full text-sm">
                 {ncCreating ? 'Creating...' : 'Create Customer & Continue'}

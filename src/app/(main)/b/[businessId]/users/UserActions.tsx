@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ResetPasswordModal from '@/components/ResetPasswordModal'
 
 interface Props {
   userId: string
@@ -14,6 +15,7 @@ export default function UserActions({ userId, businessId, isActive, userName }: 
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
 
   async function toggleStatus() {
     const action = isActive ? 'deactivate' : 'activate'
@@ -43,7 +45,7 @@ export default function UserActions({ userId, businessId, isActive, userName }: 
       if (res.ok) {
         router.refresh()
       } else {
-        alert(data.error || 'Failed to delete user')
+        alert(data.error || 'Failed to delete employee')
       }
     } finally {
       setLoading(false)
@@ -51,28 +53,16 @@ export default function UserActions({ userId, businessId, isActive, userName }: 
     }
   }
 
-  async function resetPassword() {
-    const newPass = prompt(`Enter new password for ${userName}:`)
-    if (!newPass) return
-
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/b/${businessId}/users/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetPassword: newPass }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        alert('Password reset. User must change password on next login.')
-        router.refresh()
-      } else {
-        alert(data.error || 'Failed to reset password')
-      }
-    } finally {
-      setLoading(false)
-      setOpen(false)
-    }
+  async function handleResetPassword(password: string, note: string) {
+    const res = await fetch(`/api/b/${businessId}/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetPassword: password, resetNote: note }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to reset password')
+    setShowResetModal(false)
+    router.refresh()
   }
 
   return (
@@ -104,7 +94,7 @@ export default function UserActions({ userId, businessId, isActive, userName }: 
               {isActive ? 'Deactivate' : 'Activate'}
             </button>
             <button
-              onClick={resetPassword}
+              onClick={() => { setOpen(false); setShowResetModal(true) }}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
               Reset Password
@@ -117,6 +107,14 @@ export default function UserActions({ userId, businessId, isActive, userName }: 
             </button>
           </div>
         </>
+      )}
+
+      {showResetModal && (
+        <ResetPasswordModal
+          userName={userName}
+          onConfirm={handleResetPassword}
+          onCancel={() => setShowResetModal(false)}
+        />
       )}
     </div>
   )

@@ -1,0 +1,1167 @@
+<title>Daily Finance Specification</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  /* Palette: warm professional */
+  :root {
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --border: #E8E5E0;
+    --fg: #1A1A18;
+    --fg-muted: #6B6860;
+    --accent: #FD5108;
+    --accent-soft: #FFF0E8;
+    --code-bg: #F5F3EF;
+    --table-stripe: #FAF9F7;
+    --display: 'DM Serif Display', Georgia, serif;
+    --body: 'Inter', Arial, sans-serif;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413;
+      --surface: #1E1E1C;
+      --border: #2E2D2A;
+      --fg: #E8E6E1;
+      --fg-muted: #9B978E;
+      --accent: #FF6B2B;
+      --accent-soft: #2A1A0E;
+      --code-bg: #1A1A18;
+      --table-stripe: #1A1A18;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413;
+    --surface: #1E1E1C;
+    --border: #2E2D2A;
+    --fg: #E8E6E1;
+    --fg-muted: #9B978E;
+    --accent: #FF6B2B;
+    --accent-soft: #2A1A0E;
+    --code-bg: #1A1A18;
+    --table-stripe: #1A1A18;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+    padding-inline: 24px;
+    padding-block: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Header bar */
+  .doc-header {
+    border-bottom: 3px solid var(--accent);
+    padding: 32px 0 20px;
+    margin-bottom: 32px;
+  }
+  .doc-header .classification {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .doc-header h1 {
+    font-family: var(--display);
+    font-size: clamp(28px, 5vw, 40px);
+    font-weight: 400;
+    line-height: 1.15;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    font-size: 13px;
+    color: var(--fg-muted);
+  }
+  .doc-meta span { white-space: nowrap; }
+  .doc-meta strong { color: var(--fg); font-weight: 600; }
+
+  /* TOC */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .toc-title {
+    font-family: var(--display);
+    font-size: 18px;
+    margin: 0 0 12px;
+  }
+  .toc ol {
+    margin: 0; padding-left: 20px;
+    columns: 2; column-gap: 32px;
+  }
+  @media (max-width: 600px) { .toc ol { columns: 1; } }
+  .toc li {
+    font-size: 14px;
+    line-height: 2;
+    break-inside: avoid;
+  }
+  .toc a {
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Sections */
+  .section { margin-bottom: 48px; }
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(22px, 4vw, 30px);
+    font-weight: 400;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-wrap: balance;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 2px;
+  }
+  h3 {
+    font-family: var(--body);
+    font-size: 17px;
+    font-weight: 700;
+    margin: 28px 0 10px;
+    color: var(--fg);
+  }
+  h4 {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 24px 0 8px;
+    letter-spacing: 0.02em;
+  }
+  p { margin: 0 0 14px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  thead th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+  td code, th code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--code-bg);
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  /* Permission matrix */
+  .perm-table td:nth-child(n+2) { text-align: center; font-size: 16px; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 16px;
+    white-space: pre;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  /* Diagrams (ASCII art in pre) */
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0 0 20px;
+    white-space: pre;
+  }
+
+  /* Key caps list */
+  .caps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .caps-list li {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 4px;
+  }
+
+  /* Feature rows */
+  .feat-table td:first-child {
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 160px;
+  }
+
+  /* API endpoint blocks */
+  .endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .endpoint-method {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+  .method-get { background: #E8F5E9; color: #2E7D32; }
+  .method-post { background: #E3F2FD; color: #1565C0; }
+  .method-patch { background: #FFF3E0; color: #E65100; }
+  .method-put { background: #F3E5F5; color: #7B1FA2; }
+  .method-delete { background: #FFEBEE; color: #C62828; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .method-get { background: #1B3A1E; color: #66BB6A; }
+    :root:not([data-theme="light"]) .method-post { background: #0D2137; color: #64B5F6; }
+    :root:not([data-theme="light"]) .method-patch { background: #2A1800; color: #FFB74D; }
+    :root:not([data-theme="light"]) .method-put { background: #1A0A24; color: #CE93D8; }
+    :root:not([data-theme="light"]) .method-delete { background: #2A0A0A; color: #EF9A9A; }
+  }
+  :root[data-theme="dark"] .method-get { background: #1B3A1E; color: #66BB6A; }
+  :root[data-theme="dark"] .method-post { background: #0D2137; color: #64B5F6; }
+  :root[data-theme="dark"] .method-patch { background: #2A1800; color: #FFB74D; }
+  :root[data-theme="dark"] .method-put { background: #1A0A24; color: #CE93D8; }
+  :root[data-theme="dark"] .method-delete { background: #2A0A0A; color: #EF9A9A; }
+  .endpoint-path {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .endpoint-desc {
+    font-size: 14px;
+    color: var(--fg-muted);
+    margin: 6px 0 0;
+  }
+  .endpoint-auth {
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-top: 4px;
+  }
+  .endpoint-auth strong { color: var(--fg); }
+
+  /* RBAC hierarchy */
+  .role-hierarchy {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* Footer */
+  .doc-footer {
+    border-top: 3px solid var(--accent);
+    padding: 20px 0 32px;
+    margin-top: 48px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--fg-muted);
+  }
+  .doc-footer .mark {
+    font-family: var(--display);
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  /* Print tweaks */
+  @media print {
+    body { font-size: 12px; max-width: 100%; }
+    .doc-header, h2 { break-after: avoid; }
+    .endpoint, .toc, table { break-inside: avoid; }
+  }
+</style>
+
+<div class="doc-header">
+  <div class="classification">Internal Use Only</div>
+  <h1>Daily Finance — Functional &amp; Technical Specification</h1>
+  <div class="doc-meta">
+    <span><strong>Version:</strong> 1.0</span>
+    <span><strong>Date:</strong> 01/10/2026</span>
+    <span><strong>Client:</strong> —</span>
+    <span><strong>Engagement:</strong> —</span>
+  </div>
+</div>
+
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">Architecture Overview</a></li>
+    <li><a href="#s3">Technology Stack</a></li>
+    <li><a href="#s4">Data Model &amp; ERD</a></li>
+    <li><a href="#s5">Role-Based Access Control</a></li>
+    <li><a href="#s6">Functional Specifications</a></li>
+    <li><a href="#s7">API Endpoint Reference</a></li>
+    <li><a href="#s8">Sequence Diagrams</a></li>
+    <li><a href="#s9">UML Class Diagrams</a></li>
+    <li><a href="#s10">Security Architecture</a></li>
+    <li><a href="#s11">SOX Compliance</a></li>
+    <li><a href="#s12">Governance &amp; Assumptions</a></li>
+    <li><a href="#s13">Non-Functional Requirements</a></li>
+  </ol>
+</nav>
+
+<!-- Section 1 -->
+<div class="section" id="s1">
+  <h2><span class="num">Section 01</span>Executive Summary</h2>
+  <p><strong>Daily Finance</strong> is a multi-tenant finance collection management platform designed for micro-lending and daily/weekly/monthly loan collection businesses operating primarily in Andhra Pradesh/Telangana, India. The platform enables business owners to manage customers, disburse loans, track collections, and generate comprehensive reports.</p>
+
+  <h3>Key Capabilities</h3>
+  <ul class="caps-list">
+    <li>Multi-owner, multi-business</li>
+    <li>4-tier RBAC</li>
+    <li>Loan lifecycle</li>
+    <li>Bulk operations</li>
+    <li>Financial reporting</li>
+    <li>Self-service registration</li>
+    <li>Password reset workflow</li>
+    <li>Cash book &amp; expenses</li>
+    <li>Aadhaar SHA-256 hashing</li>
+    <li>Money in paise (integer)</li>
+    <li>IST timezone</li>
+    <li>Excel/PDF export</li>
+  </ul>
+</div>
+
+<!-- Section 2 -->
+<div class="section" id="s2">
+  <h2><span class="num">Section 02</span>Architecture Overview</h2>
+
+  <h3>High-Level Architecture</h3>
+<pre class="diagram">┌──────────────────────────────────────────────────────────────────┐
+│                        CLIENT LAYER                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │  Browser UI   │  │  Mobile Web  │  │  API Consumer (curl) │   │
+│  │  (Next.js     │  │  (Responsive │  │                      │   │
+│  │   React SSR)  │  │   Tailwind)  │  │                      │   │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘   │
+└─────────┼─────────────────┼─────────────────────┼───────────────┘
+          │                 │                     │
+          ▼                 ▼                     ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                     APPLICATION LAYER                             │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │              Next.js 14 App Router (Node.js)               │  │
+│  │  ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌────────────┐ │  │
+│  │  │ API Route│ │ Server     │ │ Client   │ │ Middleware  │ │  │
+│  │  │ Handlers │ │ Components │ │ Comps    │ │ (Auth Guard)│ │  │
+│  │  └────┬─────┘ └────────────┘ └──────────┘ └────────────┘ │  │
+│  └───────┼────────────────────────────────────────────────────┘  │
+│          │                                                       │
+│  ┌───────▼────────────────────────────────────────────────────┐  │
+│  │                    SERVICE LAYER                            │  │
+│  │  ┌────────┐ ┌────────────┐ ┌──────────┐ ┌──────────────┐ │  │
+│  │  │ Auth   │ │ Permissions│ │ Scope    │ │ Validators   │ │  │
+│  │  │ (JWT + │ │ (RBAC      │ │ (Tenant  │ │ (Zod Schema) │ │  │
+│  │  │ bcrypt)│ │  Matrix)   │ │  Isolat.)│ │              │ │  │
+│  │  └────────┘ └────────────┘ └──────────┘ └──────────────┘ │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      DATA LAYER                                   │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │              Prisma ORM → SQLite (file:./dev.db)           │  │
+│  │              18 tables, 25+ indexes                         │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘</pre>
+
+  <h3>Request Flow</h3>
+<pre>Browser → Middleware (auth redirect) → API Route Handler
+  → getSession() (cookie → JWT → DB session → AuthUser)
+  → assertPermission(user, action)
+  → assertBusinessAccess(user, businessId)
+  → Zod validation (request body)
+  → Prisma ORM → SQLite
+  → JSON Response</pre>
+</div>
+
+<!-- Section 3 -->
+<div class="section" id="s3">
+  <h2><span class="num">Section 03</span>Technology Stack</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Layer</th><th>Technology</th><th>Version</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Framework</td><td>Next.js (App Router)</td><td>14.2.35</td><td>Full-stack React framework</td></tr>
+        <tr><td>Language</td><td>TypeScript</td><td>5.x</td><td>Type-safe development</td></tr>
+        <tr><td>UI Styling</td><td>Tailwind CSS</td><td>3.x</td><td>Utility-first CSS</td></tr>
+        <tr><td>ORM</td><td>Prisma</td><td>5.22.0</td><td>Database access &amp; migrations</td></tr>
+        <tr><td>Database</td><td>SQLite</td><td>—</td><td>Embedded relational database</td></tr>
+        <tr><td>Auth — Hashing</td><td>bcryptjs</td><td>—</td><td>Password hashing (12 salt rounds)</td></tr>
+        <tr><td>Auth — Token</td><td>jsonwebtoken</td><td>—</td><td>JWT session tokens</td></tr>
+        <tr><td>Validation</td><td>Zod</td><td>—</td><td>Runtime schema validation</td></tr>
+        <tr><td>Excel Export</td><td>exceljs</td><td>—</td><td>.xlsx report generation</td></tr>
+        <tr><td>Runtime</td><td>Node.js</td><td>18+</td><td>Server runtime</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 4 -->
+<div class="section" id="s4">
+  <h2><span class="num">Section 04</span>Data Model &amp; Entity Relationships</h2>
+
+  <h3>Entity-Relationship Diagram</h3>
+<pre class="diagram">┌─────────────────┐       ┌──────────────────────┐
+│ PlatformSetting │       │  RegistrationRequest  │
+│─────────────────│       │──────────────────────│
+│ key (unique)    │       │ username (unique)     │
+│ value           │       │ fullName, phone       │
+│ updatedBy       │       │ email, passwordHash   │
+└─────────────────┘       │ businessName, city    │
+                          │ villages, status      │
+                          └──────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                          USER                                    │
+│  id, username(unique), passwordHash, fullName, phone, email      │
+│  role(PA|OWNER|BA|AGENT), isActive, mustChangePassword           │
+│  → Business (1:N as owner)    ↔ UserBusinessAssignment (M:N)     │
+│  ← Session (1:N, cascade)     ← AuditLog (1:N)                  │
+└──────────┬───────────────────────────────────────────────────────┘
+           │ owns
+           ▼
+┌──────────────────┐
+│    BUSINESS       │ → Village (1:N) → Customer (1:N) → Loan (1:N)
+│  name, city       │                                    → Payment (1:N)
+│  collectionType   │                                    → Schedule (1:N)
+│  interestModel    │
+│  receiptSeq       │ → Holiday, Expense, CashBook, CashHandover, Document
+│  loanSeq          │
+│  customerSeq      │
+└──────────────────┘</pre>
+
+  <h3>Model Summary</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th>Key Relationships</th><th>Unique Constraints</th></tr></thead>
+      <tbody>
+        <tr><td>User</td><td>Owns businesses, assigned to businesses/villages</td><td><code>username</code></td></tr>
+        <tr><td>Session</td><td>Belongs to User (cascade delete)</td><td><code>token</code></td></tr>
+        <tr><td>Business</td><td>Owned by User, contains all business data</td><td><code>ownerId + name</code></td></tr>
+        <tr><td>Village</td><td>Belongs to Business, contains customers</td><td><code>businessId + name</code></td></tr>
+        <tr><td>Customer</td><td>Belongs to Village + Business, has loans</td><td><code>businessId + customerId</code></td></tr>
+        <tr><td>Loan</td><td>Belongs to Customer + Business, has payments</td><td><code>businessId + loanNumber</code></td></tr>
+        <tr><td>LoanScheduleEntry</td><td>Belongs to Loan (cascade delete)</td><td><code>loanId + dueDate</code></td></tr>
+        <tr><td>Payment</td><td>Belongs to Loan + Business, collected by User</td><td><code>businessId + receiptNumber</code></td></tr>
+        <tr><td>Holiday</td><td>Belongs to Business</td><td><code>businessId + date</code></td></tr>
+        <tr><td>ExpenseCategory</td><td>Belongs to Business</td><td><code>businessId + name</code></td></tr>
+        <tr><td>AuditLog</td><td>By User, optional Business</td><td>—</td></tr>
+        <tr><td>PasswordResetRequest</td><td>Belongs to User (cascade delete)</td><td>—</td></tr>
+        <tr><td>RegistrationRequest</td><td>Standalone</td><td><code>username</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 5 -->
+<div class="section" id="s5">
+  <h2><span class="num">Section 05</span>Role-Based Access Control</h2>
+
+  <h3>Role Hierarchy</h3>
+<pre class="role-hierarchy">PLATFORM_ADMIN (Super Admin)
+  ├── Manages owners, registration requests, password resets
+  ├── Platform settings (Contact Us, FAQ)
+  └── No direct business data access (needs SupportAccess grant)
+      │
+      ▼
+OWNER (Business Owner)
+  ├── Full control over owned businesses
+  ├── Creates Business Admins and Agents
+  └── Financial reports, business comparison
+      │
+      ▼
+BUSINESS_ADMIN (Business Administrator)
+  ├── Manages customers, loans, villages within assigned businesses
+  └── Creates Agents, assigns villages, all reporting
+      │
+      ▼
+AGENT (Field Agent)
+  ├── Views assigned villages/customers only
+  ├── Creates customers, posts payments
+  └── Cannot edit/delete existing records</pre>
+
+  <h3>Permission Matrix (47 Actions)</h3>
+  <div class="table-wrap">
+    <table class="perm-table">
+      <thead><tr><th>Permission</th><th>PA</th><th>Owner</th><th>BA</th><th>Agent</th></tr></thead>
+      <tbody>
+        <tr><td><code>manage_owners</code></td><td>✓</td><td></td><td></td><td></td></tr>
+        <tr><td><code>manage_platform_settings</code></td><td>✓</td><td></td><td></td><td></td></tr>
+        <tr><td><code>manage_registration_requests</code></td><td>✓</td><td></td><td></td><td></td></tr>
+        <tr><td><code>manage_password_resets</code></td><td>✓</td><td></td><td></td><td></td></tr>
+        <tr><td><code>create_business</code></td><td></td><td>✓</td><td></td><td></td></tr>
+        <tr><td><code>edit_business_settings</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>create_agent</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>create_customer</code></td><td></td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td><code>edit_customer</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>create_loan</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>post_payment</code></td><td></td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td><code>edit_any_payment</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>delete_payment</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>view_all_reports</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>view_own_collection_report</code></td><td></td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td><code>view_business_comparison</code></td><td></td><td>✓</td><td></td><td></td></tr>
+        <tr><td><code>manage_cash_book</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>manage_expenses</code></td><td></td><td>✓</td><td>✓</td><td></td></tr>
+        <tr><td><code>grant_support_access</code></td><td></td><td>✓</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:13px; color:var(--fg-muted)">Showing 19 of 47 permissions. Full matrix in source specification.</p>
+
+  <h3>Business Access Scoping</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Role</th><th>Business Access Logic</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Platform Admin</strong></td><td>Only via active SupportAccess grant from the business owner</td></tr>
+        <tr><td><strong>Owner</strong></td><td>All businesses where <code>Business.ownerId = user.id</code></td></tr>
+        <tr><td><strong>Business Admin</strong></td><td>Via <code>UserBusinessAssignment</code> records</td></tr>
+        <tr><td><strong>Agent</strong></td><td>Via <code>UserBusinessAssignment</code> + village-scoped via <code>UserVillageAssignment</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 6 -->
+<div class="section" id="s6">
+  <h2><span class="num">Section 06</span>Functional Specifications</h2>
+
+  <h3>6.1 Authentication &amp; Registration</h3>
+  <div class="table-wrap">
+    <table class="feat-table">
+      <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Login</td><td>Username/password with rate limiting (5 attempts / 15-min lockout)</td></tr>
+        <tr><td>Session</td><td>JWT cookie (<code>auth-token</code>), 24-hour expiry, 30-min inactivity auto-logout</td></tr>
+        <tr><td>Registration</td><td>Self-service for new owners; creates RegistrationRequest (PENDING)</td></tr>
+        <tr><td>Approval</td><td>PA reviews, approves (creates User + Business + Villages) or rejects</td></tr>
+        <tr><td>Password Reset</td><td>Owner requests via phone → PA or Owner resolves via admin panel</td></tr>
+        <tr><td>Forced Change</td><td><code>mustChangePassword</code> flag enforced on login redirect</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.2 Customer Management</h3>
+  <div class="table-wrap">
+    <table class="feat-table">
+      <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Create Customer</td><td>Auto-generated customer ID (sequence-based), assigned to village</td></tr>
+        <tr><td>CSV Import</td><td>Bulk import up to 500 customers with validation preview</td></tr>
+        <tr><td>Bulk Actions</td><td>Bulk status change, bulk village move, bulk delete</td></tr>
+        <tr><td>Aadhaar Security</td><td>SHA-256 hashed on input, only last 4 digits stored</td></tr>
+        <tr><td>Customer Report</td><td>Per-customer loan history with payment details (Excel/PDF)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.3 Loan Management</h3>
+  <div class="table-wrap">
+    <table class="feat-table">
+      <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Create Loan</td><td>Auto-generated loan number, repayment schedule generated</td></tr>
+        <tr><td>Collection Types</td><td>DAILY, WEEKLY, MONTHLY with configurable collection day</td></tr>
+        <tr><td>Interest Models</td><td>ADDON (interest added to principal) or UPFRONT (interest deducted)</td></tr>
+        <tr><td>Renewal</td><td>Create new loan linked to existing loan</td></tr>
+        <tr><td>Settlement</td><td>Close loan at reduced amount with reason</td></tr>
+        <tr><td>Write-off</td><td>Write off bad loan with reason</td></tr>
+        <tr><td>Auto-completion</td><td>Loan auto-completes when total payments ≥ totalRepayable</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.4 Payment / Collection</h3>
+  <div class="table-wrap">
+    <table class="feat-table">
+      <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Individual Posting</td><td>Post payment to specific loan with auto receipt number</td></tr>
+        <tr><td>Village Bulk</td><td>Post payments for all loans in a village at once</td></tr>
+        <tr><td>Bulk API</td><td>Up to 200 payments in single transaction</td></tr>
+        <tr><td>Backdating</td><td>Admin/owner can post payments for past dates</td></tr>
+        <tr><td>GPS Tracking</td><td>Optional latitude/longitude captured per payment</td></tr>
+        <tr><td>Soft Delete</td><td>Payment uses <code>isDeleted</code> flag — original record preserved</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.5 Reporting</h3>
+  <div class="table-wrap">
+    <table class="feat-table">
+      <thead><tr><th>Report</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Customer Report</td><td>All customers with loan counts, filterable by village/status</td></tr>
+        <tr><td>Loan Report</td><td>All loans with outstanding amounts, filterable by status</td></tr>
+        <tr><td>Village Report</td><td>Village-level aggregation of loans and collections</td></tr>
+        <tr><td>Employee Report</td><td>Agent activity with collection totals</td></tr>
+        <tr><td>Payment Report</td><td>All payments in date range</td></tr>
+        <tr><td>Payslip Report</td><td>Agent-wise payment summary for payroll</td></tr>
+        <tr><td>Download</td><td>Excel (.xlsx) and HTML (PDF-like) export formats</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 7 -->
+<div class="section" id="s7">
+  <h2><span class="num">Section 07</span>API Endpoint Reference</h2>
+
+  <h3>7.1 Authentication APIs</h3>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/auth/login</span></div>
+    <div class="endpoint-desc">Authenticate user and create session.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Public (rate-limited: 5 attempts / 15 min)</div>
+<pre>{
+  "username": "9553947222",
+  "password": "MyPassword123!"
+}</pre>
+    <p style="font-size:13px;color:var(--fg-muted)">Returns 200 with <code>auth-token</code> HttpOnly cookie. Errors: 400 (validation), 401 (invalid), 429 (rate limited)</p>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/auth/logout</span></div>
+    <div class="endpoint-desc">Destroy session and clear cookie.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Optional</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/auth/me</span></div>
+    <div class="endpoint-desc">Get current authenticated user context (id, role, businessIds, villageIds).</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Required (any role)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/auth/check-username?username=john123</span></div>
+    <div class="endpoint-desc">Check if username is available for registration.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Public (rate-limited: 20/min)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/auth/register</span></div>
+    <div class="endpoint-desc">Submit owner registration request with optional business details.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Public (rate-limited: 3/hour)</div>
+<pre>{
+  "fullName": "Ravi Kumar", "phone": "9876543210",
+  "username": "ravi_kumar", "password": "StrongPass1!",
+  "confirmPassword": "StrongPass1!",
+  "businessName": "Ravi Finance", "city": "Vizag",
+  "villages": ["Pendurthi", "Gajuwaka"],
+  "collectionType": "DAILY", "declaration": true
+}</pre>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/auth/forgot-password</span></div>
+    <div class="endpoint-desc">Submit password reset request by phone. Generic response prevents user enumeration.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Public (rate-limited: 3/hour)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/auth/change-password</span></div>
+    <div class="endpoint-desc">Change password (forced change flow).</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Required (any role)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/auth/profile</span></div>
+    <div class="endpoint-desc">Get current user profile with businesses.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Required (any role)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-patch">PATCH</span><span class="endpoint-path">/api/auth/profile</span></div>
+    <div class="endpoint-desc">Multi-action: changePassword, updateProfile, archiveBusiness, updateBusiness.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Required (varies by action)</div>
+  </div>
+
+  <h3>7.2 Platform Admin APIs</h3>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/admin/owners</span></div>
+    <div class="endpoint-desc">List all owners with their businesses.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN (<code>manage_owners</code>)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/admin/owners</span></div>
+    <div class="endpoint-desc">Create a new owner user.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN (<code>manage_owners</code>)</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-patch">PATCH</span>
+      <span class="endpoint-method method-delete">DELETE</span>
+      <span class="endpoint-path">/api/admin/owners/:ownerId</span>
+    </div>
+    <div class="endpoint-desc">Get, update (profile/deactivate/reset password), or permanently delete owner.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN (<code>manage_owners</code>)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/admin/registration-requests</span></div>
+    <div class="endpoint-desc">List registration requests with duplicate phone detection.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN (<code>manage_registration_requests</code>)</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/admin/registration-requests/:id/approve</span>
+    </div>
+    <div class="endpoint-desc">Approve — creates User (OWNER) + Business + Villages in transaction.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/admin/registration-requests/:id/reject</span>
+    </div>
+    <div class="endpoint-desc">Reject with reason.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/admin/password-resets</span></div>
+    <div class="endpoint-desc">List password reset requests for owners.</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> PLATFORM_ADMIN (<code>manage_password_resets</code>)</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-method method-put">PUT</span><span class="endpoint-path">/api/admin/platform-settings</span></div>
+    <div class="endpoint-desc">Get or upsert platform settings (contact_us, faq).</div>
+    <div class="endpoint-auth"><strong>Auth:</strong> Any (GET) / PLATFORM_ADMIN (PUT)</div>
+  </div>
+
+  <h3>7.3 Business-Scoped APIs</h3>
+  <p>All routes require <code>businessId</code> path parameter and authenticated business access.</p>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-patch">PATCH</span>
+      <span class="endpoint-method method-delete">DELETE</span>
+      <span class="endpoint-path">/api/b/:businessId/settings</span>
+    </div>
+    <div class="endpoint-desc">Get, update, or permanently delete business and ALL data.</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/b/:businessId/villages</span>
+    </div>
+    <div class="endpoint-desc">List villages with customer counts, or create a new village.</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/b/:businessId/customers</span>
+    </div>
+    <div class="endpoint-desc">List customers (filterable) or create with auto-generated ID.</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-patch">PATCH</span>
+      <span class="endpoint-path">/api/b/:businessId/customers/:customerId</span>
+    </div>
+    <div class="endpoint-desc">Full customer details with loans/payments, or update customer.</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/b/:businessId/customers/import</span></div>
+    <div class="endpoint-desc">Bulk CSV import (up to 500 customers). Two-step: validate, then confirm.</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/b/:businessId/loans</span>
+    </div>
+    <div class="endpoint-desc">List loans or create with auto-generated number and repayment schedule.</div>
+    <p style="font-size:13px;color:var(--fg-muted);margin-top:6px">All amounts in paise (5000000 = ₹50,000)</p>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-patch">PATCH</span>
+      <span class="endpoint-path">/api/b/:businessId/loans/:loanId</span>
+    </div>
+    <div class="endpoint-desc">Full loan details with schedule, or update loan (recalculates schedule).</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/b/:businessId/payments</span></div>
+    <div class="endpoint-desc">Post a payment. Auto-generates receipt number, checks outstanding balance.</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/b/:businessId/payments/bulk</span></div>
+    <div class="endpoint-desc">Bulk payment posting (up to 200 payments in single transaction).</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/b/:businessId/posting/village</span></div>
+    <div class="endpoint-desc">Get village customers with outstanding loans for payment posting page.</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/b/:businessId/reports</span></div>
+    <div class="endpoint-desc">Generate report data (customers, loans, villages, employees, payments, payslips).</div>
+  </div>
+
+  <div class="endpoint">
+    <div>
+      <span class="endpoint-method method-get">GET</span>
+      <span class="endpoint-method method-post">POST</span>
+      <span class="endpoint-path">/api/b/:businessId/users</span>
+    </div>
+    <div class="endpoint-desc">List employees or create employee (BUSINESS_ADMIN or AGENT).</div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/b/:businessId/upload</span></div>
+    <div class="endpoint-desc">Upload file (photo max 5MB, document max 10MB).</div>
+  </div>
+</div>
+
+<!-- Section 8 -->
+<div class="section" id="s8">
+  <h2><span class="num">Section 08</span>Sequence Diagrams</h2>
+
+  <h3>8.1 User Login Flow</h3>
+<pre class="diagram">Browser              API(/auth/login)        Auth Service         Database
+  │                       │                      │                   │
+  │──POST credentials────▶│                      │                   │
+  │                       │──checkRateLimit──────▶│                   │
+  │                       │◀─────allowed─────────│                   │
+  │                       │──validate(loginSchema)│                   │
+  │                       │──findUser────────────────────────────────▶│
+  │                       │◀────────────────user record──────────────│
+  │                       │──verifyPassword──────▶│                   │
+  │                       │◀────────match────────│                   │
+  │                       │──createSession───────────────────────────▶│
+  │                       │◀────────────────session + JWT────────────│
+  │◀─200 + Set-Cookie────│                      │                   │
+  │  (auth-token=JWT)     │                      │                   │</pre>
+
+  <h3>8.2 Registration &amp; Approval Flow</h3>
+<pre class="diagram">New Owner         API(/auth/register)  Platform Admin  API(/admin/.../approve)  Database
+  │                    │                    │                  │                    │
+  │──POST register────▶│                    │                  │                    │
+  │                    │──validate + check username unique─────────────────────────▶│
+  │                    │──create RegistrationRequest(PENDING)──────────────────────▶│
+  │◀─201 submitted────│                    │                  │                    │
+  │                    │                    │──POST approve───▶│                    │
+  │                    │                    │                  │──$transaction──────▶│
+  │                    │                    │                  │  create User(OWNER) │
+  │                    │                    │                  │  create Business    │
+  │                    │                    │                  │  create Villages    │
+  │                    │                    │◀─success────────│◀─────commit────────│</pre>
+
+  <h3>8.3 Loan Disbursement Flow</h3>
+<pre class="diagram">Owner/Admin       API(/b/:bid/loans)                    Database
+  │                    │                                    │
+  │──POST new loan────▶│                                    │
+  │                    │──getSession + assertAccess + assertPerm
+  │                    │──validate(createLoanSchema)        │
+  │                    │──verify customer exists────────────▶│
+  │                    │──increment loanSeq─────────────────▶│
+  │                    │──calculate schedule                │
+  │                    │──$transaction──────────────────────▶│
+  │                    │  create Loan + Schedule + Documents │
+  │◀─201 {loanNumber}│◀──────────────commit───────────────│</pre>
+
+  <h3>8.4 Payment Posting Flow</h3>
+<pre class="diagram">Agent             API(/b/:bid/payments)                 Database
+  │                    │                                    │
+  │──POST payment─────▶│                                    │
+  │                    │──auth + access + permission check  │
+  │                    │──find loan with totals─────────────▶│
+  │                    │──check: outstanding > 0?           │
+  │                    │──increment receiptSeq──────────────▶│
+  │                    │──create Payment────────────────────▶│
+  │                    │──if totalPaid ≥ totalRepayable:    │
+  │                    │    update loan status=COMPLETED────▶│
+  │◀─201 {receipt}────│                                    │</pre>
+</div>
+
+<!-- Section 9 -->
+<div class="section" id="s9">
+  <h2><span class="num">Section 09</span>UML Class Diagrams</h2>
+
+  <h3>Core Domain Model</h3>
+<pre class="diagram">┌──────────────────────┐         ┌──────────────────────┐
+│       &lt;&lt;entity&gt;&gt;      │         │       &lt;&lt;entity&gt;&gt;      │
+│         User          │ 1    N  │       Session         │
+│──────────────────────│────────▶│──────────────────────│
+│ +id: String           │         │ +token: String        │
+│ +username: String     │         │ +activeBusinessId?    │
+│ +role: Role           │         │ +expiresAt: DateTime  │
+│ +isActive: Boolean    │         └──────────────────────┘
+│ +mustChangePassword   │
+└──────────┬───────────┘    1:N     ┌──────────────────┐
+           │ owns ──────────────────▶│    Business       │
+           │                         │  name, city       │
+           │ M:N (assignment)        │  collectionType   │
+           ▼                         │  sequences        │
+    ┌───────────────┐                └────────┬─────────┘
+    │ BizAssignment  │                         │ 1:N
+    │ userId+bizId   │                         ▼
+    └───────────────┘               Village → Customer → Loan → Payment
+                                                         └→ LoanScheduleEntry</pre>
+
+  <h3>Authentication &amp; Service Layer</h3>
+<pre class="diagram">┌────────────────────────────┐  ┌────────────────────────────┐
+│      &lt;&lt;service&gt;&gt;            │  │      &lt;&lt;service&gt;&gt;            │
+│      AuthService            │  │    PermissionService        │
+│────────────────────────────│  │────────────────────────────│
+│ +hashPassword(pwd): hash    │  │ +hasPermission(role,action) │
+│ +verifyPassword(pwd,hash)   │  │ +assertPermission(user,act) │
+│ +signToken(payload): JWT    │  │ PERMISSION_MATRIX:          │
+│ +createSession(userId,role) │  │  Map&lt;Role, Set&lt;Action&gt;&gt;     │
+│ +getSession(): AuthUser     │  └────────────────────────────┘
+└────────────────────────────┘
+┌────────────────────────────┐  ┌────────────────────────────┐
+│      &lt;&lt;service&gt;&gt;            │  │      &lt;&lt;service&gt;&gt;            │
+│      ScopeService           │  │     RateLimitService        │
+│────────────────────────────│  │────────────────────────────│
+│ +assertBusinessAccess()     │  │ +checkRateLimit(key,max,ms) │
+│ +assertVillageAccess()      │  │ In-memory sliding window    │
+│ +getAccessibleBusinessIds() │  └────────────────────────────┘
+└────────────────────────────┘</pre>
+</div>
+
+<!-- Section 10 -->
+<div class="section" id="s10">
+  <h2><span class="num">Section 10</span>Security Architecture</h2>
+
+  <h3>10.1 Authentication</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Control</th><th>Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>Password Hashing</td><td>bcrypt with 12 salt rounds</td></tr>
+        <tr><td>Session Tokens</td><td>JWT signed with <code>JWT_SECRET</code> env var</td></tr>
+        <tr><td>Cookie Security</td><td>HttpOnly, Secure (production), SameSite=Lax</td></tr>
+        <tr><td>Session Expiry</td><td>24 hours, configurable</td></tr>
+        <tr><td>Inactivity Timeout</td><td>30-minute auto-logout (configurable per business)</td></tr>
+        <tr><td>Rate Limiting</td><td>Login: 5/15min · Registration: 3/hour · Forgot-password: 3/hour</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>10.2 Data Security</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Control</th><th>Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>Aadhaar Protection</td><td>SHA-256 hashed on input; only last 4 digits stored</td></tr>
+        <tr><td>SQL Injection</td><td>Prevented by Prisma ORM parameterized queries</td></tr>
+        <tr><td>XSS Prevention</td><td>React's built-in JSX escaping</td></tr>
+        <tr><td>CSRF Protection</td><td>SameSite cookie + HttpOnly flag</td></tr>
+        <tr><td>File Upload</td><td>Type validation (images/PDFs), size limits (5MB / 10MB)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>10.3 Input Validation</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Boundary</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td>Phone Numbers</td><td><code>/^[6-9]\d{9}$/</code> (Indian 10-digit mobile)</td></tr>
+        <tr><td>Usernames</td><td>3-30 chars, alphanumeric + underscore</td></tr>
+        <tr><td>Passwords</td><td>Min 8 chars, uppercase + number + special character</td></tr>
+        <tr><td>Amounts</td><td>Integer only (paise), positive values enforced</td></tr>
+        <tr><td>Dates</td><td>YYYY-MM-DD format validated</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 11 -->
+<div class="section" id="s11">
+  <h2><span class="num">Section 11</span>SOX Compliance</h2>
+
+  <h3>Audit Trail (Section 302/404)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Requirement</th><th>Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>Change Tracking</td><td><code>AuditLog</code> model — <code>oldValues</code>/<code>newValues</code> JSON, <code>userId</code>, <code>action</code>, <code>entityType</code></td></tr>
+        <tr><td>User Attribution</td><td>Every audit log entry linked to authenticated <code>userId</code></td></tr>
+        <tr><td>Soft Deletes</td><td>Payments use <code>isDeleted</code> flag — original records preserved</td></tr>
+        <tr><td>Session Management</td><td>Auto-expiry, inactivity timeout, session invalidation on password reset</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Data Integrity (Section 404)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Requirement</th><th>Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>Transaction Integrity</td><td>Prisma <code>$transaction</code> for multi-table operations</td></tr>
+        <tr><td>Referential Integrity</td><td>Foreign keys enforced at database level</td></tr>
+        <tr><td>Unique Constraints</td><td>Business-scoped uniqueness for loan numbers, receipt numbers, customer IDs</td></tr>
+        <tr><td>Money Precision</td><td>Integer storage in paise — no floating-point rounding errors</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 12 -->
+<div class="section" id="s12">
+  <h2><span class="num">Section 12</span>Governance &amp; Assumptions</h2>
+
+  <h3>Assumptions</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Assumption</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Single-server deployment (SQLite embedded)</td><td>Cannot horizontally scale; rate limiting per-instance</td></tr>
+        <tr><td>2</td><td>IST timezone only (UTC+5:30)</td><td>Users in other timezones see IST dates</td></tr>
+        <tr><td>3</td><td>Indian phone numbers only</td><td>International numbers not supported</td></tr>
+        <tr><td>4</td><td>Currency is INR (paise)</td><td>No multi-currency support</td></tr>
+        <tr><td>5</td><td>File storage is local filesystem</td><td>No CDN/S3; files lost if server disk fails</td></tr>
+        <tr><td>6</td><td>No email/SMS notifications</td><td>Users must check the app for updates</td></tr>
+        <tr><td>7</td><td>Rate limiting is in-memory</td><td>Resets on server restart</td></tr>
+        <tr><td>8</td><td>Browser-based only (responsive web)</td><td>No native mobile app</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Constraints</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Constraint</th><th>Limit</th></tr></thead>
+      <tbody>
+        <tr><td>CSV import</td><td>500 customers per batch</td></tr>
+        <tr><td>Bulk payment</td><td>200 payments per batch</td></tr>
+        <tr><td>Bulk customer ops</td><td>500 customers per batch</td></tr>
+        <tr><td>Bulk loan delete</td><td>100 loans per batch</td></tr>
+        <tr><td>Photo upload</td><td>Max 5MB, images only</td></tr>
+        <tr><td>Document upload</td><td>Max 10MB, images + PDFs</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 13 -->
+<div class="section" id="s13">
+  <h2><span class="num">Section 13</span>Non-Functional Requirements</h2>
+
+  <h3>Performance</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Target</th></tr></thead>
+      <tbody>
+        <tr><td>API Response Time</td><td>&lt; 500ms for standard CRUD</td></tr>
+        <tr><td>Report Generation</td><td>&lt; 5s for date-range reports</td></tr>
+        <tr><td>Excel Export</td><td>&lt; 10s for full business export</td></tr>
+        <tr><td>Page Load</td><td>&lt; 3s initial load (Next.js SSR)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Scalability</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dimension</th><th>Current Capacity</th></tr></thead>
+      <tbody>
+        <tr><td>Concurrent Users</td><td>~50 (SQLite write lock)</td></tr>
+        <tr><td>Total Businesses</td><td>Hundreds</td></tr>
+        <tr><td>Loans per Business</td><td>Thousands</td></tr>
+        <tr><td>Payments</td><td>Hundreds of thousands</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="doc-footer">
+  <p>Internal Use Only</p>
+</div>

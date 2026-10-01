@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { Role } from '@/lib/constants'
 import { formatPaiseShort } from '@/lib/money'
 import { todayIST } from '@/lib/date'
+import { deriveLoanStatus } from '@/lib/loan-status'
 import Link from 'next/link'
 import BusinessActions from './BusinessActions'
 
@@ -37,14 +38,11 @@ export default async function DashboardPage() {
   const today = todayIST()
   const stats = await Promise.all(
     businesses.map(async (biz) => {
-      const [customerCount, activeLoans, todayPayments] = await Promise.all([
-        prisma.customer.count({ where: { businessId: biz.id, status: 'ACTIVE' } }),
+      const [customerCount, allLoans, todayPayments] = await Promise.all([
+        prisma.customer.count({ where: { businessId: biz.id } }),
         prisma.loan.findMany({
-          where: {
-            businessId: biz.id,
-            status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] },
-          },
-          select: { totalRepayable: true, id: true },
+          where: { businessId: biz.id },
+          select: { totalRepayable: true, id: true, expectedEndDate: true },
         }),
         prisma.payment.aggregate({
           where: { businessId: biz.id, paymentDate: today, isDeleted: false },
@@ -52,17 +50,21 @@ export default async function DashboardPage() {
         }),
       ])
 
-      const totalPaidPerLoan = await prisma.payment.groupBy({
-        by: ['loanId'],
-        where: {
-          businessId: biz.id,
-          loanId: { in: activeLoans.map((l) => l.id) },
-          isDeleted: false,
-        },
-        _sum: { amount: true },
+      const loanIds = allLoans.map((l) => l.id)
+      const totalPaidPerLoan = loanIds.length > 0
+        ? await prisma.payment.groupBy({
+            by: ['loanId'],
+            where: { businessId: biz.id, loanId: { in: loanIds }, isDeleted: false },
+            _sum: { amount: true },
+          })
+        : []
+      const paidMap = new Map(totalPaidPerLoan.map((p) => [p.loanId, p._sum.amount || 0]))
+
+      const activeLoans = allLoans.filter((l) => {
+        const status = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+        return status === 'ACTIVE' || status === 'OVERDUE'
       })
 
-      const paidMap = new Map(totalPaidPerLoan.map((p) => [p.loanId, p._sum.amount || 0]))
       let totalOutstanding = 0
       for (const loan of activeLoans) {
         totalOutstanding += loan.totalRepayable - (paidMap.get(loan.id) || 0)

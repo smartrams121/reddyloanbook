@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface Village {
   id: string
   name: string
   isActive: boolean
   customerCount: number
-  agents: string[]
+  agents: { id: string; fullName: string }[]
 }
 
 interface Props {
@@ -40,7 +41,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Failed to add village')
+        setError(data.error || 'Failed to add location')
         setLoading(false)
         return
       }
@@ -66,7 +67,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Failed to update village')
+        setError(data.error || 'Failed to update location')
         setLoading(false)
         return
       }
@@ -86,7 +87,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
     try {
       const res = await fetch(`/api/b/${businessId}/villages/${villageId}`, { method: 'DELETE' })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Failed to delete village'); return }
+      if (!res.ok) { setError(data.error || 'Failed to delete location'); return }
       router.refresh()
     } catch {
       setError('Network error')
@@ -96,7 +97,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
   }
 
   async function toggleActive(villageId: string, currentlyActive: boolean) {
-    if (!confirm(`Are you sure you want to ${currentlyActive ? 'deactivate' : 'activate'} this village?`)) return
+    if (!confirm(`Are you sure you want to ${currentlyActive ? 'deactivate' : 'activate'} this location?`)) return
 
     const res = await fetch(`/api/b/${businessId}/villages/${villageId}`, {
       method: 'PATCH',
@@ -109,14 +110,14 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
   return (
     <div className="px-4 py-6 max-w-md mx-auto">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-gray-900">Villages</h1>
+        <h1 className="text-xl font-bold text-gray-900">Locations</h1>
         {canAdd && (
           <button onClick={() => setShowAdd(!showAdd)} className="btn-primary btn-sm">
-            + Add Village
+            + Add Location
           </button>
         )}
       </div>
-      <p className="text-sm text-gray-500 mb-4">{villages.length} village(s)</p>
+      <p className="text-sm text-gray-500 mb-4">{villages.length} location(s)</p>
 
       {error && (
         <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">
@@ -131,7 +132,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
             className="input flex-1"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Village name"
+            placeholder="Location name"
             autoFocus
             required
           />
@@ -165,16 +166,18 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-900">
+                <Link href={`/b/${businessId}/villages/${v.id}`} className="min-w-0 flex-1">
+                  <h3 className="font-medium text-gray-900 hover:text-primary-600 transition-colors">
                     {v.name}
                     {!v.isActive && <span className="ml-2 text-xs text-red-500">(Inactive)</span>}
                   </h3>
                   <p className="text-xs text-gray-500">
                     {v.customerCount} customers
-                    {v.agents.length > 0 && ` · ${v.agents.join(', ')}`}
+                    {v.agents.length > 0 && <> · {v.agents.map((a, i) => (
+                      <span key={a.id}>{i > 0 && ', '}<Link href={`/b/${businessId}/users/${a.id}`} className="text-primary-600 hover:underline" onClick={e => e.stopPropagation()}>{a.fullName}</Link></span>
+                    ))}</>}
                   </p>
-                </div>
+                </Link>
                 {canEdit && (
                   <div className="flex gap-1">
                     <button
@@ -205,7 +208,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
 
         {villages.length === 0 && (
           <div className="card p-8 text-center text-gray-400">
-            No villages yet. Add one to get started.
+            No locations yet. Add one to get started.
           </div>
         )}
       </div>

@@ -132,7 +132,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   // Villages sheet
   const villageCols = [
-    { key: 'name', label: 'Village Name' },
+    { key: 'name', label: 'Location Name' },
     { key: 'isActive', label: 'Status' },
     { key: 'customerCount', label: 'Customers' },
     { key: 'createdAt', label: 'Created' },
@@ -147,7 +147,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     customerCount: villageCustomerCounts.get(v.id) || 0,
     createdAt: v.createdAt.toLocaleDateString('en-IN'),
   }))
-  const villageWs = wb.addWorksheet('Villages')
+  const villageWs = wb.addWorksheet('Locations')
   styleSheet(villageWs, villageCols, villageRows)
 
   // Customers sheet
@@ -155,7 +155,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     { key: 'customerId', label: 'Customer ID' },
     { key: 'fullName', label: 'Full Name' },
     { key: 'phone', label: 'Phone' },
-    { key: 'village', label: 'Village' },
+    { key: 'village', label: 'Location' },
     { key: 'status', label: 'Status' },
     { key: 'guarantorName', label: 'Guarantor' },
     { key: 'guarantorPhone', label: 'Guarantor Phone' },
@@ -245,7 +245,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     { key: 'phone', label: 'Phone' },
     { key: 'role', label: 'Role' },
     { key: 'isActive', label: 'Status' },
-    { key: 'villages', label: 'Assigned Villages' },
+    { key: 'villages', label: 'Assigned Locations' },
   ]
   const userRows = userAssignments.map(ua => ({
     fullName: ua.user.fullName,

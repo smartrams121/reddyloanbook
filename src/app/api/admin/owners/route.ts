@@ -8,7 +8,9 @@ export async function GET() {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  assertPermission(user, 'manage_owners')
+  try { assertPermission(user, 'manage_owners') } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const owners = await prisma.user.findMany({
     where: { role: 'OWNER' },
@@ -27,7 +29,9 @@ export async function POST(request: Request) {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  assertPermission(user, 'manage_owners')
+  try { assertPermission(user, 'manage_owners') } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const body = await request.json()
   const parsed = createOwnerSchema.safeParse(body)
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const { fullName, phone, username, password } = parsed.data
+  const { fullName, phone, email, username, password } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { username } })
   if (existing) {
@@ -51,6 +55,7 @@ export async function POST(request: Request) {
     data: {
       fullName,
       phone,
+      email: email || null,
       username,
       passwordHash,
       role: 'OWNER',

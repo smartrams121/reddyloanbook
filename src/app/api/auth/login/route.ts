@@ -37,7 +37,28 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { username } })
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      const regRequest = await prisma.registrationRequest.findUnique({
+        where: { username },
+        select: { status: true },
+      })
+      if (regRequest?.status === 'PENDING') {
+        return NextResponse.json(
+          { error: 'Your registration is pending approval by the platform admin. Please try again later.' },
+          { status: 403 }
+        )
+      }
+      if (regRequest?.status === 'REJECTED') {
+        return NextResponse.json(
+          { error: 'Your registration request was not approved. Please contact the platform admin for details.' },
+          { status: 403 }
+        )
+      }
+      recordAttempt(username)
+      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
+    }
+
+    if (!user.isActive) {
       recordAttempt(username)
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
     }
@@ -67,7 +88,9 @@ export async function POST(request: NextRequest) {
     const token = await createSession(user.id, user.role as Role)
 
     let redirectTo = '/dashboard'
-    if (user.role === Role.PLATFORM_ADMIN) {
+    if (user.mustChangePassword) {
+      redirectTo = '/change-password'
+    } else if (user.role === Role.PLATFORM_ADMIN) {
       redirectTo = '/admin/owners'
     }
 
@@ -83,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE === 'true',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24,

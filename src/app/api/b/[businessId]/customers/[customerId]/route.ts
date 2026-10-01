@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
+import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
 import { z } from 'zod'
 import { phoneSchema } from '@/lib/validators'
 
@@ -21,7 +22,7 @@ const updateCustomerSchema = z.object({
   notes: z.string().optional(),
   photoPath: z.string().optional().nullable(),
   villageId: z.string().optional(),
-  status: z.enum(['ACTIVE', 'CLOSED', 'DEFAULTER']).optional(),
+  status: z.enum(['ACTIVE', 'CLOSED']).optional(),
 })
 
 export async function GET(request: Request, { params }: Props) {
@@ -46,9 +47,22 @@ export async function GET(request: Request, { params }: Props) {
           id: true,
           loanNumber: true,
           loanAmount: true,
+          amountGiven: true,
+          interestAmount: true,
           totalRepayable: true,
-          status: true,
+          installmentAmount: true,
+          numberOfInstallments: true,
+          collectionType: true,
           startDate: true,
+          expectedEndDate: true,
+          closedAt: true,
+          writeOffReason: true,
+          settlementReason: true,
+          settlementAmount: true,
+          status: true,
+          notes: true,
+          createdAt: true,
+          agent: { select: { id: true, fullName: true } },
         },
       },
     },
@@ -56,7 +70,42 @@ export async function GET(request: Request, { params }: Props) {
 
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
 
-  return NextResponse.json(customer)
+  const loanIds = customer.loans.map((l) => l.id)
+  const paidSums = loanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: loanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const paidMap = new Map(paidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  const loansWithTotals = customer.loans.map((l) => {
+    const totalPaid = paidMap.get(l.id) || 0
+    const derived = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid)
+    const outstanding = derived !== 'COMPLETED' ? l.totalRepayable - totalPaid : 0
+    return { ...l, totalPaid, outstanding, derivedStatus: derived }
+  })
+
+  const loanStatuses = loansWithTotals.map((l) => l.derivedStatus)
+
+  const summary = {
+    totalLoans: customer.loans.length,
+    activeLoans: loanStatuses.filter((s) => s === 'ACTIVE' || s === 'OVERDUE').length,
+    completedLoans: loanStatuses.filter((s) => s === 'COMPLETED').length,
+    defaulterLoans: loanStatuses.filter((s) => s === 'DEFAULTER').length,
+    totalLent: customer.loans.reduce((s, l) => s + l.amountGiven, 0),
+    totalRepayable: customer.loans.reduce((s, l) => s + l.totalRepayable, 0),
+    totalPaid: loansWithTotals.reduce((s, l) => s + l.totalPaid, 0),
+    totalOutstanding: loansWithTotals.reduce((s, l) => s + l.outstanding, 0),
+    customerStatus: deriveCustomerStatus(loanStatuses),
+  }
+
+  return NextResponse.json({
+    ...customer,
+    loans: loansWithTotals,
+    summary,
+  })
 }
 
 export async function PATCH(request: Request, { params }: Props) {
@@ -100,7 +149,7 @@ export async function PATCH(request: Request, { params }: Props) {
     const village = await prisma.village.findFirst({
       where: { id: parsed.data.villageId, businessId, isActive: true },
     })
-    if (!village) return NextResponse.json({ error: 'Village not found' }, { status: 400 })
+    if (!village) return NextResponse.json({ error: 'Location not found' }, { status: 400 })
     data.villageId = parsed.data.villageId
   }
 

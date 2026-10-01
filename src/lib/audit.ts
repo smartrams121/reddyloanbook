@@ -8,7 +8,7 @@ export async function createAuditLog(params: {
   newValues?: Record<string, unknown>
   reason?: string
   userId: string
-  businessId: string
+  businessId?: string
 }): Promise<void> {
   await prisma.auditLog.create({
     data: {

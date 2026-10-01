@@ -87,11 +87,10 @@ export async function POST(request: Request) {
 
     if (agentIds && agentIds.length > 0) {
       await tx.userBusinessAssignment.createMany({
-        data: agentIds.map((agentId) => ({
+        data: agentIds.map((agentId: string) => ({
           userId: agentId,
           businessId: biz.id,
         })),
-        skipDuplicates: true,
       })
     }
 

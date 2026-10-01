@@ -43,8 +43,8 @@ export default function PostingPage() {
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-gray-900">Village Bulk Posting</h2>
-            <p className="text-xs text-gray-500">Collect payments for all customers in a village at once</p>
+            <h2 className="text-sm font-semibold text-gray-900">Bulk Posting</h2>
+            <p className="text-xs text-gray-500">Collect payments for all customers in a location at once</p>
           </div>
           <svg className="w-5 h-5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />

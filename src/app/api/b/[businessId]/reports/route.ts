@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
+import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -13,15 +14,17 @@ export async function GET(request: Request, { params }: Props) {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(request.url)
+  const entity = searchParams.get('entity') || 'customers'
+
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'view_all_reports')
+    if (entity !== 'payslips') {
+      assertPermission(user, 'view_all_reports')
+    }
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
-
-  const { searchParams } = new URL(request.url)
-  const entity = searchParams.get('entity') || 'customers'
   const startDate = searchParams.get('from')
   const endDate = searchParams.get('to')
   const villageId = searchParams.get('villageId')
@@ -43,6 +46,8 @@ export async function GET(request: Request, { params }: Props) {
       return getEmployeesReport(businessId, startDate, endDate)
     case 'payments':
       return getPaymentsReport(businessId, startDate, endDate)
+    case 'payslips':
+      return getPaySlipsReport(businessId, startDate)
     default:
       return NextResponse.json({ error: 'Invalid entity' }, { status: 400 })
   }
@@ -56,21 +61,37 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
     },
     include: {
       village: { select: { name: true } },
+      loans: { select: { id: true, expectedEndDate: true, totalRepayable: true } },
       _count: { select: { loans: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
 
-  const rows = customers.map((c) => ({
-    customerId: c.customerId,
-    fullName: c.fullName,
-    phone: c.phone,
-    village: c.village.name,
-    age: c.age,
-    status: c.status,
-    totalLoans: c._count.loans,
-    createdAt: c.createdAt.toISOString().split('T')[0],
-  }))
+  const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
+  const paidSums = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const paidMap = new Map(paidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  const rows = customers.map((c) => {
+    const loanStatuses = c.loans.map((l) =>
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+    )
+    return {
+      customerId: c.customerId,
+      fullName: c.fullName,
+      phone: c.phone,
+      village: c.village.name,
+      age: c.age,
+      status: deriveCustomerStatus(loanStatuses),
+      totalLoans: c._count.loans,
+      createdAt: c.createdAt.toISOString().split('T')[0],
+    }
+  })
 
   return NextResponse.json({
     entity: 'customers',
@@ -81,7 +102,7 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
       { key: 'customerId', label: 'Customer ID' },
       { key: 'fullName', label: 'Name' },
       { key: 'phone', label: 'Phone' },
-      { key: 'village', label: 'Village' },
+      { key: 'village', label: 'Location' },
       { key: 'age', label: 'Age' },
       { key: 'status', label: 'Status' },
       { key: 'totalLoans', label: 'Total Loans' },
@@ -91,31 +112,10 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
   })
 }
 
-const ACTIVE_STATUSES = ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER']
-
-function loanHealth(expectedEndDate: string, status: string): string {
-  if (!ACTIVE_STATUSES.includes(status)) return '-'
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const due = new Date(expectedEndDate + 'T00:00:00')
-  const due30 = new Date(due)
-  due30.setDate(due30.getDate() + 30)
-  if (today <= due) return 'On Track'
-  if (today <= due30) return 'Overdue'
-  return 'Critical'
-}
-
 async function getLoansReport(businessId: string, from: string, to: string, statuses: string | null) {
   const where: Record<string, unknown> = {
     businessId,
     startDate: { gte: from, lte: to },
-  }
-
-  if (statuses) {
-    const statusList = statuses.split(',').map((s) => s.trim()).filter(Boolean)
-    if (statusList.length > 0) {
-      where.status = { in: statusList }
-    }
   }
 
   const loans = await prisma.loan.findMany({
@@ -123,34 +123,49 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
     include: {
       customer: { select: { customerId: true, fullName: true, phone: true, village: { select: { name: true } } } },
       agent: { select: { fullName: true } },
-      payments: { where: { isDeleted: false }, select: { amount: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
 
-  const rows = loans.map((l) => {
-    const totalPaid = l.payments.reduce((s, p) => s + p.amount, 0)
-    return {
-      loanNumber: l.loanNumber,
-      customerId: l.customer.customerId,
-      customerName: l.customer.fullName,
-      phone: l.customer.phone,
-      village: l.customer.village.name,
-      loanAmount: l.loanAmount / 100,
-      interestAmount: l.interestAmount / 100,
-      totalRepayable: l.totalRepayable / 100,
-      installmentAmount: l.installmentAmount / 100,
-      numberOfInstallments: l.numberOfInstallments,
-      totalPaid: totalPaid / 100,
-      outstanding: (l.totalRepayable - totalPaid) / 100,
-      status: l.status,
-      healthStatus: loanHealth(l.expectedEndDate, l.status),
-      collectionType: l.collectionType,
-      agent: l.agent?.fullName || '-',
-      startDate: l.startDate,
-      dueDate: l.expectedEndDate,
-    }
-  })
+  const loanIds = loans.map((l) => l.id)
+  const paidSums = loanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: loanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const paidMap = new Map(paidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  const statusFilter = statuses
+    ? new Set(statuses.split(',').map((s) => s.trim()).filter(Boolean))
+    : null
+
+  const rows = loans
+    .map((l) => {
+      const totalPaid = paidMap.get(l.id) || 0
+      const status = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid)
+      return {
+        loanNumber: l.loanNumber,
+        customerId: l.customer.customerId,
+        customerName: l.customer.fullName,
+        phone: l.customer.phone,
+        village: l.customer.village.name,
+        loanAmount: l.loanAmount / 100,
+        interestAmount: l.interestAmount / 100,
+        totalRepayable: l.totalRepayable / 100,
+        installmentAmount: l.installmentAmount / 100,
+        numberOfInstallments: l.numberOfInstallments,
+        totalPaid: totalPaid / 100,
+        outstanding: (l.totalRepayable - totalPaid) / 100,
+        status,
+        collectionType: l.collectionType,
+        agent: l.agent?.fullName || '-',
+        startDate: l.startDate,
+        dueDate: l.expectedEndDate,
+      }
+    })
+    .filter((r) => !statusFilter || statusFilter.has(r.status))
 
   return NextResponse.json({
     entity: 'loans',
@@ -161,7 +176,7 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
       { key: 'loanNumber', label: 'Loan #' },
       { key: 'customerName', label: 'Customer' },
       { key: 'phone', label: 'Phone' },
-      { key: 'village', label: 'Village' },
+      { key: 'village', label: 'Location' },
       { key: 'loanAmount', label: 'Principal (₹)' },
       { key: 'interestAmount', label: 'Interest (₹)' },
       { key: 'totalRepayable', label: 'Repayable (₹)' },
@@ -170,7 +185,6 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
       { key: 'totalPaid', label: 'Paid (₹)' },
       { key: 'outstanding', label: 'Outstanding (₹)' },
       { key: 'status', label: 'Status' },
-      { key: 'healthStatus', label: 'Health' },
       { key: 'collectionType', label: 'Collection' },
       { key: 'agent', label: 'Agent' },
       { key: 'startDate', label: 'Start Date' },
@@ -188,17 +202,8 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
         where: { businessId },
         select: {
           id: true,
-          status: true,
           loans: {
-            where: { status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
-            select: {
-              loanAmount: true,
-              installmentAmount: true,
-              payments: {
-                where: { isDeleted: false, paymentDate: { gte: from, lte: to } },
-                select: { amount: true },
-              },
-            },
+            select: { id: true, loanAmount: true, installmentAmount: true, totalRepayable: true, expectedEndDate: true },
           },
         },
       },
@@ -206,20 +211,50 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
     orderBy: { name: 'asc' },
   })
 
+  const allLoanIds = villages.flatMap((v) =>
+    v.customers.flatMap((c) => c.loans.map((l) => l.id))
+  )
+  const paidSumsTotal = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const totalPaidMap = new Map(paidSumsTotal.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  const paidSumsPeriod = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allLoanIds }, isDeleted: false, paymentDate: { gte: from, lte: to } },
+        _sum: { amount: true },
+      })
+    : []
+  const periodPaidMap = new Map(paidSumsPeriod.map((p) => [p.loanId, p._sum.amount || 0]))
+
   const rows = villages.map((v) => {
-    const activeCustomers = v.customers.filter((c) => c.status === 'ACTIVE').length
     const totalCustomers = v.customers.length
+    let activeCustomers = 0
     let activeLoans = 0
     let loanGivenTotal = 0
     let expectedTotal = 0
     let collectedTotal = 0
 
     v.customers.forEach((c) => {
-      c.loans.forEach((l) => {
-        activeLoans++
-        loanGivenTotal += l.loanAmount
-        expectedTotal += l.installmentAmount
-        collectedTotal += l.payments.reduce((s, p) => s + p.amount, 0)
+      const loanStatuses = c.loans.map((l) =>
+        deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0)
+      )
+      const custStatus = deriveCustomerStatus(loanStatuses)
+      if (custStatus === 'ACTIVE' || custStatus === 'OVERDUE') activeCustomers++
+
+      c.loans.forEach((l, idx) => {
+        const ls = loanStatuses[idx]
+        if (ls === 'ACTIVE' || ls === 'OVERDUE') {
+          activeLoans++
+          loanGivenTotal += l.loanAmount
+          expectedTotal += l.installmentAmount
+          collectedTotal += periodPaidMap.get(l.id) || 0
+        }
       })
     })
 
@@ -240,7 +275,7 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
     to,
     count: rows.length,
     columns: [
-      { key: 'village', label: 'Village' },
+      { key: 'village', label: 'Location' },
       { key: 'totalCustomers', label: 'Total Customers' },
       { key: 'activeCustomers', label: 'Active Customers' },
       { key: 'activeLoans', label: 'Active Loans' },
@@ -259,19 +294,19 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
   })
 
   if (!village) {
-    return NextResponse.json({ error: 'Village not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Location not found' }, { status: 404 })
   }
 
   const customers = await prisma.customer.findMany({
     where: { businessId, villageId },
     include: {
       loans: {
-        where: { status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
         select: {
+          id: true,
           installmentAmount: true,
           loanAmount: true,
           totalRepayable: true,
-          status: true,
+          expectedEndDate: true,
           payments: {
             where: { isDeleted: false, paymentDate: { gte: from, lte: to } },
             select: { amount: true },
@@ -282,8 +317,21 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
     orderBy: { fullName: 'asc' },
   })
 
+  const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
+  const paidSumsAll = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const totalPaidMap = new Map(paidSumsAll.map((p) => [p.loanId, p._sum.amount || 0]))
+
   const rows = customers.map((c) => {
-    const activeLoans = c.loans.length
+    const loanStatuses = c.loans.map((l) =>
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0)
+    )
+    const activeLoans = loanStatuses.filter((s) => s === 'ACTIVE' || s === 'OVERDUE').length
     const totalLent = c.loans.reduce((s, l) => s + l.loanAmount, 0)
     const totalRepayable = c.loans.reduce((s, l) => s + l.totalRepayable, 0)
     const expected = c.loans.reduce((s, l) => s + l.installmentAmount, 0)
@@ -293,7 +341,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
       customerId: c.customerId,
       fullName: c.fullName,
       phone: c.phone,
-      status: c.status,
+      status: deriveCustomerStatus(loanStatuses),
       activeLoans,
       totalLent: totalLent / 100,
       totalRepayable: totalRepayable / 100,
@@ -340,8 +388,8 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
             include: { village: { select: { name: true } } },
           },
           assignedLoans: {
-            where: { businessId, status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
-            select: { id: true, loanAmount: true },
+            where: { businessId },
+            select: { id: true, loanAmount: true, totalRepayable: true, expectedEndDate: true },
           },
           collectedPayments: {
             where: { businessId, isDeleted: false, paymentDate: { gte: from, lte: to } },
@@ -352,10 +400,25 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
     },
   })
 
+  const allEmpLoanIds = assignments.flatMap((a) => a.user.assignedLoans.map((l) => l.id))
+  const empPaidSums = allEmpLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allEmpLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const empPaidMap = new Map(empPaidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
   const rows = assignments.map((a) => {
     const u = a.user
     const totalCollected = u.collectedPayments.reduce((s, p) => s + p.amount, 0)
-    const totalLoanGiven = u.assignedLoans.reduce((s, l) => s + l.loanAmount, 0)
+    const activeLoans = u.assignedLoans.filter((l) => {
+      const paid = empPaidMap.get(l.id) || 0
+      const s = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid)
+      return s === 'ACTIVE' || s === 'OVERDUE'
+    })
+    const totalLoanGiven = activeLoans.reduce((s, l) => s + l.loanAmount, 0)
     const villageNames = u.villageAssignments
       .map((va) => va.village?.name)
       .filter(Boolean)
@@ -366,7 +429,7 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
       village: villageNames || '-',
       role: u.role.replace(/_/g, ' '),
       status: u.isActive ? 'Active' : 'Inactive',
-      assignedLoans: u.assignedLoans.length,
+      assignedLoans: activeLoans.length,
       loanAmountGiven: totalLoanGiven / 100,
       paymentsCollected: u.collectedPayments.length,
       amountCollected: totalCollected / 100,
@@ -381,7 +444,7 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'phone', label: 'Phone' },
-      { key: 'village', label: 'Village' },
+      { key: 'village', label: 'Location' },
       { key: 'role', label: 'Role' },
       { key: 'status', label: 'Status' },
       { key: 'assignedLoans', label: 'Assigned Loans' },
@@ -436,11 +499,85 @@ async function getPaymentsReport(businessId: string, from: string, to: string) {
       { key: 'customerName', label: 'Customer' },
       { key: 'customerId', label: 'Customer ID' },
       { key: 'phone', label: 'Phone' },
-      { key: 'village', label: 'Village' },
+      { key: 'village', label: 'Location' },
       { key: 'loanNumber', label: 'Loan #' },
       { key: 'amount', label: 'Amount (₹)' },
       { key: 'collectedBy', label: 'Collected By' },
       { key: 'note', label: 'Note' },
+    ],
+    rows,
+  })
+}
+
+async function getPaySlipsReport(businessId: string, date: string) {
+  const customers = await prisma.customer.findMany({
+    where: {
+      businessId,
+      loans: { some: {} },
+    },
+    include: {
+      village: { select: { name: true } },
+      loans: {
+        select: {
+          id: true, amountGiven: true, installmentAmount: true,
+          totalRepayable: true, expectedEndDate: true, collectionType: true,
+        },
+      },
+    },
+    orderBy: { fullName: 'asc' },
+  })
+
+  const loanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
+  const paidSums = loanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: loanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const paidMap = new Map(paidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  const [dy, dm, dd] = date.split('-')
+  const formattedDate = `${dd}/${dm}/${dy}`
+
+  const sorted = [...customers].sort((a, b) => {
+    const vCmp = a.village.name.localeCompare(b.village.name)
+    if (vCmp !== 0) return vCmp
+    return a.fullName.localeCompare(b.fullName)
+  })
+
+  const rows = sorted.flatMap((c) =>
+    c.loans
+      .filter((l) => {
+        const totalPaid = paidMap.get(l.id) || 0
+        return totalPaid < l.totalRepayable
+      })
+      .map((l) => ({
+        customerId: c.customerId,
+        customerName: c.fullName,
+        location: c.village.name,
+        loanAmount: l.amountGiven / 100,
+        outstanding: (l.totalRepayable - (paidMap.get(l.id) || 0)) / 100,
+        installmentAmount: l.installmentAmount / 100,
+        collectionDate: formattedDate,
+        paid: '',
+      }))
+  )
+
+  return NextResponse.json({
+    entity: 'payslips',
+    from: date,
+    to: date,
+    count: rows.length,
+    columns: [
+      { key: 'customerId', label: 'Customer ID' },
+      { key: 'customerName', label: 'Name' },
+      { key: 'location', label: 'Location' },
+      { key: 'loanAmount', label: 'Loan Amount (₹)' },
+      { key: 'outstanding', label: 'Outstanding (₹)' },
+      { key: 'installmentAmount', label: 'Installment (₹)' },
+      { key: 'collectionDate', label: 'Collection Date' },
+      { key: 'paid', label: 'Paid' },
     ],
     rows,
   })

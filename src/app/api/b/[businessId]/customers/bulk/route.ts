@@ -12,7 +12,7 @@ interface Props {
 const bulkEditSchema = z.object({
   customerIds: z.array(z.string().min(1)).min(1).max(500),
   action: z.enum(['changeStatus', 'changeVillage']),
-  status: z.enum(['ACTIVE', 'CLOSED', 'DEFAULTER']).optional(),
+  status: z.enum(['ACTIVE', 'CLOSED']).optional(),
   villageId: z.string().min(1).optional(),
 })
 
@@ -57,7 +57,7 @@ export async function PATCH(request: Request, { params }: Props) {
     const village = await prisma.village.findFirst({
       where: { id: villageId, businessId, isActive: true },
     })
-    if (!village) return NextResponse.json({ error: 'Village not found' }, { status: 400 })
+    if (!village) return NextResponse.json({ error: 'Location not found' }, { status: 400 })
 
     const result = await prisma.customer.updateMany({
       where: { id: { in: customerIds }, businessId },
@@ -97,7 +97,7 @@ export async function DELETE(request: Request, { params }: Props) {
     where: {
       id: { in: customerIds },
       businessId,
-      loans: { some: { status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN'] } } },
+      loans: { some: {} },
     },
     select: { id: true, fullName: true },
   })

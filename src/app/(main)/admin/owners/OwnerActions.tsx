@@ -2,18 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ResetPasswordModal from '@/components/ResetPasswordModal'
 
 interface Props {
   ownerId: string
   isActive: boolean
   ownerName: string
-  hasBusinesses: boolean
 }
 
-export default function OwnerActions({ ownerId, isActive, ownerName, hasBusinesses }: Props) {
+export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
 
   async function toggleStatus() {
     const action = isActive ? 'suspend' : 'activate'
@@ -35,46 +36,28 @@ export default function OwnerActions({ ownerId, isActive, ownerName, hasBusiness
     }
   }
 
-  async function resetPassword() {
-    const newPass = prompt(`Enter new password for ${ownerName}:`)
-    if (!newPass) return
-
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/admin/owners/${ownerId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetPassword: newPass }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        alert('Password reset successfully. Owner must change password on next login.')
-        router.refresh()
-      } else {
-        alert(data.error || 'Failed to reset password')
-      }
-    } finally {
-      setLoading(false)
-      setOpen(false)
-    }
+  async function handleResetPassword(password: string, note: string) {
+    const res = await fetch(`/api/admin/owners/${ownerId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetPassword: password, resetNote: note }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to reset password')
+    setShowResetModal(false)
+    router.refresh()
   }
 
   async function deleteOwner() {
-    if (hasBusinesses) {
-      alert(`Cannot delete ${ownerName}. Remove or reassign their businesses first.`)
-      setOpen(false)
-      return
-    }
-
     if (!confirm(`Are you sure you want to permanently delete ${ownerName}? This action cannot be undone.`)) return
 
     setLoading(true)
     try {
       const res = await fetch(`/api/admin/owners/${ownerId}`, { method: 'DELETE' })
-      const data = await res.json()
       if (res.ok) {
         router.refresh()
       } else {
+        const data = await res.json().catch(() => ({}))
         alert(data.error || 'Failed to delete owner')
       }
     } finally {
@@ -103,29 +86,37 @@ export default function OwnerActions({ ownerId, isActive, ownerName, hasBusiness
               onClick={() => { setOpen(false); router.push(`/admin/owners/${ownerId}/edit`) }}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
-              ✏️ Edit Owner
+              Edit Owner
             </button>
             <button
               onClick={toggleStatus}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
-              {isActive ? '🚫 Suspend Owner' : '✅ Activate Owner'}
+              {isActive ? 'Suspend Owner' : 'Activate Owner'}
             </button>
             <button
-              onClick={resetPassword}
+              onClick={() => { setOpen(false); setShowResetModal(true) }}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
-              🔑 Reset Password
+              Reset Password
             </button>
             <div className="border-t border-gray-100 my-1" />
             <button
               onClick={deleteOwner}
               className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50"
             >
-              🗑️ Delete Owner
+              Delete Owner
             </button>
           </div>
         </>
+      )}
+
+      {showResetModal && (
+        <ResetPasswordModal
+          userName={ownerName}
+          onConfirm={handleResetPassword}
+          onCancel={() => setShowResetModal(false)}
+        />
       )}
     </div>
   )

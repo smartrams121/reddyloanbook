@@ -8,6 +8,7 @@ export default function NewOwnerPage() {
   const router = useRouter()
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -24,7 +25,7 @@ export default function NewOwnerPage() {
       const res = await fetch('/api/admin/owners', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, phone, username, password }),
+        body: JSON.stringify({ fullName, phone, email: email || undefined, username, password }),
       })
 
       const data = await res.json()
@@ -98,6 +99,21 @@ export default function NewOwnerPage() {
             />
             {getFieldError('phone') && (
               <p className="text-xs text-danger-600 mt-1">{getFieldError('phone')}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="email" className="label">Email ID <span className="text-gray-400 font-normal">(Optional)</span></label>
+            <input
+              id="email"
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. rajesh@example.com"
+            />
+            {getFieldError('email') && (
+              <p className="text-xs text-danger-600 mt-1">{getFieldError('email')}</p>
             )}
           </div>
 

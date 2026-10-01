@@ -97,7 +97,7 @@ export default function SettingsPage() {
 
   async function handleDeleteBusiness() {
     if (!settings) return
-    const confirmation = prompt(`This will permanently delete "${settings.name}" and ALL its data (customers, loans, payments, villages, etc.).\n\nType the business name to confirm:`)
+    const confirmation = prompt(`This will permanently delete "${settings.name}" and ALL its data (customers, loans, payments, locations, etc.).\n\nType the business name to confirm:`)
     if (confirmation !== settings.name) {
       if (confirmation !== null) setError('Business name did not match. Deletion cancelled.')
       return
@@ -335,7 +335,7 @@ export default function SettingsPage() {
         <div className="card p-4 space-y-3">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Export Data</h2>
           <p className="text-xs text-gray-500">
-            Download all business data as an Excel file — includes Villages, Customers, Loans, Payments, and Users across separate sheets.
+            Download all business data as an Excel file — includes Locations, Customers, Loans, Payments, and Users across separate sheets.
           </p>
           <button
             type="button"
@@ -351,7 +351,7 @@ export default function SettingsPage() {
         <div className="card border-red-200 p-4 space-y-3">
           <h2 className="text-sm font-semibold text-red-700 uppercase tracking-wide">Danger Zone</h2>
           <p className="text-xs text-gray-500">
-            Permanently delete this business and all associated data — customers, loans, payments, villages, employees, and reports. This action cannot be undone.
+            Permanently delete this business and all associated data — customers, loans, payments, locations, employees, and reports. This action cannot be undone.
           </p>
           <button
             type="button"

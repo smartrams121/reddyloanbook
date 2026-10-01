@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 interface Agent { id: string; fullName: string; role: string }
 interface CustomerResult {
@@ -35,11 +36,13 @@ function formatPaiseShort(paise: number): string {
 
 type Step = 'search' | 'selectLoan' | 'payment' | 'success'
 
-const ACTIVE_STATUSES = ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN']
 
 export default function RecordPaymentPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const businessId = params.businessId as string
+  const preCustomerId = searchParams.get('customerId')
+  const preLoanId = searchParams.get('loanId')
 
   const [step, setStep] = useState<Step>('search')
   const [agents, setAgents] = useState<Agent[]>([])
@@ -78,6 +81,8 @@ export default function RecordPaymentPage() {
     return `${d}/${m}/${y}`
   }
 
+  const [existingPaymentId, setExistingPaymentId] = useState<string | null>(null)
+  const [existingAmountPaise, setExistingAmountPaise] = useState(0)
   const [receipt, setReceipt] = useState<{ receiptNumber: string; amount: number; createdAt: string; updatedAt: string } | null>(null)
 
   useEffect(() => {
@@ -89,6 +94,19 @@ export default function RecordPaymentPage() {
       if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
     }).catch(() => {})
   }, [businessId])
+
+  const [preSelected, setPreSelected] = useState(false)
+  useEffect(() => {
+    if (preSelected || !preCustomerId || customers.length === 0) return
+    const c = customers.find(cu => cu.id === preCustomerId)
+    if (c) { setPreSelected(true); handleSelectCustomer(c) }
+  }, [customers, preCustomerId, preSelected])
+
+  useEffect(() => {
+    if (!preLoanId || customerLoans.length === 0 || step !== 'selectLoan') return
+    const loan = customerLoans.find(l => l.id === preLoanId)
+    if (loan) { setSelectedLoan(loan); setStep('payment') }
+  }, [customerLoans, preLoanId, step])
 
   const filteredCustomers = useMemo(() => {
     if (!searchQuery.trim()) return customers.filter(c => c.status === 'ACTIVE').slice(0, 20)
@@ -102,6 +120,32 @@ export default function RecordPaymentPage() {
     )
   }, [customers, searchQuery])
 
+  const checkExistingPayment = useCallback(async (loanId: string, date: string) => {
+    try {
+      const res = await fetch(`/api/b/${businessId}/payments?loanId=${loanId}&date=${date}`)
+      const payments = await res.json()
+      if (Array.isArray(payments) && payments.length > 0) {
+        const p = payments[0]
+        setExistingPaymentId(p.id)
+        setExistingAmountPaise(p.amount)
+        setAmountStr(String(p.amount / 100))
+      } else {
+        setExistingPaymentId(null)
+        setExistingAmountPaise(0)
+        setAmountStr('')
+      }
+    } catch {
+      setExistingPaymentId(null)
+      setExistingAmountPaise(0)
+    }
+  }, [businessId])
+
+  useEffect(() => {
+    if (selectedLoan && postingDate && step === 'payment') {
+      checkExistingPayment(selectedLoan.id, postingDate)
+    }
+  }, [selectedLoan, postingDate, step, checkExistingPayment])
+
   async function handleSelectCustomer(customer: CustomerResult) {
     setSelectedCustomer(customer)
     setLoadingLoans(true)
@@ -110,7 +154,7 @@ export default function RecordPaymentPage() {
       const res = await fetch(`/api/b/${businessId}/loans?customerId=${customer.id}`)
       const loans = await res.json()
       const active = Array.isArray(loans)
-        ? loans.filter((l: LoanResult) => ACTIVE_STATUSES.includes(l.status))
+        ? loans.filter((l: LoanResult) => l.startDate <= postingDate)
         : []
       setCustomerLoans(active)
 
@@ -151,9 +195,10 @@ export default function RecordPaymentPage() {
     if (!amount || amount <= 0) { setError('Enter a valid amount'); return }
 
     const amountPaise = Math.round(amount * 100)
-    const outstanding = selectedLoan.totalRepayable - (loanPaidMap[selectedLoan.id] || 0)
-    if (amountPaise > outstanding) {
-      setError(`Amount exceeds outstanding balance of ${formatPaiseShort(outstanding)}`)
+    const rawOutstanding = selectedLoan.totalRepayable - (loanPaidMap[selectedLoan.id] || 0)
+    const effectiveOutstanding = rawOutstanding + existingAmountPaise
+    if (amountPaise > effectiveOutstanding) {
+      setError(`Amount exceeds outstanding balance of ${formatPaiseShort(effectiveOutstanding)}`)
       return
     }
 
@@ -168,6 +213,7 @@ export default function RecordPaymentPage() {
           paymentDate: postingDate,
           collectorId: collectorId || undefined,
           note: note || undefined,
+          ...(existingPaymentId ? { existingPaymentId } : {}),
         }),
       })
       const data = await res.json()
@@ -186,6 +232,8 @@ export default function RecordPaymentPage() {
         setNote('')
         setSearchQuery('')
         setError('')
+        setExistingPaymentId(null)
+        setExistingAmountPaise(0)
       } else {
         setReceipt({ receiptNumber: data.receiptNumber, amount: data.amount, createdAt: data.createdAt, updatedAt: data.updatedAt })
         setStep('success')
@@ -209,14 +257,15 @@ export default function RecordPaymentPage() {
     setReceipt(null)
     setError('')
     setSearchQuery('')
+    setExistingPaymentId(null)
+    setExistingAmountPaise(0)
   }
 
   const statusColors: Record<string, string> = {
     ACTIVE: 'bg-green-100 text-green-700',
     OVERDUE: 'bg-red-100 text-red-700',
-    IN_GRACE: 'bg-yellow-100 text-yellow-700',
-    DEFAULTER: 'bg-red-200 text-red-800',
-    FROZEN: 'bg-blue-100 text-blue-700',
+    DEFAULTER: 'bg-red-50 text-red-700',
+    COMPLETED: 'bg-blue-100 text-blue-700',
   }
 
   return (
@@ -358,8 +407,8 @@ export default function RecordPaymentPage() {
           {/* Outstanding summary */}
           {(() => {
             const paid = loanPaidMap[selectedLoan.id] || 0
-            const outstanding = selectedLoan.totalRepayable - paid
-            const pctPaid = selectedLoan.totalRepayable > 0 ? Math.round((paid / selectedLoan.totalRepayable) * 100) : 0
+            const outstanding = selectedLoan.totalRepayable - paid + existingAmountPaise
+            const pctPaid = selectedLoan.totalRepayable > 0 ? Math.round(((paid - existingAmountPaise) / selectedLoan.totalRepayable) * 100) : 0
             return (
               <div className="card p-4 space-y-3">
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Summary</h2>
@@ -390,6 +439,12 @@ export default function RecordPaymentPage() {
                 <div className="bg-primary-50 rounded-lg px-3 py-2 text-xs text-primary-700">
                   Expected installment: {formatPaiseShort(selectedLoan.installmentAmount)}
                 </div>
+
+                {existingPaymentId && (
+                  <div className="bg-amber-50 rounded-lg px-3 py-2 text-xs text-amber-700">
+                    Existing payment of {formatPaiseShort(existingAmountPaise)} found for {formatDisplayDate(postingDate)} — editing will update it
+                  </div>
+                )}
               </div>
             )
           })()}
@@ -405,7 +460,7 @@ export default function RecordPaymentPage() {
                   className="input text-sm"
                   value={postingDate}
                   onChange={(e) => setPostingDate(e.target.value)}
-                  min={minDateStr}
+                  min={selectedLoan.startDate > minDateStr ? selectedLoan.startDate : minDateStr}
                   max={todayStr}
                   required
                 />
@@ -432,7 +487,7 @@ export default function RecordPaymentPage() {
               <label className="label">Who collected this payment?</label>
               {agents.length > 0 ? (
                 <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                  <option value="">Myself (logged-in user)</option>
+                  <option value="">Myself (logged-in employee)</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
                 </select>
               ) : (
@@ -463,7 +518,7 @@ export default function RecordPaymentPage() {
             {/* Quick amount buttons */}
             {(() => {
               const paid = loanPaidMap[selectedLoan.id] || 0
-              const outstanding = selectedLoan.totalRepayable - paid
+              const outstanding = selectedLoan.totalRepayable - paid + existingAmountPaise
               const outstandingRupees = outstanding / 100
               return (
                 <div className="flex gap-2 flex-wrap">
@@ -498,7 +553,7 @@ export default function RecordPaymentPage() {
 
           <div className="flex gap-2">
             <button type="submit" disabled={posting} className="btn-primary flex-1 btn-lg">
-              {posting ? 'Posting...' : 'Post Payment'}
+              {posting ? 'Posting...' : existingPaymentId ? 'Update Payment' : 'Post Payment'}
             </button>
             <button
               type="button"
@@ -506,7 +561,7 @@ export default function RecordPaymentPage() {
               onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, true)}
               className="flex-1 btn-lg text-sm font-medium rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
             >
-              {posting ? '...' : 'Post & Next'}
+              {posting ? '...' : existingPaymentId ? 'Update & Next' : 'Post & Next'}
             </button>
             <button type="button" onClick={handleNewPayment} className="btn-secondary px-4">
               Cancel
@@ -531,7 +586,7 @@ export default function RecordPaymentPage() {
               <p>Customer: <span className="font-semibold text-gray-700">{selectedCustomer.fullName}</span></p>
               <p>Loan: <span className="font-semibold text-gray-700">{selectedLoan.loanNumber}</span></p>
               <p>Posting Date: <span className="font-semibold text-gray-700">{formatDisplayDate(postingDate)}</span></p>
-              {collectorId && <p>Collected By: <span className="font-semibold text-gray-700">{agents.find(a => a.id === collectorId)?.fullName}</span></p>}
+              {collectorId && <p>Collected By: <Link href={`/b/${businessId}/users/${collectorId}`} className="font-semibold text-primary-600 hover:underline">{agents.find(a => a.id === collectorId)?.fullName}</Link></p>}
               <p>Submitted: <span className="font-semibold text-gray-700">{formatDateTime(receipt.createdAt)}</span></p>
             </div>
           </div>

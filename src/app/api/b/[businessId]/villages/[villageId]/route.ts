@@ -35,7 +35,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     where: { id: villageId, businessId },
   })
   if (!village) {
-    return NextResponse.json({ error: 'Village not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Location not found' }, { status: 404 })
   }
 
   if (parsed.data.name) {
@@ -43,7 +43,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { businessId, name: parsed.data.name, id: { not: villageId } },
     })
     if (duplicate) {
-      return NextResponse.json({ error: 'Village name already exists' }, { status: 409 })
+      return NextResponse.json({ error: 'Location name already exists' }, { status: 409 })
     }
   }
 
@@ -68,7 +68,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     include: { _count: { select: { customers: true } } },
   })
   if (!village) {
-    return NextResponse.json({ error: 'Village not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Location not found' }, { status: 404 })
   }
 
   if (village._count.customers > 0) {

@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 
 interface Agent { id: string; fullName: string; role: string }
 interface Village { id: string; name: string; _count: { customers: number } }
 interface LoanEntry {
   id: string; loanNumber: string; installmentAmount: number
   totalRepayable: number; totalPaid: number; outstanding: number; status: string
+  existingPayment?: { id: string; amount: number } | null
 }
 interface CustomerEntry {
   id: string; customerId: string; fullName: string; phone: string
@@ -17,6 +18,7 @@ interface PaymentRow {
   customerId: string; customerName: string; phone: string
   loanId: string; loanNumber: string; installmentAmount: number
   outstanding: number; amountStr: string
+  existingPaymentId?: string; existingAmountPaise?: number
 }
 
 function formatPaiseShort(paise: number): string {
@@ -28,18 +30,19 @@ function formatPaiseShort(paise: number): string {
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   OVERDUE: 'bg-red-100 text-red-700',
-  IN_GRACE: 'bg-yellow-100 text-yellow-700',
-  DEFAULTER: 'bg-red-200 text-red-800',
-  FROZEN: 'bg-blue-100 text-blue-700',
+  DEFAULTER: 'bg-red-50 text-red-700',
+  COMPLETED: 'bg-blue-100 text-blue-700',
 }
 
 export default function VillageBulkPostingPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const businessId = params.businessId as string
+  const preVillageId = searchParams.get('villageId')
 
   const [agents, setAgents] = useState<Agent[]>([])
   const [villages, setVillages] = useState<Village[]>([])
-  const [selectedVillage, setSelectedVillage] = useState('')
+  const [selectedVillage, setSelectedVillage] = useState(preVillageId || '')
   const [collectorId, setCollectorId] = useState('')
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<PaymentRow[]>([])
@@ -84,17 +87,19 @@ export default function VillageBulkPostingPage() {
     setError('')
     setResult(null)
     try {
-      const res = await fetch(`/api/b/${businessId}/posting/village?villageId=${villageId}`)
+      const res = await fetch(`/api/b/${businessId}/posting/village?villageId=${villageId}&date=${postingDate}`)
       const customers: CustomerEntry[] = await res.json()
       if (!res.ok) {
-        setError('Failed to load village data')
+        setError('Failed to load location data')
         setRows([])
         return
       }
       const paymentRows: PaymentRow[] = []
       customers.forEach(c => {
         c.loans.forEach(l => {
-          if (l.outstanding > 0) {
+          const existing = l.existingPayment
+          const effectiveOutstanding = existing ? l.outstanding + existing.amount : l.outstanding
+          if (effectiveOutstanding > 0) {
             paymentRows.push({
               customerId: c.customerId,
               customerName: c.fullName,
@@ -102,8 +107,10 @@ export default function VillageBulkPostingPage() {
               loanId: l.id,
               loanNumber: l.loanNumber,
               installmentAmount: l.installmentAmount,
-              outstanding: l.outstanding,
-              amountStr: '',
+              outstanding: effectiveOutstanding,
+              amountStr: existing ? String(existing.amount / 100) : '',
+              existingPaymentId: existing?.id,
+              existingAmountPaise: existing?.amount,
             })
           }
         })
@@ -111,12 +118,29 @@ export default function VillageBulkPostingPage() {
       setRows(paymentRows)
       inputRefs.current = new Array(paymentRows.length).fill(null)
     } catch {
-      setError('Network error loading village data')
+      setError('Network error loading location data')
       setRows([])
     } finally {
       setLoading(false)
     }
-  }, [businessId])
+  }, [businessId, postingDate])
+
+  const prevDateRef = useRef(postingDate)
+  useEffect(() => {
+    if (prevDateRef.current !== postingDate && selectedVillage) {
+      loadVillageData(selectedVillage)
+    }
+    prevDateRef.current = postingDate
+  }, [postingDate, selectedVillage, loadVillageData])
+
+  const [preLoaded, setPreLoaded] = useState(false)
+  useEffect(() => {
+    if (preLoaded || !preVillageId || villages.length === 0) return
+    if (villages.some(v => v.id === preVillageId)) {
+      setPreLoaded(true)
+      loadVillageData(preVillageId)
+    }
+  }, [preVillageId, villages, preLoaded, loadVillageData])
 
   function handleVillageChange(villageId: string) {
     setSelectedVillage(villageId)
@@ -151,6 +175,7 @@ export default function VillageBulkPostingPage() {
     const payments = filledRows.map(r => ({
       loanId: r.loanId,
       amount: Math.round(parseFloat(r.amountStr) * 100),
+      ...(r.existingPaymentId ? { existingPaymentId: r.existingPaymentId } : {}),
     }))
 
     if (payments.length === 0) {
@@ -209,8 +234,8 @@ export default function VillageBulkPostingPage() {
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Village Bulk Posting</h1>
-      <p className="text-sm text-gray-500 mb-6">Collect payments for all customers in a village at once</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">Bulk Posting</h1>
+      <p className="text-sm text-gray-500 mb-6">Collect payments for all customers in a location at once</p>
 
       {error && (
         <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>
@@ -226,7 +251,7 @@ export default function VillageBulkPostingPage() {
               </svg>
             </div>
             <h2 className="text-lg font-bold text-gray-900 mb-1">Bulk Payment Recorded</h2>
-            <p className="text-sm text-gray-500 mb-2">Village: <span className="font-semibold text-gray-700">{villageName}</span></p>
+            <p className="text-sm text-gray-500 mb-2">Location: <span className="font-semibold text-gray-700">{villageName}</span></p>
             <p className="text-3xl font-bold text-success-600 mb-2">{formatPaiseShort(result.totalAmount)}</p>
             <p className="text-sm text-gray-500">{result.count} payment{result.count > 1 ? 's' : ''} posted</p>
           </div>
@@ -235,7 +260,7 @@ export default function VillageBulkPostingPage() {
               Collect Again ({villageName})
             </button>
             <button onClick={handleReset} className="btn-secondary flex-1">
-              Different Village
+              Different Location
             </button>
           </div>
         </div>
@@ -246,13 +271,13 @@ export default function VillageBulkPostingPage() {
         <>
           {/* Village Dropdown */}
           <div className="mb-5">
-            <label className="label">Select Village *</label>
+            <label className="label">Select Location *</label>
             <select
               className="input"
               value={selectedVillage}
               onChange={(e) => handleVillageChange(e.target.value)}
             >
-              <option value="">— Choose a village —</option>
+              <option value="">— Choose a location —</option>
               {villages.map(v => (
                 <option key={v.id} value={v.id}>{v.name} ({v._count.customers} customers)</option>
               ))}
@@ -297,7 +322,7 @@ export default function VillageBulkPostingPage() {
               <label className="label">Who collected this payment?</label>
               {agents.length > 0 ? (
                 <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                  <option value="">Myself (logged-in user)</option>
+                  <option value="">Myself (logged-in employee)</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
                 </select>
               ) : (
@@ -345,6 +370,9 @@ export default function VillageBulkPostingPage() {
                           <div className="flex items-center gap-3 text-xs">
                             <span className="text-gray-500">Inst: <span className="font-semibold text-gray-700">{formatPaiseShort(row.installmentAmount)}</span></span>
                             <span className="text-gray-500">Out: <span className="font-semibold text-gray-900">{formatPaiseShort(row.outstanding)}</span></span>
+                            {row.existingPaymentId && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Paid {formatPaiseShort(row.existingAmountPaise || 0)}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -397,7 +425,13 @@ export default function VillageBulkPostingPage() {
                   disabled={posting || filledRows.length === 0}
                   className="btn-primary w-full btn-lg disabled:opacity-50"
                 >
-                  {posting ? 'Posting...' : `Submit ${filledRows.length} Payment${filledRows.length !== 1 ? 's' : ''}`}
+                  {posting ? 'Posting...' : (() => {
+                    const updateCount = filledRows.filter(r => r.existingPaymentId).length
+                    const newCount = filledRows.length - updateCount
+                    if (updateCount > 0 && newCount > 0) return `Update ${updateCount} & Submit ${newCount} Payment${newCount !== 1 ? 's' : ''}`
+                    if (updateCount > 0) return `Update ${updateCount} Payment${updateCount !== 1 ? 's' : ''}`
+                    return `Submit ${filledRows.length} Payment${filledRows.length !== 1 ? 's' : ''}`
+                  })()}
                 </button>
               </div>
             </>
@@ -405,7 +439,7 @@ export default function VillageBulkPostingPage() {
 
           {!loading && selectedVillage && rows.length === 0 && !error && (
             <div className="card p-8 text-center text-gray-400">
-              <p>No active loans with outstanding balance in this village</p>
+              <p>No active loans with outstanding balance in this location</p>
             </div>
           )}
         </>

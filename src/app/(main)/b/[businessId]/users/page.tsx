@@ -46,21 +46,21 @@ export default async function UsersPage({ params }: Props) {
   return (
     <div className="px-4 py-6 max-w-md mx-auto">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-gray-900">Users</h1>
+        <h1 className="text-xl font-bold text-gray-900">Employees</h1>
         {canManage && (
           <Link href={`/b/${businessId}/users/new`} className="btn-primary btn-sm">
-            + Add User
+            + Add Employee
           </Link>
         )}
       </div>
-      <p className="text-sm text-gray-500 mb-6">{users.length} user(s) in this business</p>
+      <p className="text-sm text-gray-500 mb-6">{users.length} employee(s) in this business</p>
 
       <div className="space-y-3">
         {users.map((u) => (
           <div key={u.id} className={`card p-4 ${!u.isActive ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between mb-1">
               <div>
-                <h3 className="font-semibold text-gray-900">{u.fullName}</h3>
+                <Link href={`/b/${businessId}/users/${u.id}`} className="font-semibold text-gray-900 hover:text-primary-600 transition-colors">{u.fullName}</Link>
                 <p className="text-xs text-gray-500">@{u.username} &middot; {u.phone || 'No phone'}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -96,14 +96,14 @@ export default async function UsersPage({ params }: Props) {
               </div>
             )}
             {u.role === 'AGENT' && u.villageAssignments.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">No villages assigned</p>
+              <p className="text-xs text-amber-600 mt-1">No locations assigned</p>
             )}
           </div>
         ))}
 
         {users.length === 0 && (
           <div className="card p-8 text-center text-gray-400">
-            No users assigned to this business yet.
+            No employees assigned to this business yet.
           </div>
         )}
       </div>

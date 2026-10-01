@@ -34,7 +34,6 @@ async function main() {
   await prisma.userBusinessAssignment.deleteMany()
   await prisma.village.deleteMany()
   await prisma.session.deleteMany()
-  await prisma.recoveryCode.deleteMany()
   await prisma.supportAccess.deleteMany()
   await prisma.business.deleteMany()
   await prisma.user.deleteMany()
@@ -48,7 +47,6 @@ async function main() {
       phone: '9999900000',
       role: 'PLATFORM_ADMIN',
       mustChangePassword: false,
-      totpEnabled: false,
     },
   })
 
@@ -60,7 +58,6 @@ async function main() {
       phone: '9553940001',
       role: 'OWNER',
       mustChangePassword: false,
-      totpEnabled: false,
     },
   })
 
@@ -72,7 +69,6 @@ async function main() {
       phone: '9553940002',
       role: 'OWNER',
       mustChangePassword: false,
-      totpEnabled: false,
     },
   })
 
@@ -129,7 +125,7 @@ async function main() {
   // ── STAFF USERS ────────────────────────────────────────────────────────
   const adminSai = await prisma.user.create({
     data: {
-      username: 'admin_sai',
+      username: 'business_admin',
       passwordHash: PASSWORD_HASH,
       fullName: 'Venkat Rao',
       phone: '9553940100',
@@ -173,7 +169,7 @@ async function main() {
 
   const agentO2 = await prisma.user.create({
     data: {
-      username: 'agent_o2',
+      username: 'agent4',
       passwordHash: PASSWORD_HASH,
       fullName: 'Ramesh Babu',
       phone: '9553940200',
@@ -574,11 +570,11 @@ async function main() {
   console.log('  platform_admin — Platform Admin')
   console.log('  owner1         — Owner (Sai Daily Finance + Sri Lakshmi Finance)')
   console.log('  owner2         — Owner (Ganesh Finance)')
-  console.log('  admin_sai      — Business Admin (Sai Daily Finance)')
+  console.log('  business_admin — Business Admin (Sai Daily Finance)')
   console.log('  agent1         — Agent (PM Palem, Madhurawada)')
   console.log('  agent2         — Agent (Gajuwaka)')
   console.log('  agent3         — Agent (PM Palem + Ameerpet, 2 businesses)')
-  console.log('  agent_o2       — Agent (Ganesh Finance)')
+  console.log('  agent4         — Agent (Ganesh Finance)')
 }
 
 main()

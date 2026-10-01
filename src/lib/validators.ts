@@ -23,12 +23,12 @@ export const aadhaarSchema = z
 export const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
-  totpCode: z.string().optional(),
 })
 
 export const createOwnerSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   phone: phoneSchema,
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
   username: usernameSchema,
   password: passwordSchema.default('system'),
 })
@@ -57,7 +57,7 @@ export const createBusinessSchema = z.object({
     .optional(),
   interestModel: z.enum(['ADDON', 'UPFRONT']).default('ADDON'),
   collectOnSundays: z.boolean().default(false),
-  villages: z.array(z.string().min(1)).min(1, 'At least one village is required'),
+  villages: z.array(z.string().min(1)).min(1, 'At least one location is required'),
 })
 
 export const createCustomerSchema = z.object({
@@ -65,7 +65,7 @@ export const createCustomerSchema = z.object({
   age: z.number().int().min(18).max(100).optional(),
   phone: phoneSchema,
   altPhone: phoneSchema.optional().or(z.literal('')),
-  villageId: z.string().min(1, 'Village is required'),
+  villageId: z.string().min(1, 'Location is required'),
   address: z.string().optional(),
   aadhaar: aadhaarSchema,
   jobType: z.string().optional(),
@@ -130,6 +130,7 @@ export const bulkPaymentSchema = z.object({
 export const createUserSchema = z.object({
   fullName: z.string().min(2),
   phone: phoneSchema,
+  email: z.string().email().nullable().optional(),
   username: usernameSchema,
   password: passwordSchema.default('system'),
   role: z.enum(['BUSINESS_ADMIN', 'AGENT']),
@@ -148,5 +149,51 @@ export const cashHandoverSchema = z.object({
   agentId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   amount: z.number().int().positive(),
+  note: z.string().optional(),
+})
+
+export const registrationSchema = z.object({
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: phoneSchema,
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
+  username: z.string()
+    .min(4, 'Minimum 4 characters')
+    .max(20, 'Maximum 20 characters')
+    .regex(/^[a-zA-Z0-9._]+$/, 'Only letters, numbers, dots, and underscores'),
+  password: z.string()
+    .min(8, 'Minimum 8 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[0-9]/, 'Must contain a number')
+    .regex(/[^a-zA-Z0-9]/, 'Must contain a special character'),
+  confirmPassword: z.string(),
+  businessName: z.string().min(2, 'Business name must be at least 2 characters').optional(),
+  city: z.string().min(2, 'City is required').optional(),
+  villages: z.array(z.string().min(1)).min(1, 'At least one location is required').optional(),
+  collectionType: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional(),
+  defaultCollectionDay: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']).optional(),
+  declaration: z.literal(true, { errorMap: () => ({ message: 'You must accept the declaration' }) }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})
+
+export const rejectRegistrationSchema = z.object({
+  reason: z.string().min(1, 'Rejection reason is required'),
+})
+
+export const forgotPasswordSchema = z.object({
+  phone: phoneSchema,
+})
+
+export const resolvePasswordResetSchema = z.object({
+  newPassword: z.string()
+    .min(8, 'Minimum 8 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[0-9]/, 'Must contain a number')
+    .regex(/[^a-zA-Z0-9]/, 'Must contain a special character'),
+  note: z.string().optional(),
+})
+
+export const cancelPasswordResetSchema = z.object({
   note: z.string().optional(),
 })

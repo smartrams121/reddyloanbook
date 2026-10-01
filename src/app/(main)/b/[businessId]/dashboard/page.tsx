@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { formatPaiseShort } from '@/lib/money'
 import { todayIST, formatDateISO, formatDateDisplay, parseISODate, addDays } from '@/lib/date'
+import { deriveLoanStatus } from '@/lib/loan-status'
 import Link from 'next/link'
 import DateFilter from './DateFilter'
 
@@ -62,23 +63,14 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   const dateRange = getDateRange(range, from, to)
 
   const [
-    activeCustomers,
-    closedCustomers,
-    defaulterCustomers,
-    activeLoans,
+    allLoans,
     rangePayments,
     villages,
     rangeNewLoans,
-    completedLoansCount,
-    rangeActiveLoans,
-    rangePaymentsDetail,
   ] = await Promise.all([
-    prisma.customer.count({ where: { businessId, status: 'ACTIVE' } }),
-    prisma.customer.count({ where: { businessId, status: 'CLOSED' } }),
-    prisma.customer.count({ where: { businessId, status: 'DEFAULTER' } }),
     prisma.loan.findMany({
-      where: { businessId, status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
-      select: { id: true, totalRepayable: true, installmentAmount: true, startDate: true },
+      where: { businessId },
+      select: { id: true, totalRepayable: true, installmentAmount: true, startDate: true, expectedEndDate: true, customerId: true, customer: { select: { villageId: true } } },
     }),
     prisma.payment.aggregate({
       where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
@@ -94,43 +86,49 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       where: { businessId, startDate: { gte: dateRange.start, lte: dateRange.end } },
       select: { amountGiven: true },
     }),
-    prisma.loan.count({
-      where: { businessId, closedAt: { gte: dateRange.start, lte: dateRange.end }, status: { in: ['COMPLETED', 'COMPLETED_RENEWED', 'SETTLED'] } },
-    }),
-    // Loans active during the date range: currently active (started before range end) OR completed/settled during the range
-    prisma.loan.findMany({
-      where: {
-        businessId,
-        startDate: { lte: dateRange.end },
-        OR: [
-          { status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN'] } },
-          { status: { in: ['COMPLETED', 'COMPLETED_RENEWED', 'SETTLED'] }, closedAt: { gte: dateRange.start } },
-        ],
-      },
-      select: { installmentAmount: true, customerId: true, customer: { select: { villageId: true } } },
-    }),
-    // Payments in date range with customer/village info for village breakdown
-    prisma.payment.findMany({
-      where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
-      select: { loan: { select: { customerId: true, customer: { select: { villageId: true } } } } },
-    }),
   ])
 
-  const loanIds = activeLoans.map((l) => l.id)
-  const totalPaidPerLoan = await prisma.payment.groupBy({
-    by: ['loanId'],
-    where: { businessId, loanId: { in: loanIds }, isDeleted: false },
-    _sum: { amount: true },
-  })
+  const allLoanIds = allLoans.map((l) => l.id)
+  const totalPaidPerLoan = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { businessId, loanId: { in: allLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
   const paidMap = new Map(totalPaidPerLoan.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  // Derive status for all loans
+  const loansWithStatus = allLoans.map((l) => ({
+    ...l,
+    paid: paidMap.get(l.id) || 0,
+    derivedStatus: deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0),
+  }))
+
+  const activeLoans = loansWithStatus.filter((l) => l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE')
 
   let totalOutstanding = 0
   let totalLent = 0
   for (const loan of activeLoans) {
-    const paid = paidMap.get(loan.id) || 0
-    totalOutstanding += loan.totalRepayable - paid
+    totalOutstanding += loan.totalRepayable - loan.paid
     totalLent += loan.totalRepayable
   }
+
+  // Loan status counts for summary
+  const loanStatusCounts = { ACTIVE: 0, OVERDUE: 0, DEFAULTER: 0, COMPLETED: 0 }
+  for (const l of loansWithStatus) {
+    loanStatusCounts[l.derivedStatus]++
+  }
+
+  // Range-active loans: started before range end, not completed
+  const rangeActiveLoans = loansWithStatus.filter(
+    (l) => l.startDate <= dateRange.end && (l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE')
+  )
+
+  // Completed loans in range: derive from paid data
+  const completedLoansCount = loansWithStatus.filter(
+    (l) => l.derivedStatus === 'COMPLETED' && l.paid > 0
+  ).length
 
   const periodExpected = rangeActiveLoans.reduce((sum, l) => sum + (l.installmentAmount || 0), 0)
   const expectedLoanCount = rangeActiveLoans.length
@@ -139,6 +137,12 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   const newLoanCount = rangeNewLoans.length
   const newLoanAmount = rangeNewLoans.reduce((sum, l) => sum + l.amountGiven, 0)
   const periodInHand = periodCollected - newLoanAmount
+
+  // Range payments with village info for village breakdown
+  const rangePaymentsDetail = await prisma.payment.findMany({
+    where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
+    select: { loan: { select: { customerId: true, customer: { select: { villageId: true } } } } },
+  })
 
   // Village breakdown: active customers, paid, not paid
   const villageActiveMap = new Map<string, Set<string>>()
@@ -158,7 +162,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   const villageStats = villages.map((v) => {
     const activeSet = villageActiveMap.get(v.id) || new Set()
     const paidSet = villagePaidMap.get(v.id) || new Set()
-    const notPaid = [...activeSet].filter((cid) => !paidSet.has(cid)).length
+    const notPaid = Array.from(activeSet).filter((cid) => !paidSet.has(cid)).length
     return { id: v.id, name: v.name, active: activeSet.size, paid: paidSet.size, notPaid }
   })
 
@@ -240,20 +244,21 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         )}
       </div>
 
-      {/* Customer Summary */}
+      {/* Loan Summary */}
       <div className="card p-4 mb-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customers</h2>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="badge-success">{activeCustomers} Active</span>
-          <span className="badge-gray">{closedCustomers} Closed</span>
-          <span className="badge-danger">{defaulterCustomers} Defaulter</span>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Loans</h2>
+        <div className="flex items-center gap-3 text-sm flex-wrap">
+          <span className="badge-success">{loanStatusCounts.ACTIVE} Active</span>
+          <span className="bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">{loanStatusCounts.OVERDUE} Overdue</span>
+          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full">{loanStatusCounts.DEFAULTER} Defaulter</span>
+          <span className="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">{loanStatusCounts.COMPLETED} Completed</span>
         </div>
       </div>
 
       {/* Village Summary */}
       <div className="card p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Villages</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Locations</h2>
           <Link href={`/b/${businessId}/villages`} className="text-sm text-primary-600">View All</Link>
         </div>
         <div className="space-y-2">

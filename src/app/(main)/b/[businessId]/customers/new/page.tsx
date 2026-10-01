@@ -125,7 +125,7 @@ export default function NewCustomerPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setVillageError(data.error || 'Failed to create village')
+        setVillageError(data.error || 'Failed to create location')
         return
       }
       setVillages(prev => [...prev, { id: data.id, name: data.name }])
@@ -290,11 +290,11 @@ export default function NewCustomerPage() {
 
         {/* Village with inline creation */}
         <div>
-          <label className="label">Village *</label>
+          <label className="label">Location *</label>
           {!showNewVillage ? (
             <div className="flex gap-2">
               <select className="input flex-1" value={villageId} onChange={(e) => setVillageId(e.target.value)} required>
-                <option value="">Select village</option>
+                <option value="">Select location</option>
                 {villages.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
@@ -314,7 +314,7 @@ export default function NewCustomerPage() {
                   className="input flex-1"
                   value={newVillageName}
                   onChange={(e) => setNewVillageName(e.target.value)}
-                  placeholder="Enter new village name"
+                  placeholder="Enter new location name"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createVillage() } }}
                 />

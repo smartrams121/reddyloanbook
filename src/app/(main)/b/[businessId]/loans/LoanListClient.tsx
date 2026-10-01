@@ -32,15 +32,9 @@ interface Props {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case 'ACTIVE': return 'bg-success-50 text-success-700'
-    case 'OVERDUE':
-    case 'IN_GRACE': return 'bg-warning-50 text-warning-700'
-    case 'DEFAULTER': return 'bg-danger-50 text-danger-700'
-    case 'FROZEN': return 'bg-blue-50 text-blue-700'
-    case 'INACTIVE': return 'bg-gray-100 text-gray-500'
-    case 'COMPLETED':
-    case 'COMPLETED_RENEWED':
-    case 'SETTLED': return 'bg-primary-50 text-primary-700'
-    case 'WRITTEN_OFF': return 'bg-red-50 text-red-700'
+    case 'OVERDUE': return 'bg-red-50 text-red-700'
+    case 'DEFAULTER': return 'bg-red-50 text-red-700'
+    case 'COMPLETED': return 'bg-blue-50 text-blue-700'
     default: return 'bg-gray-100 text-gray-500'
   }
 }
@@ -68,18 +62,9 @@ export default function LoanListClient({ loans, businessId }: Props) {
     else setSelected(new Set(allIds))
   }
 
-  async function executeBulk(action: 'delete' | 'freeze' | 'inactive' | 'reactivate') {
-    const labels: Record<string, string> = {
-      delete: 'permanently delete',
-      freeze: 'freeze',
-      inactive: 'make inactive',
-      reactivate: 'reactivate',
-    }
-
+  async function executeBulk(action: 'delete') {
     const confirmed = window.confirm(
-      `Are you sure you want to ${labels[action]} ${selected.size} loan${selected.size > 1 ? 's' : ''}?${
-        action === 'delete' ? '\n\nThis will permanently remove the loans, payments, and schedule entries. This cannot be undone.' : ''
-      }`
+      `Are you sure you want to permanently delete ${selected.size} loan${selected.size > 1 ? 's' : ''}?\n\nThis will permanently remove the loans, payments, and schedule entries. This cannot be undone.`
     )
     if (!confirmed) return
 
@@ -105,8 +90,6 @@ export default function LoanListClient({ loans, businessId }: Props) {
       setLoading(false)
     }
   }
-
-  const hasInactive = loans.some((l) => l.status === 'INACTIVE' && selected.has(l.id))
 
   return (
     <div className="space-y-2 relative">
@@ -156,7 +139,7 @@ export default function LoanListClient({ loans, businessId }: Props) {
                   <p className="text-sm font-medium text-gray-900 truncate">{loan.customer.fullName}</p>
                   <p className="text-xs text-gray-500">
                     {loan.loanNumber} &middot; {loan.customer.phone}
-                    {loan.agent ? ` · ${loan.agent.fullName}` : ''}
+                    {loan.agent && <> · <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline" onClick={e => e.stopPropagation()}>{loan.agent.fullName}</Link></>}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -213,29 +196,14 @@ export default function LoanListClient({ loans, businessId }: Props) {
               {selected.size} loan{selected.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
-              {hasInactive && (
+              {selected.size === 1 && (
                 <button
-                  onClick={() => executeBulk('reactivate')}
-                  disabled={loading}
-                  className="px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  onClick={() => router.push(`/b/${businessId}/loans/${Array.from(selected)[0]}/edit`)}
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                 >
-                  {loading ? '...' : 'Reactivate'}
+                  Edit
                 </button>
               )}
-              <button
-                onClick={() => executeBulk('inactive')}
-                disabled={loading}
-                className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? '...' : 'Inactive'}
-              </button>
-              <button
-                onClick={() => executeBulk('freeze')}
-                disabled={loading}
-                className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? '...' : 'Freeze'}
-              </button>
               <button
                 onClick={() => executeBulk('delete')}
                 disabled={loading}

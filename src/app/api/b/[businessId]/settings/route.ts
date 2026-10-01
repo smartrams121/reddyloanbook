@@ -33,7 +33,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await assertBusinessAccess(user, businessId)
+  try {
+    await assertBusinessAccess(user, businessId)
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
@@ -60,8 +64,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'edit_business_settings')
+  try {
+    await assertBusinessAccess(user, businessId)
+    assertPermission(user, 'edit_business_settings')
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const body = await request.json()
   const parsed = updateSettingsSchema.safeParse(body)
@@ -89,8 +97,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'deactivate_business')
+  try {
+    await assertBusinessAccess(user, businessId)
+    assertPermission(user, 'deactivate_business')
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },

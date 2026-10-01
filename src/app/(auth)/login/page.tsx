@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -85,6 +86,11 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
               />
+              <div className="mt-1 text-right">
+                <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-700">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
 
             <button
@@ -95,6 +101,13 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Want to register as an Owner?{' '}
+            <Link href="/register" className="text-primary-600 font-medium">
+              Register Here
+            </Link>
+          </p>
         </div>
       </div>
     </div>

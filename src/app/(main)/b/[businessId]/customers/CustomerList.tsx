@@ -69,7 +69,7 @@ export default function CustomerList({ customers, villages, businessId, isAdminO
     if (bulkAction === 'status') {
       body = { ...body, action: 'changeStatus', status: bulkStatus }
     } else if (bulkAction === 'village') {
-      if (!bulkVillage) { setError('Select a village'); return }
+      if (!bulkVillage) { setError('Select a location'); return }
       body = { ...body, action: 'changeVillage', villageId: bulkVillage }
     } else {
       return
@@ -148,7 +148,6 @@ export default function CustomerList({ customers, villages, businessId, isAdminO
                 <option value="" disabled>Change Status...</option>
                 <option value="ACTIVE">Active</option>
                 <option value="CLOSED">Closed</option>
-                <option value="DEFAULTER">Defaulter</option>
               </select>
             </div>
 
@@ -162,7 +161,7 @@ export default function CustomerList({ customers, villages, businessId, isAdminO
                   setBulkVillage(e.target.value)
                 }}
               >
-                <option value="" disabled>Move to Village...</option>
+                <option value="" disabled>Move to Location...</option>
                 {villages.map(v => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
@@ -239,7 +238,10 @@ export default function CustomerList({ customers, villages, businessId, isAdminO
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                   c.status === 'ACTIVE' ? 'bg-success-50 text-success-700' :
-                  c.status === 'DEFAULTER' ? 'bg-danger-50 text-danger-700' :
+                  c.status === 'OVERDUE' ? 'bg-red-50 text-red-700' :
+                  c.status === 'DEFAULTER' ? 'bg-red-50 text-red-700' :
+                  c.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700' :
+                  c.status === 'NO LOANS' ? 'bg-gray-100 text-gray-400' :
                   'bg-gray-100 text-gray-500'
                 }`}>
                   {c.status}

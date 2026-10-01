@@ -5,8 +5,8 @@ import { useParams } from 'next/navigation'
 
 interface Column { key: string; label: string }
 
-type Entity = 'customers' | 'loans' | 'villages' | 'employees' | 'payments'
-type RangePreset = 'today' | 'yesterday' | '7d' | '30d' | 'custom'
+type Entity = 'customers' | 'loans' | 'villages' | 'employees' | 'payments' | 'payslips'
+type RangePreset = 'all' | 'today' | 'yesterday' | '7d' | '30d' | 'custom'
 
 function todayISO() {
   const now = new Date()
@@ -39,10 +39,13 @@ export default function ReportsPage() {
 
   const today = todayISO()
 
-  const [preset, setPreset] = useState<RangePreset>('today')
+  const [preset, setPreset] = useState<RangePreset>('all')
   const [customFrom, setCustomFrom] = useState(today)
   const [customTo, setCustomTo] = useState(today)
-  const [entity, setEntity] = useState<Entity>('customers')
+  const [entity, setEntity] = useState<Entity>('payslips')
+
+  const [payslipDate, setPayslipDate] = useState(today)
+  const [userRole, setUserRole] = useState<string>('')
 
   const [villages, setVillages] = useState<{ id: string; name: string }[]>([])
   const [villageId, setVillageId] = useState('')
@@ -66,8 +69,20 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false)
   const [viewed, setViewed] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 200
 
   useEffect(() => {
+    fetch('/api/auth/profile')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.role) {
+          setUserRole(data.role)
+          if (data.role === 'AGENT') setEntity('payslips')
+          else if (entity === 'payslips') setEntity('customers')
+        }
+      })
+      .catch(() => {})
     fetch(`/api/b/${businessId}/villages`)
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setVillages(data) })
@@ -75,7 +90,10 @@ export default function ReportsPage() {
   }, [businessId])
 
   function getDateRange(): { from: string; to: string } {
+    if (entity === 'payslips') return { from: payslipDate, to: payslipDate }
     switch (preset) {
+      case 'all':
+        return { from: '2000-01-01', to: today }
       case 'yesterday':
         return { from: addDaysISO(today, -1), to: addDaysISO(today, -1) }
       case '7d':
@@ -108,6 +126,7 @@ export default function ReportsPage() {
       setColumns(data.columns)
       setRows(data.rows)
       setCount(data.count)
+      setPage(1)
       setViewed(true)
     } catch {
       setError('Network error')
@@ -126,6 +145,7 @@ export default function ReportsPage() {
 
   function handleDownload(format: 'xlsx' | 'pdf') {
     const url = buildDownloadUrl(format)
+    const { from, to } = getDateRange()
 
     if (format === 'pdf') {
       window.open(url, '_blank')
@@ -183,6 +203,7 @@ export default function ReportsPage() {
   }
 
   const presets: { value: RangePreset; label: string }[] = [
+    { value: 'all', label: 'All' },
     { value: 'today', label: 'Today' },
     { value: 'yesterday', label: 'Yesterday' },
     { value: '7d', label: 'Last 7 Days' },
@@ -190,13 +211,18 @@ export default function ReportsPage() {
     { value: 'custom', label: 'Custom' },
   ]
 
-  const entities: { value: Entity; label: string }[] = [
+  const allEntities: { value: Entity; label: string }[] = [
     { value: 'customers', label: 'Customers' },
     { value: 'loans', label: 'Loans' },
     { value: 'payments', label: 'Payments' },
-    { value: 'villages', label: 'Villages' },
+    { value: 'villages', label: 'Locations' },
     { value: 'employees', label: 'Employees' },
+    { value: 'payslips', label: 'Pay Slips' },
   ]
+
+  const entities = userRole === 'AGENT'
+    ? allEntities.filter((e) => e.value === 'payslips')
+    : allEntities
 
   const { from: rangeFrom, to: rangeTo } = getDateRange()
 
@@ -209,35 +235,44 @@ export default function ReportsPage() {
       <div className="card p-4 space-y-4 mb-6">
         {/* Date Range */}
         <div>
-          <label className="label">Date Range</label>
-          <div className="flex flex-wrap gap-2">
-            {presets.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setPreset(p.value)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                  preset === p.value
-                    ? 'bg-primary-600 text-white border-primary-600'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          {entity === 'payslips' ? (
+            <>
+              <label className="label">Collection Date</label>
+              <input type="date" className="input max-w-xs" value={payslipDate} onChange={(e) => setPayslipDate(e.target.value)} />
+            </>
+          ) : (
+            <>
+              <label className="label">Date Range</label>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPreset(p.value)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                      preset === p.value
+                        ? 'bg-primary-600 text-white border-primary-600'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
 
-          {preset === 'custom' && (
-            <div className="flex gap-3 mt-3">
-              <div className="flex-1">
-                <label className="text-xs text-gray-500">From</label>
-                <input type="date" className="input" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-gray-500">To</label>
-                <input type="date" className="input" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-              </div>
-            </div>
+              {preset === 'custom' && (
+                <div className="flex gap-3 mt-3">
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-500">From</label>
+                    <input type="date" className="input" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-500">To</label>
+                    <input type="date" className="input" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -277,8 +312,7 @@ export default function ReportsPage() {
               {statusDropdownOpen && (
                 <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
                   {[
-                    'ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN', 'INACTIVE',
-                    'COMPLETED', 'COMPLETED_RENEWED', 'SETTLED', 'WRITTEN_OFF',
+                    'ACTIVE', 'DEFAULTER', 'OVERDUE', 'COMPLETED', 'NO_LOANS',
                   ].map((s) => {
                     const checked = selectedStatuses.has(s)
                     return (
@@ -345,19 +379,19 @@ export default function ReportsPage() {
         {/* Village selector — shown when entity is Villages */}
         {entity === 'villages' && (
           <div>
-            <label className="label">Select Village</label>
+            <label className="label">Select Location</label>
             <select
               className="input"
               value={villageId}
               onChange={(e) => { setVillageId(e.target.value); setViewed(false) }}
             >
-              <option value="">All Villages (Summary)</option>
+              <option value="">All Locations (Summary)</option>
               {villages.map((v) => (
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
             <p className="text-[10px] text-gray-400 mt-1">
-              {villageId ? 'Shows customers in the selected village' : 'Shows village-wise summary'}
+              {villageId ? 'Shows customers in the selected location' : 'Shows location-wise summary'}
             </p>
           </div>
         )}
@@ -439,57 +473,99 @@ export default function ReportsPage() {
       </div>
 
       {/* Report Table */}
-      {viewed && (
-        <div className="card overflow-hidden">
-          {/* Header */}
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-            <div>
-              <span className="text-sm font-semibold text-gray-900">
-                {entity.charAt(0).toUpperCase() + entity.slice(1)} Report
-              </span>
-              <span className="text-xs text-gray-500 ml-2">
-                {formatDD(rangeFrom)} – {formatDD(rangeTo)}
-              </span>
-            </div>
-            <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-              {count} records
-            </span>
-          </div>
+      {viewed && (() => {
+        const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+        const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+        const startIdx = (page - 1) * PAGE_SIZE
 
-          {rows.length === 0 ? (
-            <div className="px-4 py-12 text-center text-gray-400 text-sm">
-              No records found for the selected period.
+        return (
+          <div className="card overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <span className="text-sm font-semibold text-gray-900">
+                  {entity === 'payslips' ? 'Pay Slips' : entity.charAt(0).toUpperCase() + entity.slice(1)} Report
+                </span>
+                <span className="text-xs text-gray-500 ml-2">
+                  {formatDD(rangeFrom)}{rangeFrom !== rangeTo ? ` – ${formatDD(rangeTo)}` : ''}
+                </span>
+              </div>
+              <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                {count} records
+              </span>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">#</th>
-                    {columns.map((col) => (
-                      <th key={col.key} className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        {col.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {rows.map((row, idx) => (
-                    <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50/50' : ''}>
-                      <td className="px-3 py-2 text-gray-400 text-xs">{idx + 1}</td>
-                      {columns.map((col) => (
-                        <td key={col.key} className="px-3 py-2 text-gray-700 whitespace-nowrap">
-                          {formatCell(col.key, row[col.key])}
-                        </td>
+
+            {rows.length === 0 ? (
+              <div className="px-4 py-12 text-center text-gray-400 text-sm">
+                No records found for the selected period.
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">#</th>
+                        {columns.map((col) => (
+                          <th key={col.key} className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            {col.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {pageRows.map((row, idx) => (
+                        <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50/50' : ''}>
+                          <td className="px-3 py-2 text-gray-400 text-xs">{startIdx + idx + 1}</td>
+                          {columns.map((col) => (
+                            <td key={col.key} className="px-3 py-2 text-gray-700 whitespace-nowrap">
+                              {formatCell(col.key, row[col.key])}
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, rows.length)} of {rows.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-2.5 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Prev
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p)}
+                          className={`px-2.5 py-1 text-xs rounded border ${page === p ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="px-2.5 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }

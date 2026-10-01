@@ -1,4 +1,4 @@
-import { CollectionType, InterestModel, LoanStatus } from './constants'
+import { CollectionType, InterestModel } from './constants'
 
 export interface LoanInput {
   loanAmount: number      // paise
@@ -142,45 +142,3 @@ export function calculateRenewalAmountGiven(
   return baseGiven - oldOutstanding
 }
 
-export function determineLoanStatus(
-  totalPaid: number,
-  totalRepayable: number,
-  expectedEndDate: string,
-  gracePeriodUnits: number,
-  collectionType: CollectionType,
-  today: string,
-  isSettled: boolean,
-  isWrittenOff: boolean,
-  isRenewed: boolean
-): LoanStatus {
-  if (isWrittenOff) return LoanStatus.WRITTEN_OFF
-  if (isSettled) return LoanStatus.SETTLED
-  if (isRenewed) return LoanStatus.COMPLETED_RENEWED
-  if (totalPaid >= totalRepayable) return LoanStatus.COMPLETED
-
-  if (today <= expectedEndDate) return LoanStatus.ACTIVE
-
-  const endDate = new Date(expectedEndDate)
-  const todayDate = new Date(today)
-  const graceEndDate = getGraceEndDate(endDate, gracePeriodUnits, collectionType)
-
-  if (todayDate <= graceEndDate) return LoanStatus.IN_GRACE
-
-  return LoanStatus.DEFAULTER
-}
-
-function getGraceEndDate(
-  endDate: Date,
-  gracePeriodUnits: number,
-  collectionType: CollectionType
-): Date {
-  const result = new Date(endDate)
-  if (collectionType === CollectionType.DAILY) {
-    result.setDate(result.getDate() + gracePeriodUnits)
-  } else if (collectionType === CollectionType.WEEKLY) {
-    result.setDate(result.getDate() + gracePeriodUnits * 7)
-  } else {
-    result.setMonth(result.getMonth() + gracePeriodUnits)
-  }
-  return result
-}

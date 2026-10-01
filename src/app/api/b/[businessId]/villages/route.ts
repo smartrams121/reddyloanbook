@@ -6,7 +6,7 @@ import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
 import { z } from 'zod'
 
 const createVillageSchema = z.object({
-  name: z.string().min(2, 'Village name must be at least 2 characters').max(100),
+  name: z.string().min(2, 'Location name must be at least 2 characters').max(100),
 })
 
 interface RouteParams {
@@ -58,7 +58,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     where: { businessId, name: parsed.data.name },
   })
   if (existing) {
-    return NextResponse.json({ error: 'Village name already exists in this business' }, { status: 409 })
+    return NextResponse.json({ error: 'Location name already exists in this business' }, { status: 409 })
   }
 
   const village = await prisma.village.create({

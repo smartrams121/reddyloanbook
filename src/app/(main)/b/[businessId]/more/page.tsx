@@ -29,13 +29,13 @@ export default async function MorePage({ params }: Props) {
 
   const menuItems = [
     { href: `/b/${businessId}/dashboard`, label: 'Dashboard', icon: '📊', show: true },
-    { href: `/b/${businessId}/villages`, label: 'Villages', icon: '🏘️', show: true },
+    { href: `/b/${businessId}/villages`, label: 'Locations', icon: '🏘️', show: true },
     { href: `/b/${businessId}/customers`, label: 'All Customers', icon: '👥', show: true },
     { href: `/b/${businessId}/customers/new`, label: 'New Customer', icon: '➕', show: isAdminOrOwner },
     { href: `/b/${businessId}/posting`, label: 'Record Payment', icon: '💰', show: true },
     { href: `/b/${businessId}/posting/bulk`, label: 'Bulk Posting', icon: '📋', show: true },
     { href: `/b/${businessId}/reports`, label: 'Reports', icon: '📑', show: isAdminOrOwner },
-    { href: `/b/${businessId}/users`, label: 'Manage Users', icon: '👤', show: isAdminOrOwner },
+    { href: `/b/${businessId}/users`, label: 'Manage Employees', icon: '👤', show: isAdminOrOwner },
     { href: `/b/${businessId}/settings`, label: 'Settings', icon: '⚙️', show: isAdminOrOwner },
   ]
 

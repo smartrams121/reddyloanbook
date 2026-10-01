@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { Role } from '@/lib/constants'
+import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
 import Link from 'next/link'
 import SearchBox from './SearchBox'
 import CustomerList from './CustomerList'
@@ -32,7 +33,6 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
   const where: Record<string, unknown> = { businessId }
   if (filters.village) where.villageId = filters.village
-  if (filters.status) where.status = filters.status
 
   const searchQuery = filters.search?.trim().toLowerCase()
 
@@ -51,11 +51,12 @@ export default async function CustomersPage({ params, searchParams }: Props) {
     ]
   }
 
-  const [customers, villages] = await Promise.all([
+  const [customersRaw, villages] = await Promise.all([
     prisma.customer.findMany({
       where,
       include: {
         village: { select: { id: true, name: true } },
+        loans: { select: { id: true, expectedEndDate: true, totalRepayable: true } },
         _count: { select: { loans: true } },
       },
       orderBy: { fullName: 'asc' },
@@ -65,6 +66,27 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       orderBy: { name: 'asc' },
     }),
   ])
+
+  const allLoanIds = customersRaw.flatMap((c) => c.loans.map((l) => l.id))
+  const paidSums = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const paidMap = new Map(paidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  const customersWithStatus = customersRaw.map(c => {
+    const loanStatuses = c.loans.map((l) =>
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+    )
+    return { ...c, derivedStatus: deriveCustomerStatus(loanStatuses) }
+  })
+
+  const customers = filters.status
+    ? customersWithStatus.filter(c => c.derivedStatus === filters.status)
+    : customersWithStatus
 
   const isAdminOrOwner = user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN
 
@@ -94,8 +116,10 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         <FilterChip href={`/b/${businessId}/customers${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`} active={!filters.status && !filters.village} label="All" />
         <FilterChip href={`/b/${businessId}/customers?status=ACTIVE${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'ACTIVE'} label="Active" activeClass="bg-success-600 text-white" />
-        <FilterChip href={`/b/${businessId}/customers?status=CLOSED${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'CLOSED'} label="Closed" activeClass="bg-gray-600 text-white" />
-        <FilterChip href={`/b/${businessId}/customers?status=DEFAULTER${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'DEFAULTER'} label="Defaulter" activeClass="bg-danger-600 text-white" />
+        <FilterChip href={`/b/${businessId}/customers?status=OVERDUE${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'OVERDUE'} label="Overdue" activeClass="bg-red-600 text-white" />
+        <FilterChip href={`/b/${businessId}/customers?status=DEFAULTER${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'DEFAULTER'} label="Defaulter" activeClass="bg-red-600 text-white" />
+        <FilterChip href={`/b/${businessId}/customers?status=COMPLETED${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'COMPLETED'} label="Completed" activeClass="bg-blue-600 text-white" />
+        <FilterChip href={`/b/${businessId}/customers?status=NO LOANS${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'NO LOANS'} label="No Loans" activeClass="bg-gray-400 text-white" />
         {villages.map((v) => (
           <FilterChip
             key={v.id}
@@ -113,7 +137,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
           customerId: c.customerId,
           fullName: c.fullName,
           phone: c.phone,
-          status: c.status,
+          status: c.derivedStatus,
           village: c.village,
           _count: c._count,
         }))}

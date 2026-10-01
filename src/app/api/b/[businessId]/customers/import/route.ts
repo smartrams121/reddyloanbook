@@ -84,12 +84,12 @@ export async function POST(request: Request, { params }: Props) {
     }
 
     if (!row.villageName || !row.villageName.trim()) {
-      errors.push({ row: rowNum, field: 'villageName', message: 'Village name is required' })
+      errors.push({ row: rowNum, field: 'villageName', message: 'Location name is required' })
       hasError = true
     } else {
       const vId = villageMap.get(row.villageName.toLowerCase().trim())
       if (!vId) {
-        errors.push({ row: rowNum, field: 'villageName', message: `Village "${row.villageName}" not found` })
+        errors.push({ row: rowNum, field: 'villageName', message: `Location "${row.villageName}" not found` })
         hasError = true
       } else if (!hasError) {
         if (row.altPhone && row.altPhone.trim()) {

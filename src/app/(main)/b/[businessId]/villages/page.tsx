@@ -40,7 +40,7 @@ export default async function VillagesPage({ params }: Props) {
         name: v.name,
         isActive: v.isActive,
         customerCount: v._count.customers,
-        agents: v.agentAssignments.map((a) => a.user.fullName),
+        agents: v.agentAssignments.map((a) => ({ id: a.user.id, fullName: a.user.fullName })),
       }))}
       businessId={businessId}
       canAdd={canAdd}

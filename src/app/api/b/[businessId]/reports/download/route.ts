@@ -14,15 +14,17 @@ export async function GET(request: Request, { params }: Props) {
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(request.url)
+  const entity = searchParams.get('entity') || 'customers'
+
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'view_all_reports')
+    if (entity !== 'payslips') {
+      assertPermission(user, 'view_all_reports')
+    }
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
-
-  const { searchParams } = new URL(request.url)
-  const entity = searchParams.get('entity') || 'customers'
   const startDate = searchParams.get('from')
   const endDate = searchParams.get('to')
   const format = searchParams.get('format') || 'xlsx'

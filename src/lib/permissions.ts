@@ -40,14 +40,20 @@ type Action =
   | 'manage_holidays'
   | 'manage_expense_categories'
   | 'delete_loan'
-  | 'freeze_loan'
   | 'manage_loan_status'
   | 'grant_support_access'
+  | 'manage_platform_settings'
+  | 'manage_registration_requests'
+  | 'manage_password_resets'
+  | 'manage_employee_password_resets'
 
 const PERMISSION_MATRIX: Record<string, Action[]> = {
   [Role.PLATFORM_ADMIN]: [
     'manage_owners',
     'view_platform_summary',
+    'manage_platform_settings',
+    'manage_registration_requests',
+    'manage_password_resets',
   ],
   [Role.OWNER]: [
     'create_business',
@@ -86,9 +92,9 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'manage_holidays',
     'manage_expense_categories',
     'delete_loan',
-    'freeze_loan',
     'manage_loan_status',
     'grant_support_access',
+    'manage_employee_password_resets',
   ],
   [Role.BUSINESS_ADMIN]: [
     'edit_business_settings',
@@ -122,7 +128,6 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'manage_expenses',
     'manage_holidays',
     'delete_loan',
-    'freeze_loan',
     'manage_loan_status',
     'manage_expense_categories',
   ],

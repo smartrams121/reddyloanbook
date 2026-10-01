@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     )
   }
 
-  const { fullName, phone, username, password, role, businessIds, villageIds } = parsed.data
+  const { fullName, phone, email, username, password, role, businessIds, villageIds } = parsed.data
 
   if (role === Role.BUSINESS_ADMIN) {
     assertPermission(user, 'create_business_admin')
@@ -95,6 +95,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     data: {
       fullName,
       phone,
+      email: email || null,
       username,
       passwordHash,
       role,

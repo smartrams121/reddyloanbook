@@ -22,19 +22,13 @@ export type InterestModel = (typeof InterestModel)[keyof typeof InterestModel]
 export const CustomerStatus = {
   ACTIVE: 'ACTIVE',
   CLOSED: 'CLOSED',
-  DEFAULTER: 'DEFAULTER',
 } as const
 export type CustomerStatus = (typeof CustomerStatus)[keyof typeof CustomerStatus]
 
 export const LoanStatus = {
   ACTIVE: 'ACTIVE',
   OVERDUE: 'OVERDUE',
-  IN_GRACE: 'IN_GRACE',
-  DEFAULTER: 'DEFAULTER',
   COMPLETED: 'COMPLETED',
-  COMPLETED_RENEWED: 'COMPLETED_RENEWED',
-  SETTLED: 'SETTLED',
-  WRITTEN_OFF: 'WRITTEN_OFF',
 } as const
 export type LoanStatus = (typeof LoanStatus)[keyof typeof LoanStatus]
 
@@ -69,19 +63,20 @@ export const JS_TO_DAY_OF_WEEK: Record<number, string> = {
   6: 'SATURDAY',
 }
 
-export const ACTIVE_LOAN_STATUSES = [
-  LoanStatus.ACTIVE,
-  LoanStatus.OVERDUE,
-  LoanStatus.IN_GRACE,
-  LoanStatus.DEFAULTER,
-] as const
 
-export const CLOSED_LOAN_STATUSES = [
-  LoanStatus.COMPLETED,
-  LoanStatus.COMPLETED_RENEWED,
-  LoanStatus.SETTLED,
-  LoanStatus.WRITTEN_OFF,
-] as const
+export const RegistrationStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const
+export type RegistrationStatus = (typeof RegistrationStatus)[keyof typeof RegistrationStatus]
+
+export const PasswordResetStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const
+export type PasswordResetStatus = (typeof PasswordResetStatus)[keyof typeof PasswordResetStatus]
 
 export const RATING_LABELS: Record<number, string> = {
   4: 'Excellent',

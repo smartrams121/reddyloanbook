@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dailyfinance_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-financeapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financeapp123}
+      POSTGRES_DB: ${POSTGRES_DB:-financeapp_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financeapp -d financeapp_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: dailyfinance_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-financeapp}:${POSTGRES_PASSWORD:-financeapp123}@postgres:5432/${POSTGRES_DB:-financeapp_db}
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-random-64-char-string}
+      SESSION_EXPIRY_HOURS: ${SESSION_EXPIRY_HOURS:-24}
+      NODE_ENV: production
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - app_uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  app_uploads:

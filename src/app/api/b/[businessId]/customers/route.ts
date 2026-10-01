@@ -40,7 +40,9 @@ export async function GET(request: Request, { params }: Props) {
 
   const customers = await prisma.customer.findMany({
     where,
-    include: {
+    select: {
+      id: true, customerId: true, fullName: true, phone: true,
+      age: true, status: true, photoPath: true,
       village: { select: { id: true, name: true } },
       _count: { select: { loans: true } },
     },
@@ -75,7 +77,7 @@ export async function POST(request: Request, { params }: Props) {
     where: { id: parsed.data.villageId, businessId, isActive: true },
   })
   if (!village) {
-    return NextResponse.json({ error: 'Village not found or inactive' }, { status: 400 })
+    return NextResponse.json({ error: 'Location not found or inactive' }, { status: 400 })
   }
 
   const business = await prisma.business.findUnique({ where: { id: businessId } })
@@ -92,32 +94,37 @@ export async function POST(request: Request, { params }: Props) {
     aadhaarLast4 = parsed.data.aadhaar.slice(-4)
   }
 
-  const customer = await prisma.$transaction(async (tx) => {
-    await tx.business.update({
-      where: { id: businessId },
-      data: { customerSeq: seq },
-    })
+  let customer
+  try {
+    customer = await prisma.$transaction(async (tx) => {
+      await tx.business.update({
+        where: { id: businessId },
+        data: { customerSeq: seq },
+      })
 
-    return tx.customer.create({
-      data: {
-        customerId,
-        fullName: parsed.data.fullName,
-        age: parsed.data.age,
-        phone: parsed.data.phone,
-        altPhone: parsed.data.altPhone || null,
-        address: parsed.data.address || null,
-        aadhaarHash: aadhaarHash || null,
-        aadhaarLast4: aadhaarLast4 || null,
-        jobType: parsed.data.jobType || null,
-        guarantorName: parsed.data.guarantorName || null,
-        guarantorPhone: parsed.data.guarantorPhone || null,
-        notes: parsed.data.notes || null,
-        photoPath: parsed.data.photoPath || null,
-        villageId: parsed.data.villageId,
-        businessId,
-      },
+      return tx.customer.create({
+        data: {
+          customerId,
+          fullName: parsed.data.fullName,
+          age: parsed.data.age,
+          phone: parsed.data.phone,
+          altPhone: parsed.data.altPhone || null,
+          address: parsed.data.address || null,
+          aadhaarHash: aadhaarHash || null,
+          aadhaarLast4: aadhaarLast4 || null,
+          jobType: parsed.data.jobType || null,
+          guarantorName: parsed.data.guarantorName || null,
+          guarantorPhone: parsed.data.guarantorPhone || null,
+          notes: parsed.data.notes || null,
+          photoPath: parsed.data.photoPath || null,
+          villageId: parsed.data.villageId,
+          businessId,
+        },
+      })
     })
-  })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+  }
 
   return NextResponse.json(customer, { status: 201 })
 }

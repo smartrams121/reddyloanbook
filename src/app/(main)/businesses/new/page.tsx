@@ -65,13 +65,13 @@ export default function NewBusinessPage() {
 
     const villages = villageInputs.map((v) => v.trim()).filter((v) => v.length > 0)
     if (villages.length === 0) {
-      setError('Add at least one village')
+      setError('Add at least one location')
       return
     }
 
     const uniqueVillages = new Set(villages.map((v) => v.toLowerCase()))
     if (uniqueVillages.size !== villages.length) {
-      setError('Village names must be unique')
+      setError('Location names must be unique')
       return
     }
 
@@ -226,9 +226,9 @@ export default function NewBusinessPage() {
         {/* Villages */}
         <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Villages *</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Locations *</h2>
             <button type="button" onClick={addVillageRow} className="text-xs text-primary-600 font-medium">
-              + Add Village
+              + Add Location
             </button>
           </div>
 
@@ -238,7 +238,7 @@ export default function NewBusinessPage() {
                 className="input flex-1"
                 value={v}
                 onChange={(e) => updateVillage(i, e.target.value)}
-                placeholder={`Village ${i + 1} name`}
+                placeholder={`Location ${i + 1} name`}
               />
               {villageInputs.length > 1 && (
                 <button type="button" onClick={() => removeVillageRow(i)} className="text-danger-500 hover:text-danger-700 px-2">
@@ -249,7 +249,7 @@ export default function NewBusinessPage() {
               )}
             </div>
           ))}
-          <p className="text-[10px] text-gray-400">At least one village is required. You can add more later.</p>
+          <p className="text-[10px] text-gray-400">At least one location is required. You can add more later.</p>
         </div>
 
         {/* Agent Assignment */}

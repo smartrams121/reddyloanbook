@@ -8,8 +8,6 @@ interface Props {
   params: Promise<{ businessId: string }>
 }
 
-const ACTIVE_STATUSES = ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER', 'FROZEN']
-
 export async function GET(request: Request, { params }: Props) {
   const { businessId } = await params
   const user = await getSession()
@@ -28,20 +26,18 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json({ error: 'villageId is required' }, { status: 400 })
   }
 
+  const date = searchParams.get('date')
+
   const customers = await prisma.customer.findMany({
     where: {
       businessId,
       villageId,
-      status: 'ACTIVE',
     },
     include: {
       loans: {
-        where: { status: { in: ACTIVE_STATUSES } },
-        include: {
-          payments: {
-            where: { isDeleted: false },
-            select: { amount: true },
-          },
+        select: {
+          id: true, loanNumber: true, installmentAmount: true,
+          totalRepayable: true, status: true, startDate: true, createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -49,26 +45,66 @@ export async function GET(request: Request, { params }: Props) {
     orderBy: { fullName: 'asc' },
   })
 
-  const result = customers
-    .filter(c => c.loans.length > 0)
+  const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
+  const paidSums = allLoanIds.length > 0
+    ? await prisma.payment.groupBy({
+        by: ['loanId'],
+        where: { loanId: { in: allLoanIds }, isDeleted: false },
+        _sum: { amount: true },
+      })
+    : []
+  const paidMap = new Map(paidSums.map((p) => [p.loanId, p._sum.amount || 0]))
+
+  let existingPaymentMap = new Map<string, { id: string; amount: number }>()
+  if (date && allLoanIds.length > 0) {
+    const existingPayments = await prisma.payment.findMany({
+      where: {
+        loanId: { in: allLoanIds },
+        paymentDate: date,
+        isDeleted: false,
+      },
+      select: { id: true, loanId: true, amount: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    for (const p of existingPayments) {
+      if (!existingPaymentMap.has(p.loanId)) {
+        existingPaymentMap.set(p.loanId, { id: p.id, amount: p.amount })
+      }
+    }
+  }
+
+  const filteredCustomers = date
+    ? customers.map(c => ({
+        ...c,
+        loans: c.loans.filter(l => l.startDate <= date),
+      }))
+    : customers
+
+  const result = filteredCustomers
     .map(c => ({
       id: c.id,
       customerId: c.customerId,
       fullName: c.fullName,
       phone: c.phone,
-      loans: c.loans.map(l => {
-        const totalPaid = l.payments.reduce((s, p) => s + p.amount, 0)
-        return {
-          id: l.id,
-          loanNumber: l.loanNumber,
-          installmentAmount: l.installmentAmount,
-          totalRepayable: l.totalRepayable,
-          totalPaid,
-          outstanding: l.totalRepayable - totalPaid,
-          status: l.status,
-        }
-      }),
+      loans: c.loans
+        .map(l => {
+          const totalPaid = paidMap.get(l.id) || 0
+          const outstanding = l.totalRepayable - totalPaid
+          const existing = existingPaymentMap.get(l.id) || null
+          return {
+            id: l.id,
+            loanNumber: l.loanNumber,
+            installmentAmount: l.installmentAmount,
+            totalRepayable: l.totalRepayable,
+            totalPaid,
+            outstanding,
+            status: l.status,
+            existingPayment: existing,
+          }
+        })
+        .filter(l => l.outstanding > 0),
     }))
+    .filter(c => c.loans.length > 0)
 
   return NextResponse.json(result)
 }

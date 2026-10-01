@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { formatPaiseShort } from '@/lib/money'
+import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
 import Link from 'next/link'
 
 interface Props {
@@ -31,8 +32,7 @@ export default async function VillageDetailPage({ params }: Props) {
       where: { villageId, businessId },
       include: {
         loans: {
-          where: { status: { in: ['ACTIVE', 'OVERDUE', 'IN_GRACE', 'DEFAULTER'] } },
-          select: { id: true, totalRepayable: true },
+          select: { id: true, totalRepayable: true, amountGiven: true, expectedEndDate: true },
         },
       },
       orderBy: { fullName: 'asc' },
@@ -45,19 +45,23 @@ export default async function VillageDetailPage({ params }: Props) {
     }),
   ])
 
-  const loanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
-  const paidPerLoan = loanIds.length > 0
+  const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
+  const paidPerLoan = allLoanIds.length > 0
     ? await prisma.payment.groupBy({
         by: ['loanId'],
-        where: { loanId: { in: loanIds }, isDeleted: false },
+        where: { loanId: { in: allLoanIds }, isDeleted: false },
         _sum: { amount: true },
       })
     : []
   const paidMap = new Map(paidPerLoan.map((p) => [p.loanId, p._sum.amount || 0]))
 
   const customerData = customers.map((c) => {
+    const loanStatuses = c.loans.map((l) =>
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+    )
+    const activeLoans = c.loans.filter((_, i) => loanStatuses[i] === 'ACTIVE' || loanStatuses[i] === 'OVERDUE')
     let outstanding = 0
-    for (const loan of c.loans) {
+    for (const loan of activeLoans) {
       outstanding += loan.totalRepayable - (paidMap.get(loan.id) || 0)
     }
     return {
@@ -65,25 +69,33 @@ export default async function VillageDetailPage({ params }: Props) {
       customerId: c.customerId,
       fullName: c.fullName,
       phone: c.phone,
-      status: c.status,
-      activeLoanCount: c.loans.length,
+      status: deriveCustomerStatus(loanStatuses),
+      activeLoanCount: activeLoans.length,
       outstanding,
     }
   })
 
   const totalOutstanding = customerData.reduce((s, c) => s + c.outstanding, 0)
-  const activeCount = customerData.filter((c) => c.status === 'ACTIVE').length
+  const activeCount = customerData.filter((c) => c.status === 'ACTIVE' || c.status === 'OVERDUE').length
+  const activeLoansAll = customers.flatMap((c, ci) =>
+    c.loans.filter((_, li) => {
+      const s = deriveLoanStatus(c.loans[li].expectedEndDate, c.loans[li].totalRepayable, paidMap.get(c.loans[li].id) || 0)
+      return s === 'ACTIVE' || s === 'OVERDUE'
+    })
+  )
+  const totalDisbursed = activeLoansAll.reduce((s, l) => s + l.amountGiven, 0)
+  const totalCollected = activeLoansAll.reduce((s, l) => s + (paidMap.get(l.id) || 0), 0)
 
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-2 mb-1">
-        <Link href={`/b/${businessId}/villages`} className="text-primary-600 text-sm">&larr; Villages</Link>
+        <Link href={`/b/${businessId}/villages`} className="text-primary-600 text-sm">&larr; Locations</Link>
       </div>
       <h1 className="text-xl font-bold text-gray-900 mb-1">{village.name}</h1>
-      <p className="text-sm text-gray-500 mb-6">Village overview</p>
+      <p className="text-sm text-gray-500 mb-6">Location overview</p>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="stat-card">
           <div className="stat-value">{customerData.length}</div>
           <div className="stat-label">Total Customers</div>
@@ -97,6 +109,16 @@ export default async function VillageDetailPage({ params }: Props) {
           <div className="stat-label">Outstanding</div>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="stat-card">
+          <div className="stat-value text-primary-600">{formatPaiseShort(totalDisbursed)}</div>
+          <div className="stat-label">Loan Disbursed</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value text-success-600">{formatPaiseShort(totalCollected)}</div>
+          <div className="stat-label">Loan Collected</div>
+        </div>
+      </div>
 
       {/* Assigned Agents */}
       {agents.length > 0 && (
@@ -104,13 +126,13 @@ export default async function VillageDetailPage({ params }: Props) {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Assigned Agents</h2>
           <div className="flex flex-wrap gap-2">
             {agents.map((a) => (
-              <div key={a.user.id} className="flex items-center gap-2 bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full text-sm">
+              <Link key={a.user.id} href={`/b/${businessId}/users/${a.user.id}`} className="flex items-center gap-2 bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full text-sm hover:bg-primary-100 transition-colors">
                 <div className="w-5 h-5 rounded-full bg-primary-200 flex items-center justify-center text-[10px] font-bold">
                   {a.user.fullName.charAt(0)}
                 </div>
                 <span className="font-medium">{a.user.fullName}</span>
                 {!a.user.isActive && <span className="text-[10px] text-gray-400">(inactive)</span>}
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -149,7 +171,10 @@ export default async function VillageDetailPage({ params }: Props) {
               </div>
               <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                 c.status === 'ACTIVE' ? 'bg-success-50 text-success-700' :
-                c.status === 'DEFAULTER' ? 'bg-danger-50 text-danger-700' :
+                c.status === 'OVERDUE' ? 'bg-red-50 text-red-700' :
+                c.status === 'DEFAULTER' ? 'bg-red-50 text-red-700' :
+                c.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700' :
+                c.status === 'NO LOANS' ? 'bg-gray-100 text-gray-400' :
                 'bg-gray-100 text-gray-500'
               }`}>
                 {c.status}
@@ -160,7 +185,7 @@ export default async function VillageDetailPage({ params }: Props) {
 
         {customerData.length === 0 && (
           <div className="card p-8 text-center">
-            <p className="text-gray-500 mb-4">No customers in this village yet.</p>
+            <p className="text-gray-500 mb-4">No customers in this location yet.</p>
             <Link href={`/b/${businessId}/customers/new`} className="btn-primary">
               Add First Customer
             </Link>

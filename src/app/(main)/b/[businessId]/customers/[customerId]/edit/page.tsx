@@ -214,9 +214,9 @@ export default function EditCustomerPage() {
         </div>
 
         <div>
-          <label className="label">Village *</label>
+          <label className="label">Location *</label>
           <select className="input" value={villageId} onChange={(e) => setVillageId(e.target.value)} required>
-            <option value="">Select village</option>
+            <option value="">Select location</option>
             {villages.map((v) => (
               <option key={v.id} value={v.id}>{v.name}</option>
             ))}

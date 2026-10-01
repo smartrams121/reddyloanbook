@@ -1,0 +1,19 @@
+version: '3.8'
+
+# PostgreSQL only — for local development (app runs via npm run dev)
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dailyfinance_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: financeapp
+      POSTGRES_PASSWORD: financeapp123
+      POSTGRES_DB: financeapp_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_dev_data:

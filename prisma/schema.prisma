@@ -11,8 +11,8 @@ datasource db {
 // Role: PLATFORM_ADMIN, OWNER, BUSINESS_ADMIN, AGENT
 // CollectionType: DAILY, WEEKLY, MONTHLY
 // InterestModel: ADDON, UPFRONT
-// CustomerStatus: ACTIVE, CLOSED, DEFAULTER
-// LoanStatus: ACTIVE, OVERDUE, IN_GRACE, DEFAULTER, COMPLETED, COMPLETED_RENEWED, SETTLED, WRITTEN_OFF
+// CustomerStatus: ACTIVE, CLOSED
+// LoanStatus: ACTIVE, OVERDUE, COMPLETED (stored as default; actual status derived from loan data)
 // DayOfWeek: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -23,15 +23,13 @@ model User {
   passwordHash       String
   fullName           String
   phone              String?
+  email              String?
   role               String   // Role enum
   isActive           Boolean  @default(true)
   mustChangePassword Boolean  @default(true)
-  totpSecret         String?
-  totpEnabled        Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  recoveryCodes         RecoveryCode[]
   sessions              Session[]
   ownedBusinesses       Business[]
   businessAssignments   UserBusinessAssignment[]
@@ -44,14 +42,7 @@ model User {
   auditLogs             AuditLog[]
   supportAccessGranted  SupportAccess[] @relation("SupportGrantedBy")
   supportAccessReceived SupportAccess[] @relation("SupportGrantedTo")
-}
-
-model RecoveryCode {
-  id     String  @id @default(cuid())
-  code   String
-  used   Boolean @default(false)
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwordResetRequests PasswordResetRequest[]
 }
 
 model Session {
@@ -180,7 +171,7 @@ model Village {
 
 model Customer {
   id             String   @id @default(cuid())
-  customerId     String   @unique
+  customerId     String
   fullName       String
   age            Int?
   phone          String
@@ -205,16 +196,19 @@ model Customer {
   loans     Loan[]
   documents Document[]
 
+  @@unique([businessId, customerId])
   @@index([businessId, phone])
   @@index([businessId, fullName])
   @@index([businessId, status])
+  @@index([businessId, villageId])
+  @@index([businessId, createdAt])
 }
 
 // ─── LOAN ─────────────────────────────────────────────────────────────────────
 
 model Loan {
   id                    String   @id @default(cuid())
-  loanNumber            String   @unique
+  loanNumber            String
 
   customerId            String
   customer              Customer @relation(fields: [customerId], references: [id])
@@ -258,8 +252,11 @@ model Loan {
   payments Payment[]
   documents Document[]
 
+  @@unique([businessId, loanNumber])
   @@index([businessId, status])
+  @@index([businessId, startDate])
   @@index([customerId])
+  @@index([agentId, businessId])
 }
 
 model LoanScheduleEntry {
@@ -278,7 +275,7 @@ model LoanScheduleEntry {
 
 model Payment {
   id            String   @id @default(cuid())
-  receiptNumber String   @unique
+  receiptNumber String
 
   loanId     String
   loan       Loan     @relation(fields: [loanId], references: [id])
@@ -299,8 +296,10 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([businessId, receiptNumber])
   @@index([businessId, paymentDate])
   @@index([loanId, paymentDate])
+  @@index([loanId, isDeleted])
   @@index([collectorId, paymentDate])
 }
 
@@ -417,10 +416,67 @@ model AuditLog {
   reason     String?
   userId     String
   user       User     @relation(fields: [userId], references: [id])
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id])
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
   createdAt  DateTime @default(now())
 
   @@index([businessId, createdAt])
   @@index([entityType, entityId])
 }
+
+// ─── PASSWORD RESET REQUESTS ────────────────────────────────────────────────
+// PasswordResetStatus: PENDING, COMPLETED, CANCELLED
+
+model PasswordResetRequest {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     String    @default("PENDING")
+  note       String?
+  resolvedBy String?
+  resolvedAt DateTime?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+// ─── PLATFORM SETTINGS ───────────────────────────────────────────────────────
+
+model PlatformSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+// ─── REGISTRATION REQUESTS ───────────────────────────────────────────────────
+// RegistrationStatus: PENDING, APPROVED, REJECTED
+
+model RegistrationRequest {
+  id                   String    @id @default(cuid())
+  fullName             String
+  phone                String
+  email                String?
+  username             String    @unique
+  passwordHash         String
+  businessName         String
+  city                 String
+  villages             String
+  collectionType       String    @default("DAILY")
+  defaultCollectionDay String?
+  status               String    @default("PENDING")
+  rejectionReason      String?
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status])
+  @@index([phone])
+}
+
+// ─── EMAIL LOG ──────────────────────────────────────────────────────────────

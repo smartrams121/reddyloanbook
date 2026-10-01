@@ -48,3 +48,6 @@ prisma/dev.db-journal
 # IDE
 .vscode/
 .idea/
+
+# SSH keys
+ssh_Keys/

@@ -11,8 +11,6 @@ interface Props {
 }
 
 const updateLoanSchema = z.object({
-  // Status-only change
-  status: z.enum(['ACTIVE', 'INACTIVE', 'FROZEN']).optional(),
 
   // Editable fields
   loanAmount: z.number().int().positive().optional(),
@@ -26,7 +24,6 @@ const updateLoanSchema = z.object({
   notes: z.string().optional().nullable(),
 })
 
-const TERMINAL_STATUSES = ['COMPLETED', 'COMPLETED_RENEWED', 'SETTLED', 'WRITTEN_OFF']
 
 export async function GET(request: Request, { params }: Props) {
   const { businessId, loanId } = await params
@@ -68,12 +65,6 @@ export async function PATCH(request: Request, { params }: Props) {
   const loan = await prisma.loan.findFirst({ where: { id: loanId, businessId } })
   if (!loan) return NextResponse.json({ error: 'Loan not found' }, { status: 404 })
 
-  if (TERMINAL_STATUSES.includes(loan.status)) {
-    return NextResponse.json(
-      { error: `Cannot edit a ${loan.status.replace(/_/g, ' ').toLowerCase()} loan` },
-      { status: 400 }
-    )
-  }
 
   const body = await request.json()
   const parsed = updateLoanSchema.safeParse(body)
@@ -86,16 +77,6 @@ export async function PATCH(request: Request, { params }: Props) {
 
   const d = parsed.data
   const data: Record<string, unknown> = {}
-
-  // Status change
-  if (d.status) {
-    data.status = d.status
-    if (d.status === 'INACTIVE' || d.status === 'FROZEN') {
-      data.closedAt = todayIST()
-    } else if (d.status === 'ACTIVE') {
-      data.closedAt = null
-    }
-  }
 
   // Agent validation
   if (d.agentId !== undefined) {

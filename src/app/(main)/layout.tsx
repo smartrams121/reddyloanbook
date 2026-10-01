@@ -13,5 +13,9 @@ export default async function MainLayout({
     redirect('/login')
   }
 
+  if (user.mustChangePassword) {
+    redirect('/change-password')
+  }
+
   return <AppShell user={user}>{children}</AppShell>
 }
