@@ -35,6 +35,21 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=deps /app/node_modules/pdfkit ./node_modules/pdfkit
+COPY --from=deps /app/node_modules/fontkit ./node_modules/fontkit
+COPY --from=deps /app/node_modules/png-js ./node_modules/png-js
+COPY --from=deps /app/node_modules/@noble ./node_modules/@noble
+COPY --from=deps /app/node_modules/fflate ./node_modules/fflate
+COPY --from=deps /app/node_modules/linebreak ./node_modules/linebreak
+COPY --from=deps /app/node_modules/@swc ./node_modules/@swc
+COPY --from=deps /app/node_modules/brotli ./node_modules/brotli
+COPY --from=deps /app/node_modules/clone ./node_modules/clone
+COPY --from=deps /app/node_modules/dfa ./node_modules/dfa
+COPY --from=deps /app/node_modules/fast-deep-equal ./node_modules/fast-deep-equal
+COPY --from=deps /app/node_modules/restructure ./node_modules/restructure
+COPY --from=deps /app/node_modules/tiny-inflate ./node_modules/tiny-inflate
+COPY --from=deps /app/node_modules/unicode-properties ./node_modules/unicode-properties
+COPY --from=deps /app/node_modules/unicode-trie ./node_modules/unicode-trie
 
 # Upload directory
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads

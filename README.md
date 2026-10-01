@@ -33,16 +33,14 @@ All test accounts use password: **`Test@123`**
 
 | Username | Role | Access |
 |---|---|---|
-| `platform_admin` | Platform Admin | Manages Owners only |
-| `owner1` | Owner | Sai Daily Finance (Vizag) + Sri Lakshmi Finance (Hyderabad) |
-| `owner2` | Owner | Ganesh Finance (Vijayawada) |
-| `admin_sai` | Business Admin | Sai Daily Finance only |
-| `agent1` | Agent | Sai Daily Finance — PM Palem, Madhurawada |
-| `agent2` | Agent | Sai Daily Finance — Gajuwaka |
-| `agent3` | Agent | Sai Daily Finance (PM Palem) + Sri Lakshmi Finance (Ameerpet) |
-| `agent_o2` | Agent | Ganesh Finance — Benz Circle, Governorpet |
-
-**Dev "Switch User" dropdown** appears in the header and login page (development only, stripped from production).
+| `platform_admin` | Platform Admin | Full system access |
+| `owner1` | Owner | Sai Daily Finance + Sri Lakshmi Finance |
+| `owner2` | Owner | Ganesh Finance |
+| `business_admin` | Business Admin | Sai Daily Finance only |
+| `agent1` | Agent | PM Palem, Madhurawada |
+| `agent2` | Agent | Gajuwaka |
+| `agent3` | Agent | PM Palem + Ameerpet (2 businesses) |
+| `agent4` | Agent | Ganesh Finance |
 
 ### Database Commands
 
