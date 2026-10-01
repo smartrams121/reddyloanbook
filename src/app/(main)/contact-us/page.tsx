@@ -8,12 +8,18 @@ export default async function ContactUsPage() {
   if (!user) redirect('/login')
 
   const setting = await prisma.platformSetting.findUnique({ where: { key: 'contact_us' } })
-  let contact: { phone?: string; email?: string; address?: string; notes?: string } | null = null
+  let contact: { phone?: string; email?: string; emails?: string[]; address?: string; notes?: string } | null = null
   if (setting) {
     try { contact = JSON.parse(setting.value) } catch { contact = null }
   }
 
-  const hasContent = contact && (contact.phone || contact.email || contact.address || contact.notes)
+  const emailList: string[] = contact?.emails?.length
+    ? contact.emails
+    : contact?.email
+      ? contact.email.split(',').map((e: string) => e.trim()).filter(Boolean)
+      : []
+
+  const hasContent = contact && (contact.phone || emailList.length > 0 || contact.address || contact.notes)
 
   return (
     <div className="px-4 py-6 max-w-md mx-auto">
@@ -43,7 +49,7 @@ export default async function ContactUsPage() {
             </div>
           )}
 
-          {contact!.email && (
+          {emailList.length > 0 && (
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 text-sm">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -52,9 +58,11 @@ export default async function ContactUsPage() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase">Email</p>
-                <a href={`mailto:${contact!.email}`} className="text-sm text-primary-600 font-medium">
-                  {contact!.email}
-                </a>
+                {emailList.map((email) => (
+                  <a key={email} href={`mailto:${email}`} className="block text-sm text-primary-600 font-medium">
+                    {email}
+                  </a>
+                ))}
               </div>
             </div>
           )}

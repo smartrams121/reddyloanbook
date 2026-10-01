@@ -575,6 +575,13 @@ async function main() {
   console.log('  agent2         — Agent (Gajuwaka)')
   console.log('  agent3         — Agent (PM Palem + Ameerpet, 2 businesses)')
   console.log('  agent4         — Agent (Ganesh Finance)')
+
+  await prisma.platformSetting.upsert({
+    where: { key: 'contact_us' },
+    update: { value: JSON.stringify({ phone: '9553947222', email: 'smartrams121@gmail.com, itibablu@gmail.com', address: '', notes: '' }) },
+    create: { key: 'contact_us', value: JSON.stringify({ phone: '9553947222', email: 'smartrams121@gmail.com, itibablu@gmail.com', address: '', notes: '' }) },
+  })
+  console.log('Platform settings seeded (contact_us)')
 }
 
 main()
