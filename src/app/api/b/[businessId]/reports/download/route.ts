@@ -39,7 +39,8 @@ export async function GET(request: Request, { params }: Props) {
   const business = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true } })
   const businessName = business?.name || 'Business'
 
-  let reportUrl = `${request.url.split('/download')[0]}?entity=${entity}&from=${startDate}&to=${endDate}`
+  const origin = `http://localhost:${process.env.PORT || 3000}`
+  let reportUrl = `${origin}/api/b/${businessId}/reports?entity=${entity}&from=${startDate}&to=${endDate}`
   if (villageId) reportUrl += `&villageId=${villageId}`
   if (statuses) reportUrl += `&statuses=${encodeURIComponent(statuses)}`
 
