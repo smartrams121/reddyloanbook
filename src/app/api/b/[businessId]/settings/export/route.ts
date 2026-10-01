@@ -56,7 +56,7 @@ function styleSheet(ws: ExcelJS.Worksheet, columns: { key: string; label: string
   const footerRowIdx = rows.length + 3
   ws.mergeCells(footerRowIdx, 1, footerRowIdx, columns.length)
   const footerCell = ws.getCell(footerRowIdx, 1)
-  footerCell.value = 'Internal Use Only | PwC'
+  footerCell.value = 'Internal Use Only'
   footerCell.font = { size: 8, italic: true, color: { argb: '999999' } }
   footerCell.alignment = { horizontal: 'center' }
 }

@@ -301,7 +301,7 @@ function addFooter(ws: ExcelJS.Worksheet, generatedAt: string, generatedBy: stri
   const footerRow = lastRow + 2
   ws.mergeCells(footerRow, 1, footerRow, 6)
   const cell = ws.getCell(footerRow, 1)
-  cell.value = `Generated: ${generatedAt} by ${generatedBy} | Internal Use Only | PwC`
+  cell.value = `Generated: ${generatedAt} by ${generatedBy} | Internal Use Only`
   cell.font = { size: 8, italic: true, color: { argb: '999999' } }
   cell.alignment = { horizontal: 'center' }
 }
@@ -414,7 +414,7 @@ function generatePDF(
     ${customer.address ? ` &nbsp;|&nbsp; Address: ${customer.address}` : ''}
   </div>
   ${loanSections}
-  <div class="footer">Generated: ${generatedAt} by ${generatedBy} &nbsp;|&nbsp; ${businessName} &nbsp;|&nbsp; Internal Use Only | PwC</div>
+  <div class="footer">Generated: ${generatedAt} by ${generatedBy} &nbsp;|&nbsp; ${businessName} &nbsp;|&nbsp; Internal Use Only</div>
 </body>
 </html>`
 
