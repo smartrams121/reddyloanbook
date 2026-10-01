@@ -93,7 +93,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="All Features"
             >
-              <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
@@ -109,49 +109,49 @@ export default function AppShell({ user, children }: AppShellProps) {
           <div className="flex items-center gap-2">
             {/* Quick-link icons when a business is active */}
             {activeBusinessId && (
-              <div className="flex items-center gap-0.5 mr-2">
-                <Link href={`/b/${activeBusinessId}/customers`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title="Customers">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <div className="flex items-center gap-1 mr-2">
+                <Link href={`/b/${activeBusinessId}/customers`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title="Customers">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Customers</span>
+                  <span className="text-[10px] leading-tight font-medium">Customers</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/loans`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Loans">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <Link href={`/b/${activeBusinessId}/loans`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Loans">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Loans</span>
+                  <span className="text-[10px] leading-tight font-medium">Loans</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/users`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors" title="Employees">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <Link href={`/b/${activeBusinessId}/users`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors" title="Employees">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Employees</span>
+                  <span className="text-[10px] leading-tight font-medium">Employees</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/villages`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors" title="Locations">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <Link href={`/b/${activeBusinessId}/villages`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors" title="Locations">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Locations</span>
+                  <span className="text-[10px] leading-tight font-medium">Locations</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/posting`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="Payments">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <Link href={`/b/${activeBusinessId}/posting`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="Payments">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Payments</span>
+                  <span className="text-[10px] leading-tight font-medium">Payments</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/reports`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-red-600 hover:bg-red-50 transition-colors" title="Reports">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <Link href={`/b/${activeBusinessId}/reports`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors" title="Reports">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Reports</span>
+                  <span className="text-[10px] leading-tight font-medium">Reports</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/dashboard`} className="flex flex-col items-center px-1.5 py-1 rounded-lg text-primary-600 hover:bg-primary-50 transition-colors" title="Dashboard">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <Link href={`/b/${activeBusinessId}/dashboard`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-primary-600 hover:bg-primary-50 transition-colors" title="Dashboard">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
                   </svg>
-                  <span className="text-[9px] leading-tight font-medium">Dashboard</span>
+                  <span className="text-[10px] leading-tight font-medium">Dashboard</span>
                 </Link>
               </div>
             )}
