@@ -27,15 +27,13 @@ model User {
   passwordHash       String
   fullName           String
   phone              String?
+  email              String?
   role               String
   isActive           Boolean  @default(true)
   mustChangePassword Boolean  @default(true)
-  totpSecret         String?
-  totpEnabled        Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  recoveryCodes         RecoveryCode[]
   sessions              Session[]
   ownedBusinesses       Business[]
   businessAssignments   UserBusinessAssignment[]
@@ -48,14 +46,7 @@ model User {
   auditLogs             AuditLog[]
   supportAccessGranted  SupportAccess[] @relation("SupportGrantedBy")
   supportAccessReceived SupportAccess[] @relation("SupportGrantedTo")
-}
-
-model RecoveryCode {
-  id     String  @id @default(cuid())
-  code   String
-  used   Boolean @default(false)
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwordResetRequests PasswordResetRequest[]
 }
 
 model Session {
@@ -184,7 +175,7 @@ model Village {
 
 model Customer {
   id             String   @id @default(cuid())
-  customerId     String   @unique
+  customerId     String
   fullName       String
   age            Int?
   phone          String
@@ -209,6 +200,7 @@ model Customer {
   loans     Loan[]
   documents Document[]
 
+  @@unique([businessId, customerId])
   @@index([businessId, phone])
   @@index([businessId, fullName])
   @@index([businessId, status])
@@ -220,7 +212,7 @@ model Customer {
 
 model Loan {
   id                    String   @id @default(cuid())
-  loanNumber            String   @unique
+  loanNumber            String
 
   customerId            String
   customer              Customer @relation(fields: [customerId], references: [id])
@@ -264,6 +256,7 @@ model Loan {
   payments Payment[]
   documents Document[]
 
+  @@unique([businessId, loanNumber])
   @@index([businessId, status])
   @@index([businessId, startDate])
   @@index([customerId])
@@ -286,7 +279,7 @@ model LoanScheduleEntry {
 
 model Payment {
   id            String   @id @default(cuid())
-  receiptNumber String   @unique
+  receiptNumber String
 
   loanId     String
   loan       Loan     @relation(fields: [loanId], references: [id])
@@ -307,6 +300,7 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([businessId, receiptNumber])
   @@index([businessId, paymentDate])
   @@index([loanId, paymentDate])
   @@index([loanId, isDeleted])
@@ -417,7 +411,7 @@ model Document {
 // ─── AUDIT LOG ────────────────────────────────────────────────────────────────
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   action     String
   entityType String
   entityId   String
@@ -425,13 +419,32 @@ model AuditLog {
   newValues  String?
   reason     String?
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id])
-  createdAt  DateTime @default(now())
+  user       User      @relation(fields: [userId], references: [id])
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
+  createdAt  DateTime  @default(now())
 
   @@index([businessId, createdAt])
   @@index([entityType, entityId])
+}
+
+// ─── PASSWORD RESET REQUESTS ────────────────────────────────────────────────
+// PasswordResetStatus: PENDING, COMPLETED, CANCELLED
+
+model PasswordResetRequest {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     String    @default("PENDING")
+  note       String?
+  resolvedBy String?
+  resolvedAt DateTime?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([status, createdAt])
 }
 
 // ─── PLATFORM SETTINGS ───────────────────────────────────────────────────────
@@ -445,6 +458,7 @@ model PlatformSetting {
 }
 
 // ─── REGISTRATION REQUESTS ───────────────────────────────────────────────────
+// RegistrationStatus: PENDING, APPROVED, REJECTED
 
 model RegistrationRequest {
   id                   String    @id @default(cuid())
