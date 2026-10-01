@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import ExcelJS from 'exceljs'
+import PDFDocument from 'pdfkit'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -60,7 +61,7 @@ export async function GET(request: Request, { params }: Props) {
   }
 
   if (format === 'pdf') {
-    return generatePDF(businessName, entity, startDate, endDate, columns, rows)
+    return await generatePDF(businessName, entity, startDate, endDate, columns, rows)
   }
 
   return generateXLSX(businessName, entity, startDate, endDate, columns, rows)
@@ -148,7 +149,7 @@ async function generateXLSX(
   })
 }
 
-function generatePDF(
+async function generatePDF(
   businessName: string,
   entity: string,
   from: string,
@@ -164,53 +165,99 @@ function generatePDF(
       const v = String(r[c.key] ?? '')
       if (v.length > max) max = v.length
     })
-    return Math.max(max * 7, 60)
+    return Math.min(Math.max(max * 6, 50), 180)
   })
-  const tableWidth = colWidths.reduce((a, b) => a + b, 0)
-  const pageWidth = Math.max(tableWidth + 80, 800)
+  const totalColWidth = colWidths.reduce((a, b) => a + b, 0)
 
-  const headerCells = columns
-    .map((c, i) => `<th style="width:${colWidths[i]}px;padding:6px 8px;text-align:left;font-size:11px;color:#fff;background:#FD5108;border-bottom:2px solid #e5e7eb;">${c.label}</th>`)
-    .join('')
+  const pageWidth = Math.max(totalColWidth + 80, 595)
+  const pageHeight = 842
+  const margin = 40
 
-  const dataRows = rows
-    .map((row, idx) => {
-      const bg = idx % 2 === 1 ? 'background:#fff5f0;' : ''
-      const cells = columns
-        .map((c) => `<td style="padding:5px 8px;font-size:11px;border-bottom:1px solid #f0f0f0;">${row[c.key] ?? ''}</td>`)
-        .join('')
-      return `<tr style="${bg}">${cells}</tr>`
+  const doc = new PDFDocument({
+    size: [pageWidth, pageHeight],
+    margins: { top: margin, bottom: margin, left: margin, right: margin },
+    bufferPages: true,
+  })
+
+  const chunks: Buffer[] = []
+  doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+
+  const pdfReady = new Promise<Buffer>((resolve) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+  })
+
+  const usableWidth = pageWidth - margin * 2
+  const scale = totalColWidth > usableWidth ? usableWidth / totalColWidth : 1
+  const scaledWidths = colWidths.map((w) => w * scale)
+
+  doc.fontSize(16).font('Helvetica-Bold').fillColor('#333333')
+    .text(`${businessName} — ${entityLabel} Report`, margin, margin)
+
+  doc.fontSize(9).font('Helvetica').fillColor('#666666')
+    .text(
+      `Period: ${formatDD(from)} to ${formatDD(to)}  |  Total: ${rows.length} records  |  Generated: ${new Date().toLocaleDateString('en-IN')}`,
+      margin, doc.y + 4
+    )
+
+  const tableTop = doc.y + 14
+  const rowHeight = 20
+  const headerHeight = 24
+  const fontSize = 8
+
+  let y = tableTop
+
+  function drawHeaderRow(yPos: number) {
+    doc.rect(margin, yPos, usableWidth, headerHeight).fill('#FD5108')
+    let x = margin
+    doc.fontSize(fontSize).font('Helvetica-Bold').fillColor('#FFFFFF')
+    columns.forEach((col, i) => {
+      doc.text(col.label, x + 4, yPos + 6, { width: scaledWidths[i] - 8, ellipsis: true })
+      x += scaledWidths[i]
     })
-    .join('')
+    return yPos + headerHeight
+  }
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  @page { size: landscape; margin: 20mm; }
-  body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 20px; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
-  table { border-collapse: collapse; width: 100%; }
-  .footer { text-align: center; font-size: 9px; color: #999; margin-top: 24px; font-style: italic; }
-</style>
-</head>
-<body>
-  <h1>${businessName} — ${entityLabel} Report</h1>
-  <div class="meta">Period: ${formatDD(from)} to ${formatDD(to)} &nbsp;|&nbsp; Total: ${rows.length} records &nbsp;|&nbsp; Generated: ${new Date().toLocaleDateString('en-IN')}</div>
-  <table>
-    <thead><tr>${headerCells}</tr></thead>
-    <tbody>${dataRows}</tbody>
-  </table>
-  <div class="footer">Internal Use Only</div>
-</body>
-</html>`
+  y = drawHeaderRow(y)
 
-  return new NextResponse(html, {
+  doc.font('Helvetica').fillColor('#333333')
+
+  rows.forEach((row, idx) => {
+    if (y + rowHeight > pageHeight - margin - 20) {
+      doc.addPage()
+      y = margin
+      y = drawHeaderRow(y)
+      doc.font('Helvetica').fillColor('#333333')
+    }
+
+    if (idx % 2 === 1) {
+      doc.rect(margin, y, usableWidth, rowHeight).fill('#FFF5F0')
+      doc.fillColor('#333333')
+    }
+
+    doc.rect(margin, y, usableWidth, rowHeight).stroke('#EEEEEE')
+
+    let x = margin
+    doc.fontSize(fontSize)
+    columns.forEach((col, i) => {
+      const val = String(row[col.key] ?? '')
+      doc.text(val, x + 4, y + 5, { width: scaledWidths[i] - 8, ellipsis: true })
+      x += scaledWidths[i]
+    })
+
+    y += rowHeight
+  })
+
+  doc.fontSize(7).font('Helvetica-Oblique').fillColor('#999999')
+    .text('Internal Use Only', margin, y + 16, { align: 'center', width: usableWidth })
+
+  doc.end()
+
+  const pdfBuffer = await pdfReady
+
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Content-Disposition': `inline; filename="${entity}_report_${from}_${to}.html"`,
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${entity}_report_${from}_${to}.pdf"`,
     },
   })
 }
