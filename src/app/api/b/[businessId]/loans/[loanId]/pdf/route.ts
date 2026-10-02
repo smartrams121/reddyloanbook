@@ -111,12 +111,11 @@ export async function GET(request: Request, { params }: Props) {
     doc.moveDown(0.4)
 
     const tableTop = doc.y
-    const col1 = 40, col2 = 80, col3 = 220, col4 = 380
+    const col1 = 40, col2 = 80, col3 = 280
     doc.fontSize(8).font('Helvetica-Bold')
     doc.text('#', col1, tableTop)
     doc.text('Due Date', col2, tableTop)
     doc.text('Amount', col3, tableTop)
-    doc.text('Status', col4, tableTop)
     doc.moveDown(0.3)
     doc.moveTo(40, doc.y).lineTo(500, doc.y).stroke()
     doc.moveDown(0.2)
@@ -130,7 +129,6 @@ export async function GET(request: Request, { params }: Props) {
       doc.text(String(entry.installmentNumber), col1, y)
       doc.text(fmtDate(entry.dueDate), col2, y)
       doc.text(fmtPaise(entry.amount), col3, y)
-      doc.text(entry.status || 'PENDING', col4, y)
       doc.moveDown(0.3)
     }
   }
