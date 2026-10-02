@@ -11,7 +11,7 @@ import { Role } from '@/lib/constants'
 
 interface Props {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ status?: string; health?: string; search?: string }>
+  searchParams: Promise<{ status?: string; search?: string }>
 }
 
 const STATUS_FILTERS = [
@@ -22,24 +22,6 @@ const STATUS_FILTERS = [
   { key: 'COMPLETED', label: 'Completed', activeClass: 'bg-blue-600 text-white' },
 ]
 
-function loanHealthColor(expectedEndDate: string, derivedStatus: string): { key: string; border: string; label: string; labelClass: string } {
-  if (derivedStatus === 'COMPLETED' || derivedStatus === 'DEFAULTER') {
-    return { key: '', border: '', label: '', labelClass: '' }
-  }
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const due = new Date(expectedEndDate + 'T00:00:00')
-  const due30 = new Date(due)
-  due30.setDate(due30.getDate() + 30)
-
-  if (today <= due) {
-    return { key: 'green', border: 'border-l-4 border-l-green-500', label: 'On Track', labelClass: 'bg-green-100 text-green-700' }
-  }
-  if (today <= due30) {
-    return { key: 'amber', border: 'border-l-4 border-l-amber-500', label: 'Overdue', labelClass: 'bg-amber-100 text-amber-700' }
-  }
-  return { key: 'red', border: 'border-l-4 border-l-red-500', label: 'Critical', labelClass: 'bg-red-100 text-red-700' }
-}
 
 export default async function LoansPage({ params, searchParams }: Props) {
   const { businessId } = await params
@@ -99,7 +81,6 @@ export default async function LoansPage({ params, searchParams }: Props) {
     return {
       ...loan,
       derivedStatus,
-      health: loanHealthColor(loan.expectedEndDate, derivedStatus),
       paid,
     }
   })
@@ -109,22 +90,11 @@ export default async function LoansPage({ params, searchParams }: Props) {
     ? loansWithDerived.filter((l) => l.derivedStatus === statusFilter)
     : loansWithDerived
 
-  const healthFilter = filters.health || ''
-  const filteredLoans = healthFilter
-    ? filteredByStatus.filter((l) => l.health.key === healthFilter)
-    : filteredByStatus
+  const filteredLoans = filteredByStatus
 
-  const healthCounts = { green: 0, amber: 0, red: 0 }
-  filteredByStatus.forEach((l) => {
-    if (l.health.key === 'green') healthCounts.green++
-    else if (l.health.key === 'amber') healthCounts.amber++
-    else if (l.health.key === 'red') healthCounts.red++
-  })
-
-  function buildUrl(statusKey: string, healthKey: string) {
+  function buildUrl(statusKey: string) {
     const parts: string[] = []
     if (statusKey) parts.push(`status=${statusKey}`)
-    if (healthKey) parts.push(`health=${healthKey}`)
     if (searchQuery) parts.push(`search=${encodeURIComponent(searchQuery)}`)
     return `/b/${businessId}/loans${parts.length ? '?' + parts.join('&') : ''}`
   }
@@ -153,7 +123,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
           return (
             <Link
               key={f.key}
-              href={buildUrl(f.key, healthFilter)}
+              href={buildUrl(f.key)}
               className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                 active
                   ? (f.activeClass || 'bg-primary-600 text-white')
@@ -164,35 +134,6 @@ export default async function LoansPage({ params, searchParams }: Props) {
             </Link>
           )
         })}
-      </div>
-
-      {/* Health Status Filter */}
-      <div className="flex gap-2 mb-4 items-center">
-        <span className="text-xs text-gray-500 font-medium">Health:</span>
-        <Link
-          href={buildUrl(statusFilter, '')}
-          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${!healthFilter ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          All
-        </Link>
-        <Link
-          href={buildUrl(statusFilter, 'green')}
-          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${healthFilter === 'green' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
-        >
-          On Track ({healthCounts.green})
-        </Link>
-        <Link
-          href={buildUrl(statusFilter, 'amber')}
-          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${healthFilter === 'amber' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
-        >
-          Overdue ({healthCounts.amber})
-        </Link>
-        <Link
-          href={buildUrl(statusFilter, 'red')}
-          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${healthFilter === 'red' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
-        >
-          Critical ({healthCounts.red})
-        </Link>
       </div>
 
       {/* Loan List with Bulk Actions */}
@@ -213,7 +154,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
           pausedAt: loan.pausedAt,
           customer: loan.customer,
           agent: loan.agent,
-          health: loan.health,
+
           paid: loan.paid,
         }))}
       />

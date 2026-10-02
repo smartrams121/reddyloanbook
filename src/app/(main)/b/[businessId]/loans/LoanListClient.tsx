@@ -20,7 +20,7 @@ interface LoanData {
   pausedAt: string | null
   customer: { id: string; fullName: string; customerId: string; phone: string }
   agent: { id: string; fullName: string } | null
-  health: { key: string; border: string; label: string; labelClass: string }
+
   paid: number
 }
 
@@ -32,9 +32,9 @@ interface Props {
 
 function statusBadgeClass(status: string): string {
   switch (status) {
-    case 'ACTIVE': return 'bg-success-50 text-success-700'
-    case 'OVERDUE': return 'bg-red-50 text-red-700'
-    case 'DEFAULTER': return 'bg-red-50 text-red-700'
+    case 'ACTIVE': return 'bg-green-100 text-green-700'
+    case 'OVERDUE': return 'bg-amber-100 text-amber-700'
+    case 'DEFAULTER': return 'bg-red-100 text-red-700'
     case 'COMPLETED': return 'bg-blue-50 text-blue-700'
     default: return 'bg-gray-100 text-gray-500'
   }
@@ -117,13 +117,12 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
       {loans.map((loan) => {
         const outstanding = loan.totalRepayable - loan.paid
         const progress = loan.totalRepayable > 0 ? Math.round((loan.paid / loan.totalRepayable) * 100) : 0
-        const health = loan.health
         const isSelected = selected.has(loan.id)
 
         return (
           <div
             key={loan.id}
-            className={`card p-3 flex gap-3 items-start transition-colors ${health.border} ${isSelected ? 'ring-2 ring-primary-300 bg-primary-50/30' : ''}`}
+            className={`card p-3 flex gap-3 items-start transition-colors ${isSelected ? 'ring-2 ring-primary-300 bg-primary-50/30' : ''}`}
           >
             {isAdminOrOwner && (
               <input
@@ -145,12 +144,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     {loan.agent && <> · <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline" onClick={e => e.stopPropagation()}>{loan.agent.fullName}</Link></>}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                  {health.label && (
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${health.labelClass}`}>
-                      {health.label}
-                    </span>
-                  )}
+                <div className="shrink-0 ml-2">
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadgeClass(loan.status)}`}>
                     {loan.status.replace(/_/g, ' ')}
                   </span>
