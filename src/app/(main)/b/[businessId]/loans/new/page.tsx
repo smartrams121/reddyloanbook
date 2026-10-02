@@ -7,7 +7,7 @@ import Link from 'next/link'
 interface Village { id: string; name: string }
 interface Agent { id: string; fullName: string; role: string }
 interface CustomerResult { id: string; customerId: string; fullName: string; phone: string; village: { id: string; name: string }; status: string }
-interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; interestModel: string; collectOnSundays: boolean }
+interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; collectionDays: string }
 interface ActiveLoan { id: string; loanNumber: string; loanAmount: number; totalRepayable: number; status: string; startDate: string }
 interface DocAttachment { filePath: string; originalName: string; mimeType: string; previewUrl?: string }
 
@@ -19,12 +19,24 @@ function formatPaiseShort(paise: number): string {
   return `₹${rupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+function todayISO(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function oneMonthAgoISO(): string {
+  const d = new Date()
+  d.setMonth(d.getMonth() - 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function NewLoanPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
   const businessId = params.businessId as string
   const preselectedCustomerId = searchParams.get('customerId')
+  const renewFromLoanId = searchParams.get('renewFromLoanId')
 
   const [step, setStep] = useState<Step>('customer')
   const [settings, setSettings] = useState<BusinessSettings | null>(null)
@@ -62,18 +74,16 @@ export default function NewLoanPage() {
   const ncFileInputRef = useRef<HTMLInputElement>(null)
   const [ncCreating, setNcCreating] = useState(false)
 
-  // Loan step
-  const [loanAmountStr, setLoanAmountStr] = useState('')
-  const [interestAmountStr, setInterestAmountStr] = useState('')
-  const [collectionType, setCollectionType] = useState('DAILY')
-  const [collectionDay, setCollectionDay] = useState('')
-  const [installmentStr, setInstallmentStr] = useState('')
-  const [numInstallmentsStr, setNumInstallmentsStr] = useState('')
-  const [startDate, setStartDate] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  })
+  // Loan step — redesigned
   const [agentId, setAgentId] = useState('')
+  const [startDate, setStartDate] = useState(todayISO)
+  const [principalStr, setPrincipalStr] = useState('')
+  const [numInstallmentsStr, setNumInstallmentsStr] = useState('')
+  const [totalRepaymentStr, setTotalRepaymentStr] = useState('')
+  const [userEditedTotal, setUserEditedTotal] = useState(false)
+  const [interestModel, setInterestModel] = useState('ADDON')
+  const [upfrontInterestStr, setUpfrontInterestStr] = useState('')
+  const [weeklyInstallmentStr, setWeeklyInstallmentStr] = useState('')
   const [notes, setNotes] = useState('')
 
   // Document attachments
@@ -84,6 +94,53 @@ export default function NewLoanPage() {
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
 
+  // Computed loan values
+  const collectionType = settings?.collectionType || 'DAILY'
+  const isWeekly = collectionType === 'WEEKLY'
+  const isMonthly = collectionType === 'MONTHLY'
+  const addonMultiplier = isMonthly ? 1.40 : 1.20
+  const principal = parseInt(principalStr) || 0
+  const upfrontInterest = parseInt(upfrontInterestStr) || 0
+  const totalRepayment = interestModel === 'UPFRONT'
+    ? principal + upfrontInterest
+    : (parseInt(totalRepaymentStr) || 0)
+  const interest = interestModel === 'UPFRONT'
+    ? upfrontInterest
+    : (principal > 0 && totalRepayment > principal ? totalRepayment - principal : 0)
+  const weeklyInstallment = parseInt(weeklyInstallmentStr) || 0
+  const numInstallments = isWeekly
+    ? (weeklyInstallment > 0 && totalRepayment > 0 ? Math.ceil(totalRepayment / weeklyInstallment) : 0)
+    : (parseInt(numInstallmentsStr) || 0)
+  const installmentAmount = isWeekly
+    ? weeklyInstallment
+    : (numInstallments > 0 && totalRepayment > 0 ? Math.floor(totalRepayment / numInstallments) : 0)
+  const lastInstallment = numInstallments > 0
+    ? totalRepayment - installmentAmount * (numInstallments - 1) : 0
+
+  const computedDueDate = useMemo(() => {
+    if (!startDate || numInstallments <= 0) return ''
+    const d = new Date(startDate + 'T00:00:00')
+    if (isNaN(d.getTime())) return ''
+    const ct = settings?.collectionType || 'DAILY'
+
+    if (ct === 'DAILY') {
+      const DAY_CODE_TO_JS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 }
+      const activeDays = new Set((settings?.collectionDays || 'MON,TUE,WED,THU,FRI,SAT,SUN').split(',').map(c => DAY_CODE_TO_JS[c.trim()]).filter(v => v !== undefined))
+      d.setDate(d.getDate() + 1)
+      while (!activeDays.has(d.getDay())) d.setDate(d.getDate() + 1)
+      let added = 1
+      while (added < numInstallments) {
+        d.setDate(d.getDate() + 1)
+        if (activeDays.has(d.getDay())) added++
+      }
+    } else if (ct === 'WEEKLY') {
+      d.setDate(d.getDate() + (numInstallments - 1) * 7)
+    } else {
+      d.setMonth(d.getMonth() + numInstallments - 1)
+    }
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  }, [startDate, numInstallments, settings])
+
   useEffect(() => {
     Promise.all([
       fetch(`/api/b/${businessId}/settings`).then(r => r.json()),
@@ -92,8 +149,6 @@ export default function NewLoanPage() {
       fetch(`/api/b/${businessId}/customers`).then(r => r.json()),
     ]).then(([biz, vils, users, custs]) => {
       setSettings(biz)
-      setCollectionType(biz.collectionType || 'DAILY')
-      if (biz.defaultCollectionDay) setCollectionDay(biz.defaultCollectionDay)
       if (Array.isArray(vils)) setVillages(vils)
       if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
       if (Array.isArray(custs)) {
@@ -137,69 +192,39 @@ export default function NewLoanPage() {
     if (!searchQuery.trim()) return customers
     const q = searchQuery.toLowerCase()
     return customers.filter(c =>
-      (
-        c.fullName.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        c.customerId.toLowerCase().includes(q)
-      )
+      c.fullName.toLowerCase().includes(q) ||
+      c.phone.includes(q) ||
+      c.customerId.toLowerCase().includes(q)
     )
   }, [customers, searchQuery])
 
-  // Track which of interest/installment was last manually edited
-  const [lastEdited, setLastEdited] = useState<'interest' | 'installment' | null>(null)
-
-  // Computed loan summary
-  const loanAmount = parseInt(loanAmountStr) || 0
-  const interestAmount = parseInt(interestAmountStr) || 0
-  const installmentAmount = parseInt(installmentStr) || 0
-  const numInstallments = parseInt(numInstallmentsStr) || 0
-
-  const totalRepayable = loanAmount + interestAmount
-  const amountGiven = settings?.interestModel === 'UPFRONT'
-    ? loanAmount - interestAmount
-    : loanAmount
-  const lastInstallment = numInstallments > 0
-    ? totalRepayable - installmentAmount * (numInstallments - 1)
-    : 0
-
-  function recalculate(principal: string, interest: string, installment: string, numInst: string, edited: 'interest' | 'installment' | null) {
-    const p = parseInt(principal) || 0
-    const n = parseInt(numInst) || 0
-    if (p <= 0 || n <= 0) return
-
-    if (edited === 'interest' || edited === null) {
-      const i = parseInt(interest) || 0
-      const total = p + i
-      setInstallmentStr(String(Math.floor(total / n)))
-    } else if (edited === 'installment') {
-      const inst = parseInt(installment) || 0
-      if (inst > 0) {
-        const calcInterest = (inst * n) - p
-        setInterestAmountStr(calcInterest >= 0 ? String(calcInterest) : '0')
+  function handlePrincipalChange(val: string) {
+    setPrincipalStr(val)
+    const p = parseInt(val) || 0
+    if (interestModel === 'ADDON' && !userEditedTotal) {
+      if (p >= 100) {
+        setTotalRepaymentStr(String(Math.round(p * addonMultiplier)))
+      } else {
+        setTotalRepaymentStr('')
       }
     }
   }
 
-  function handlePrincipalChange(val: string) {
-    setLoanAmountStr(val)
-    recalculate(val, interestAmountStr, installmentStr, numInstallmentsStr, lastEdited)
+  function handleInterestModelChange(model: string) {
+    setInterestModel(model)
+    setUserEditedTotal(false)
+    setUpfrontInterestStr('')
+    setWeeklyInstallmentStr('')
+    if (model === 'ADDON' && principal >= 100) {
+      setTotalRepaymentStr(String(Math.round(principal * addonMultiplier)))
+    } else {
+      setTotalRepaymentStr('')
+    }
   }
 
-  function handleInterestChange(val: string) {
-    setInterestAmountStr(val)
-    setLastEdited('interest')
-    recalculate(loanAmountStr, val, installmentStr, numInstallmentsStr, 'interest')
-  }
-
-  function handleInstallmentChange(val: string) {
-    setInstallmentStr(val)
-    setLastEdited('installment')
-    recalculate(loanAmountStr, interestAmountStr, val, numInstallmentsStr, 'installment')
-  }
-
-  function handleNumInstallmentsChange(val: string) {
-    setNumInstallmentsStr(val)
-    recalculate(loanAmountStr, interestAmountStr, installmentStr, val, lastEdited)
+  function handleTotalRepaymentChange(val: string) {
+    setTotalRepaymentStr(val)
+    setUserEditedTotal(true)
   }
 
   async function handleNcPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -311,29 +336,34 @@ export default function NewLoanPage() {
     e.preventDefault()
     setError('')
 
-    if (!selectedCustomer) {
-      setError('Select a customer first')
-      return
-    }
-    if (loanAmount <= 0) { setError('Loan amount must be positive'); return }
-    if (installmentAmount <= 0) { setError('Installment amount must be positive'); return }
+    if (!selectedCustomer) { setError('Select a customer first'); return }
+    if (principal < 100) { setError('Principal must be at least ₹100'); return }
+    if (interestModel === 'UPFRONT' && upfrontInterest <= 0) { setError('Interest amount must be positive for Upfront'); return }
+    if (totalRepayment <= 0) { setError('Total repayment must be positive'); return }
+    if (totalRepayment < principal) { setError('Total repayment cannot be less than principal'); return }
     if (numInstallments <= 0) { setError('Number of installments must be positive'); return }
+    if (installmentAmount <= 0) { setError('Installment amount must be positive'); return }
     if (lastInstallment <= 0) { setError('Last installment would be zero or negative. Adjust amounts.'); return }
 
     setCreating(true)
     try {
+      const ct = settings?.collectionType || 'DAILY'
       const body: Record<string, unknown> = {
         customerId: selectedCustomer.id,
-        loanAmount: loanAmount * 100,
-        interestAmount: interestAmount * 100,
-        collectionType,
+        loanAmount: principal * 100,
+        interestAmount: interest * 100,
+        interestModel,
+        collectionType: ct,
         installmentAmount: installmentAmount * 100,
         numberOfInstallments: numInstallments,
         startDate,
       }
-      if (collectionDay && collectionType === 'WEEKLY') body.collectionDay = collectionDay
+      if (ct === 'WEEKLY' && settings?.defaultCollectionDay) {
+        body.collectionDay = settings.defaultCollectionDay
+      }
       if (agentId) body.agentId = agentId
       if (notes) body.notes = notes
+      if (renewFromLoanId) body.renewFromLoanId = renewFromLoanId
       if (documents.length > 0) {
         body.documents = documents.map(d => ({ filePath: d.filePath, originalName: d.originalName, mimeType: d.mimeType }))
       }
@@ -359,20 +389,6 @@ export default function NewLoanPage() {
       setCreating(false)
     }
   }
-
-  const computedDueDate = useMemo(() => {
-    if (!startDate || numInstallments <= 0) return ''
-    const d = new Date(startDate + 'T00:00:00')
-    if (isNaN(d.getTime())) return ''
-    for (let i = 0; i < numInstallments; i++) {
-      if (collectionType === 'DAILY') d.setDate(d.getDate() + 1)
-      else if (collectionType === 'WEEKLY') d.setDate(d.getDate() + 7)
-      else d.setMonth(d.getMonth() + 1)
-    }
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-  }, [startDate, numInstallments, collectionType])
-
-  const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
   const statusColors: Record<string, string> = {
     ACTIVE: 'bg-green-100 text-green-700',
@@ -407,7 +423,6 @@ export default function NewLoanPage() {
         <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>
       )}
 
-      {/* Loading indicator when checking loans */}
       {checkingLoans && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
@@ -417,7 +432,6 @@ export default function NewLoanPage() {
       {/* ─── STEP 1: Select or Create Customer ─── */}
       {step === 'customer' && !checkingLoans && (
         <div className="space-y-4">
-          {/* Selected customer banner */}
           {selectedCustomer && !showNewCustomer && (
             <div className="card p-3 border-primary-300 bg-primary-50">
               <div className="flex items-center justify-between">
@@ -438,7 +452,6 @@ export default function NewLoanPage() {
             </div>
           )}
 
-          {/* Search existing customers */}
           {!selectedCustomer && !showNewCustomer && (
             <>
               <div>
@@ -481,7 +494,6 @@ export default function NewLoanPage() {
             </>
           )}
 
-          {/* Inline new customer form */}
           {showNewCustomer && (
             <form onSubmit={handleCreateCustomer} className="card p-4 space-y-3">
               <div className="flex items-center justify-between mb-1">
@@ -489,7 +501,6 @@ export default function NewLoanPage() {
                 <button type="button" onClick={() => setShowNewCustomer(false)} className="text-xs text-gray-500">Cancel</button>
               </div>
 
-              {/* Photo */}
               <div>
                 <label className="label">Photo</label>
                 <div className="flex items-center gap-3">
@@ -546,7 +557,6 @@ export default function NewLoanPage() {
                 </div>
               </div>
 
-              {/* Job Type */}
               <div>
                 <label className="label">Job Type</label>
                 {!ncShowNewJobType ? (
@@ -597,7 +607,6 @@ export default function NewLoanPage() {
       {/* ─── ACTIVE LOAN WARNING ─── */}
       {step === 'warning' && selectedCustomer && (
         <div className="space-y-4">
-          {/* Warning banner */}
           <div className="rounded-lg border-2 border-yellow-300 bg-yellow-50 p-4">
             <div className="flex items-start gap-3">
               <svg className="w-6 h-6 text-yellow-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -612,7 +621,6 @@ export default function NewLoanPage() {
             </div>
           </div>
 
-          {/* Existing active loans list */}
           <div className="space-y-2">
             {activeLoans.map((loan) => {
               const parts = loan.startDate.split('-')
@@ -634,7 +642,6 @@ export default function NewLoanPage() {
             })}
           </div>
 
-          {/* 3 Options */}
           <div className="space-y-2 pt-2">
             <button
               onClick={() => setStep('loan')}
@@ -709,7 +716,6 @@ export default function NewLoanPage() {
             )}
           </div>
 
-          {/* Change customer link */}
           <div className="text-center pt-2">
             <button
               onClick={() => { setSelectedCustomer(null); setActiveLoans([]); setSearchQuery(''); setStep('customer') }}
@@ -721,7 +727,7 @@ export default function NewLoanPage() {
         </div>
       )}
 
-      {/* ─── STEP 2: Loan Details ─── */}
+      {/* ─── STEP 2: Loan Details (Redesigned) ─── */}
       {step === 'loan' && selectedCustomer && (
         <form onSubmit={handleCreateLoan} className="space-y-5">
           {/* Customer summary */}
@@ -738,177 +744,211 @@ export default function NewLoanPage() {
             </div>
           </div>
 
-          {/* Existing loan reminder if they chose to proceed */}
           {activeLoans.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-700">
               Note: This customer has {activeLoans.length} existing active loan{activeLoans.length > 1 ? 's' : ''}.
             </div>
           )}
 
-          {/* Amount Section */}
+          {renewFromLoanId && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
+              Renewing from existing loan. The old loan will be marked as completed.
+            </div>
+          )}
+
+          {/* Loan Details — single merged section */}
           <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Amount</h2>
-
-            <div>
-              <label className="label">Principal Amount (₹) *</label>
-              <input
-                type="number"
-                className="input text-lg font-semibold"
-                value={loanAmountStr}
-                onChange={(e) => handlePrincipalChange(e.target.value)}
-                placeholder="e.g. 10000"
-                min={1}
-                required
-              />
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Details</h2>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                collectionType === 'DAILY' ? 'bg-blue-100 text-blue-700' :
+                collectionType === 'WEEKLY' ? 'bg-purple-100 text-purple-700' :
+                'bg-orange-100 text-orange-700'
+              }`}>
+                {collectionType}
+              </span>
             </div>
 
+            {/* Agent */}
             <div>
-              <label className="label">Interest Amount (₹)</label>
-              <input
-                type="number"
-                className="input"
-                value={interestAmountStr}
-                onChange={(e) => handleInterestChange(e.target.value)}
-                placeholder="e.g. 1000"
-                min={0}
-              />
-              {settings && (
-                <p className="text-[10px] text-gray-400 mt-1">
-                  Interest model: {settings.interestModel === 'UPFRONT' ? 'Upfront (deducted from given amount)' : 'Add-on (added to repayable)'}
-                </p>
-              )}
-              {lastEdited === 'installment' && interestAmount > 0 && (
-                <p className="text-[10px] text-primary-500 mt-1">Auto-calculated from installment × count - principal</p>
-              )}
-            </div>
-
-            {/* Summary */}
-            {loanAmount > 0 && (
-              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total Repayable</span>
-                  <span className="font-bold text-gray-900">₹{totalRepayable.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Amount Given to Customer</span>
-                  <span className="font-semibold text-primary-700">₹{amountGiven.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Repayment Schedule */}
-          <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Repayment Schedule</h2>
-
-            <div>
-              <label className="label">Collection Type *</label>
-              <div className="grid grid-cols-3 gap-2">
-                {['DAILY', 'WEEKLY', 'MONTHLY'].map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setCollectionType(type)}
-                    className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                      collectionType === type
-                        ? 'bg-primary-600 text-white border-primary-600'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {collectionType === 'WEEKLY' && (
-              <div>
-                <label className="label">Collection Day</label>
-                <select className="input" value={collectionDay} onChange={(e) => setCollectionDay(e.target.value)}>
-                  <option value="">Select day</option>
-                  {days.map((d) => <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>)}
-                </select>
-              </div>
-            )}
-
-            <div>
-              <label className="label">Start Date *</label>
-              <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
-            </div>
-
-            <div>
-              <label className="label">Number of Installments *</label>
-              <input
-                type="number"
-                className="input"
-                value={numInstallmentsStr}
-                onChange={(e) => handleNumInstallmentsChange(e.target.value)}
-                placeholder="e.g. 22"
-                min={1}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Installment Amount (₹) *</label>
-              <input
-                type="number"
-                className="input"
-                value={installmentStr}
-                onChange={(e) => handleInstallmentChange(e.target.value)}
-                placeholder="e.g. 500"
-                min={1}
-                required
-              />
-              {lastEdited === 'interest' && installmentAmount > 0 && (
-                <p className="text-[10px] text-primary-500 mt-1">Auto-calculated from total ÷ installments</p>
-              )}
-            </div>
-
-            {/* Schedule Preview */}
-            {installmentAmount > 0 && numInstallments > 0 && totalRepayable > 0 && (
-              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Installment x Count</span>
-                  <span className="text-gray-900">₹{installmentAmount.toLocaleString('en-IN')} x {numInstallments}</span>
-                </div>
-                {lastInstallment !== installmentAmount && lastInstallment > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Last Installment</span>
-                    <span className="text-gray-900">₹{lastInstallment.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-semibold">
-                  <span className="text-gray-700">Schedule Total</span>
-                  <span className={installmentAmount * (numInstallments - 1) + lastInstallment === totalRepayable ? 'text-success-600' : 'text-danger-600'}>
-                    ₹{(installmentAmount * (numInstallments - 1) + lastInstallment).toLocaleString('en-IN')}
-                  </span>
-                </div>
-                {computedDueDate && (
-                  <div className="flex justify-between pt-1 border-t border-gray-200">
-                    <span className="text-gray-500">Due Date</span>
-                    <span className="font-semibold text-primary-700">{computedDueDate}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Agent Assignment */}
-          <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Agent</h2>
-
-            <div>
-              <label className="label">Who is giving this loan?</label>
+              <label className="label">Agent *</label>
               {agents.length > 0 ? (
                 <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
                   <option value="">Select agent</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
                 </select>
               ) : (
-                <p className="text-sm text-gray-400 py-2">No agents assigned to this business. Add agents from the Team page.</p>
+                <p className="text-sm text-gray-400 py-2">No agents assigned. Add agents from the Team page.</p>
               )}
+              <p className="text-[10px] text-gray-400 mt-1">Who is giving the loan</p>
             </div>
+
+            {/* Loan Creation Date */}
+            <div>
+              <label className="label">Loan Creation Date *</label>
+              <input
+                type="date"
+                className="input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                min={oneMonthAgoISO()}
+                max={todayISO()}
+                required
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Today auto-selected. Can backdate up to 1 month.</p>
+            </div>
+
+            {/* Interest Model */}
+            <div>
+              <label className="label">Interest Model *</label>
+              <select
+                className="input"
+                value={interestModel}
+                onChange={(e) => handleInterestModelChange(e.target.value)}
+              >
+                <option value="ADDON">Add on (interest added to total)</option>
+                <option value="UPFRONT">Upfront (interest deducted from the given amount)</option>
+              </select>
+            </div>
+
+            {/* Principal Amount */}
+            <div>
+              <label className="label">Principal Amount (₹) *</label>
+              <input
+                type="number"
+                className="input text-lg font-semibold"
+                value={principalStr}
+                onChange={(e) => handlePrincipalChange(e.target.value)}
+                placeholder="0"
+                min={100}
+                required
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                {interestModel === 'UPFRONT' ? 'Amount given to customer' : 'Minimum ₹100'}
+              </p>
+            </div>
+
+            {/* Interest Amount — only for UPFRONT */}
+            {interestModel === 'UPFRONT' && (
+              <div>
+                <label className="label">Interest Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={upfrontInterestStr}
+                  onChange={(e) => setUpfrontInterestStr(e.target.value)}
+                  placeholder="0"
+                  min={0}
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Interest deducted upfront from the loan</p>
+              </div>
+            )}
+
+            {/* WEEKLY: Installment Amount input / DAILY+MONTHLY: Number of Installments input */}
+            {isWeekly ? (
+              <div>
+                <label className="label">Installment Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={weeklyInstallmentStr}
+                  onChange={(e) => setWeeklyInstallmentStr(e.target.value)}
+                  placeholder="0"
+                  min={1}
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Amount collected each week</p>
+              </div>
+            ) : (
+              <div>
+                <label className="label">Number of Installments *</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={numInstallmentsStr}
+                  onChange={(e) => setNumInstallmentsStr(e.target.value)}
+                  placeholder="0"
+                  min={1}
+                  required
+                />
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {(isMonthly ? [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [90, 100, 120, 150]).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setNumInstallmentsStr(String(n))}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Total Repayment Amount — only for ADDON */}
+            {interestModel === 'ADDON' && (
+              <div>
+                <label className="label">Total Repayment Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="input text-lg font-semibold"
+                  value={totalRepaymentStr}
+                  onChange={(e) => handleTotalRepaymentChange(e.target.value)}
+                  placeholder="0"
+                  min={1}
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {userEditedTotal ? 'Manually set' : `Auto-calculated: Principal × ${isMonthly ? '1.40' : '1.20'} (editable)`}
+                </p>
+              </div>
+            )}
+
+            {/* Auto-Calculated Summary */}
+            {principal >= 100 && totalRepayment > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-0">
+                <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide mb-2">Auto-Calculated</p>
+                {interestModel === 'ADDON' && (
+                  <div className="flex justify-between py-1.5 border-b border-green-200">
+                    <span className="text-sm text-green-700">Interest Amount</span>
+                    <span className="text-sm font-bold text-green-800">₹{interest.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                {interestModel === 'UPFRONT' && (
+                  <div className="flex justify-between py-1.5 border-b border-green-200">
+                    <span className="text-sm text-green-700">Total Repayment</span>
+                    <span className="text-sm font-bold text-green-800">₹{totalRepayment.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                {isWeekly ? (
+                  <div className="flex justify-between py-1.5 border-b border-green-200">
+                    <span className="text-sm text-green-700">Number of Weeks</span>
+                    <span className="text-sm font-bold text-green-800">
+                      {numInstallments > 0 ? numInstallments : '—'}
+                      {numInstallments > 0 && lastInstallment !== installmentAmount && lastInstallment > 0 && (
+                        <span className="text-[10px] font-normal text-green-600 ml-1">(last: ₹{lastInstallment.toLocaleString('en-IN')})</span>
+                      )}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between py-1.5 border-b border-green-200">
+                    <span className="text-sm text-green-700">Installment Amount</span>
+                    <span className="text-sm font-bold text-green-800">
+                      {numInstallments > 0 ? `₹${installmentAmount.toLocaleString('en-IN')}` : '₹0'}
+                      {numInstallments > 0 && lastInstallment !== installmentAmount && lastInstallment > 0 && (
+                        <span className="text-[10px] font-normal text-green-600 ml-1">(last: ₹{lastInstallment.toLocaleString('en-IN')})</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between py-1.5">
+                  <span className="text-sm text-green-700">Due Date</span>
+                  <span className="text-sm font-bold text-green-800">{computedDueDate || '—'}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Notes & Attachments */}
@@ -920,7 +960,6 @@ export default function NewLoanPage() {
               <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional loan notes" />
             </div>
 
-            {/* Document Attachments */}
             <div>
               <label className="label">Attachments (ID proof, agreement, photos)</label>
               <input

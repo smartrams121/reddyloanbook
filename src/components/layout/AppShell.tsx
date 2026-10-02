@@ -244,20 +244,9 @@ export default function AppShell({ user, children }: AppShellProps) {
             </div>
 
             <div className="py-2">
-              {/* Owner-level links */}
-              {user.role === Role.OWNER && (
-                <NavSection title="Owner">
-                  <NavLink href="/businesses/new" icon="➕" label="Register New Business" active={pathname === '/businesses/new'} />
-                  {activeBusinessId && (
-                    <NavLink href={`/b/${activeBusinessId}/users`} icon="👤" label="Manage Employees" active={pathname.startsWith(`/b/${activeBusinessId}/users`)} />
-                  )}
-                  <NavLink href="/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
-                </NavSection>
-              )}
-
               {/* Business-scoped links — only when a business is selected */}
               {activeBusinessId && (
-                <NavSection title={businesses.find(b => b.id === activeBusinessId)?.name || 'Business'}>
+                <NavSection title="Business Objects">
                   <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={isOwnerOrAdmin ? 'Add Locations' : 'Locations'} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
                   {isOwnerOrAdmin && (
                     <>
@@ -267,11 +256,22 @@ export default function AppShell({ user, children }: AppShellProps) {
                   )}
                   <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label="New Payments" active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
                   {isOwnerOrAdmin && (
+                    <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label="Reports" active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
+                  )}
+                </NavSection>
+              )}
+
+              {/* Owner-level links */}
+              {user.role === Role.OWNER && (
+                <NavSection title="Owner Objects">
+                  <NavLink href="/businesses/new" icon="➕" label="Register New Business" active={pathname === '/businesses/new'} />
+                  {activeBusinessId && (
                     <>
-                      <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label="Reports" active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
+                      <NavLink href={`/b/${activeBusinessId}/users`} icon="👤" label="Manage Employees" active={pathname.startsWith(`/b/${activeBusinessId}/users`)} />
                       <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label="Business Settings" active={pathname === `/b/${activeBusinessId}/settings`} />
                     </>
                   )}
+                  <NavLink href="/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
                 </NavSection>
               )}
 

@@ -14,6 +14,7 @@ interface LoanData {
   interestAmount: number
   totalRepayable: number
   amountGiven: number
+  interestModel: string
   collectionType: string
   collectionDay: string | null
   installmentAmount: number
@@ -25,7 +26,7 @@ interface LoanData {
   status: string
   notes: string | null
 }
-interface BusinessSettings { interestModel: string; collectOnSundays: boolean }
+interface BusinessSettings { collectionDays: string }
 
 export default function EditLoanForm() {
   const params = useParams()
@@ -40,6 +41,7 @@ export default function EditLoanForm() {
 
   const [loanAmountStr, setLoanAmountStr] = useState('')
   const [interestAmountStr, setInterestAmountStr] = useState('')
+  const [interestModel, setInterestModel] = useState('ADDON')
   const [collectionType, setCollectionType] = useState('DAILY')
   const [collectionDay, setCollectionDay] = useState('')
   const [installmentStr, setInstallmentStr] = useState('')
@@ -64,6 +66,7 @@ export default function EditLoanForm() {
       // Populate form — amounts stored in paise, show in rupees
       setLoanAmountStr(String(loanData.loanAmount / 100))
       setInterestAmountStr(String(loanData.interestAmount / 100))
+      setInterestModel(loanData.interestModel || 'ADDON')
       setCollectionType(loanData.collectionType)
       setCollectionDay(loanData.collectionDay || '')
       setInstallmentStr(String(loanData.installmentAmount / 100))
@@ -81,9 +84,7 @@ export default function EditLoanForm() {
   const numInstallments = parseInt(numInstallmentsStr) || 0
 
   const totalRepayable = loanAmount + interestAmount
-  const amountGiven = settings?.interestModel === 'UPFRONT'
-    ? loanAmount - interestAmount
-    : loanAmount
+  const amountGiven = loanAmount
   const lastInstallment = numInstallments > 0
     ? totalRepayable - installmentAmount * (numInstallments - 1)
     : 0
@@ -114,6 +115,7 @@ export default function EditLoanForm() {
       const body: Record<string, unknown> = {
         loanAmount: loanAmount * 100,
         interestAmount: interestAmount * 100,
+        interestModel,
         collectionType,
         installmentAmount: installmentAmount * 100,
         numberOfInstallments: numInstallments,
@@ -190,6 +192,18 @@ export default function EditLoanForm() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Amount</h2>
 
           <div>
+            <label className="label">Interest Model *</label>
+            <select
+              className="input"
+              value={interestModel}
+              onChange={(e) => setInterestModel(e.target.value)}
+            >
+              <option value="ADDON">Add on (interest added to total)</option>
+              <option value="UPFRONT">Upfront (interest deducted from the given amount)</option>
+            </select>
+          </div>
+
+          <div>
             <label className="label">Principal Amount (₹) *</label>
             <input
               type="number"
@@ -211,11 +225,6 @@ export default function EditLoanForm() {
               min={0}
               required
             />
-            {settings && (
-              <p className="text-[10px] text-gray-400 mt-1">
-                Interest model: {settings.interestModel === 'UPFRONT' ? 'Upfront (deducted from given amount)' : 'Add-on (added to repayable)'}
-              </p>
-            )}
           </div>
 
           {loanAmount > 0 && (

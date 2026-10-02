@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { z } from 'zod'
-import { todayIST, parseISODate, addDays, addWeeks, addMonths, isSunday, formatDateISO } from '@/lib/date'
+import { todayIST, parseISODate, addDays, addWeeks, addMonths, formatDateISO } from '@/lib/date'
 
 interface Props {
   params: Promise<{ businessId: string; loanId: string }>
@@ -15,6 +15,7 @@ const updateLoanSchema = z.object({
   // Editable fields
   loanAmount: z.number().int().positive().optional(),
   interestAmount: z.number().int().min(0).optional(),
+  interestModel: z.enum(['ADDON', 'UPFRONT']).optional(),
   collectionType: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional(),
   collectionDay: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']).optional().nullable(),
   installmentAmount: z.number().int().positive().optional(),
@@ -93,7 +94,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
   // Amount / schedule fields — recalculate if any changed
   const hasAmountChanges = d.loanAmount !== undefined || d.interestAmount !== undefined ||
-    d.installmentAmount !== undefined || d.numberOfInstallments !== undefined ||
+    d.interestModel !== undefined || d.installmentAmount !== undefined || d.numberOfInstallments !== undefined ||
     d.collectionType !== undefined || d.collectionDay !== undefined || d.startDate !== undefined
 
   if (hasAmountChanges) {
@@ -102,6 +103,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
     const loanAmount = d.loanAmount ?? loan.loanAmount
     const interestAmount = d.interestAmount ?? loan.interestAmount
+    const interestModel = d.interestModel ?? (loan as Record<string, unknown>).interestModel ?? 'ADDON'
     const installmentAmount = d.installmentAmount ?? loan.installmentAmount
     const numberOfInstallments = d.numberOfInstallments ?? loan.numberOfInstallments
     const collectionType = d.collectionType ?? loan.collectionType
@@ -109,9 +111,7 @@ export async function PATCH(request: Request, { params }: Props) {
     const startDate = d.startDate ?? loan.startDate
 
     const totalRepayable = loanAmount + interestAmount
-    const amountGiven = business.interestModel === 'UPFRONT'
-      ? loanAmount - interestAmount
-      : loanAmount
+    const amountGiven = loanAmount
     const lastInstallmentAmount = totalRepayable - installmentAmount * (numberOfInstallments - 1)
 
     if (lastInstallmentAmount <= 0) {
@@ -119,14 +119,18 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     // Regenerate schedule
+    const DAY_CODE_TO_JS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 }
+    const activeDays = new Set((business.collectionDays || 'MON,TUE,WED,THU,FRI,SAT,SUN').split(',').map(d => DAY_CODE_TO_JS[d.trim()]).filter(d => d !== undefined))
+
     const schedule: { installmentNumber: number; dueDate: string; amount: number }[] = []
     let currentDate = parseISODate(startDate)
+    if (collectionType === 'DAILY') {
+      currentDate = addDays(currentDate, 1)
+    }
 
     for (let i = 1; i <= numberOfInstallments; i++) {
-      if (!business.collectOnSundays) {
-        while (isSunday(currentDate)) {
-          currentDate = addDays(currentDate, 1)
-        }
+      while (!activeDays.has(currentDate.getDay())) {
+        currentDate = addDays(currentDate, 1)
       }
       const amt = i === numberOfInstallments ? lastInstallmentAmount : installmentAmount
       schedule.push({ installmentNumber: i, dueDate: formatDateISO(currentDate), amount: amt })
@@ -142,6 +146,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
     data.loanAmount = loanAmount
     data.interestAmount = interestAmount
+    data.interestModel = interestModel
     data.totalRepayable = totalRepayable
     data.amountGiven = amountGiven
     data.installmentAmount = installmentAmount

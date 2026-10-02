@@ -19,8 +19,9 @@ export default function NewBusinessPage() {
   const [receiptPrefix, setReceiptPrefix] = useState('')
   const [collectionType, setCollectionType] = useState('DAILY')
   const [defaultCollectionDay, setDefaultCollectionDay] = useState('')
-  const [interestModel, setInterestModel] = useState('ADDON')
-  const [collectOnSundays, setCollectOnSundays] = useState(false)
+  const ALL_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const
+  const DAY_LABELS: Record<string, string> = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' }
+  const [collectionDays, setCollectionDays] = useState<string[]>([...ALL_DAYS])
 
   const [villageInputs, setVillageInputs] = useState([''])
   const [agents, setAgents] = useState<AgentInfo[]>([])
@@ -81,8 +82,7 @@ export default function NewBusinessPage() {
         name,
         city,
         collectionType,
-        interestModel,
-        collectOnSundays,
+        collectionDays: collectionDays.join(','),
         villages,
       }
       if (address) body.address = address
@@ -197,30 +197,32 @@ export default function NewBusinessPage() {
             </div>
           )}
 
-          <div>
-            <label className="label">Interest Model</label>
-            <div className="grid grid-cols-2 gap-2">
-              {['ADDON', 'UPFRONT'].map((model) => (
-                <button
-                  key={model}
-                  type="button"
-                  onClick={() => setInterestModel(model)}
-                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                    interestModel === model
-                      ? 'bg-primary-600 text-white border-primary-600'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {model === 'ADDON' ? 'Add-on' : 'Upfront'}
-                </button>
-              ))}
+          {collectionType === 'DAILY' && (
+            <div>
+              <label className="label">Collection Days</label>
+              <div className="flex flex-wrap gap-2">
+                {ALL_DAYS.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      setCollectionDays(prev =>
+                        prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                      )
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      collectionDays.includes(day)
+                        ? 'bg-primary-600 text-white border-primary-600'
+                        : 'bg-white text-gray-500 border-gray-200'
+                    }`}
+                  >
+                    {DAY_LABELS[day]}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Uncheck days when no collection happens</p>
             </div>
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={collectOnSundays} onChange={(e) => setCollectOnSundays(e.target.checked)} className="rounded border-gray-300 text-primary-600" />
-            <span className="text-sm text-gray-700">Collect on Sundays</span>
-          </label>
+          )}
         </div>
 
         {/* Villages */}

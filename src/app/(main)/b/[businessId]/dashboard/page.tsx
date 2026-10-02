@@ -374,30 +374,6 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         </div>
       </div>
 
-      {/* Village Summary */}
-      <div className="card p-4 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Locations</h2>
-          <Link href={`/b/${businessId}/villages`} className="text-sm text-primary-600">View All</Link>
-        </div>
-        <div className="space-y-2">
-          {villageStats.map((v) => (
-            <Link
-              key={v.id}
-              href={`/b/${businessId}/villages/${v.id}`}
-              className="flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <span className="text-sm font-medium text-gray-900">{v.name}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">{v.active}</span>
-                <span className="text-xs text-success-600">{v.paid} paid</span>
-                <span className="text-xs text-danger-600">{v.notPaid} unpaid</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link href={`/b/${businessId}/posting`} className="btn-primary text-center">

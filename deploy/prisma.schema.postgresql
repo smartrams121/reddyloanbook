@@ -94,7 +94,7 @@ model Business {
   collectionType       String  @default("DAILY")
   defaultCollectionDay String?
   interestModel        String  @default("ADDON")
-  collectOnSundays     Boolean @default(false)
+  collectionDays       String  @default("MON,TUE,WED,THU,FRI,SAT,SUN")
 
   gracePeriodDaily     Int     @default(30)
   gracePeriodWeekly    Int     @default(4)
@@ -223,6 +223,7 @@ model Loan {
   interestAmount        Int
   totalRepayable        Int
   amountGiven           Int
+  interestModel         String  @default("ADDON")
 
   collectionType        String
   collectionDay         String?

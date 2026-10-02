@@ -32,20 +32,22 @@ export async function GET(request: Request, { params }: Props) {
 
   const { searchParams } = new URL(request.url)
   const loanId = searchParams.get('loanId')
+  const customerId = searchParams.get('customerId')
   const date = searchParams.get('date')
 
   const where: Record<string, unknown> = { businessId, isDeleted: false }
   if (loanId) where.loanId = loanId
+  if (customerId) where.loan = { customerId }
   if (date) where.paymentDate = date
 
   const payments = await prisma.payment.findMany({
     where,
     include: {
-      loan: { select: { loanNumber: true, customer: { select: { fullName: true, customerId: true } } } },
+      loan: { select: { loanNumber: true, customer: { select: { id: true, fullName: true, customerId: true } } } },
       collector: { select: { id: true, fullName: true } },
     },
-    orderBy: { createdAt: 'desc' },
-    take: 100,
+    orderBy: [{ paymentDate: 'desc' }, { createdAt: 'desc' }],
+    take: 200,
   })
 
   return NextResponse.json(payments)

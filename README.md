@@ -93,10 +93,55 @@ tests/
 
 Platform Admin → Owner → Business → Village → Customer → Loan → Payments
 
-## Production Deployment (Phase 2)
+## Features
 
-Deployment guide for Oracle Cloud Always Free ARM VM will be added when ready.
-Includes: Docker Compose (Next.js + PostgreSQL + Caddy), automated backups, and HTTPS.
+### Loan Management
+- **Collection Types** — Daily, Weekly, and Monthly loan collection schedules
+- **Interest Models** — ADDON (interest added on top) and UPFRONT (interest deducted before disbursement)
+- **Monthly Quick-Select** — Quick-select buttons [3–12 months] with ×1.40 multiplier for monthly loans
+- **Weekly Installments** — Enter installment amount; weeks auto-calculated
+- **Auto-Generated Schedules** — Payment schedules skip Sundays/holidays for daily, respect weekly/monthly patterns
+- **Loan Renewals** — Link new loans to existing active loans with balance carry-forward
+- **View Loan Details** — Full loan detail modal with all fields and schedule table
+- **Payment History** — View all payments for a loan with summary (repayable/paid/outstanding)
+- **Share PDF & WhatsApp** — Download loan PDF or share summary via WhatsApp
+- **Edit & Delete** — Inline action bar for editing or deleting loans
+
+### Customer Management
+- **Customer Profiles** — Full name, phone, Aadhaar (hashed), location, guarantor, photo
+- **View Customer Details** — Detail modal with financial summary (total principal, repayable, paid, outstanding)
+- **Customer Ratings** — Auto-calculated 1–4 scale based on repayment history
+- **Share PDF & WhatsApp** — Download customer PDF or share summary via WhatsApp
+- **Edit & Delete** — Inline action bar for editing or deleting customers
+
+### Payments
+- **Individual Posting** — Search a customer and record a single payment
+- **Bulk Posting** — Collect payments for all customers in a location at once
+- **View Payments** — Search by customer name/phone/ID and view full payment history with totals
+
+### Reports & Exports
+- **Six Report Types** — Customers, Loans, Villages, Employees, Payments, Collection Payslips
+- **PDF Generation** — Server-side PDF generation using pdfkit
+- **Excel Export** — Styled XLSX exports with formatted headers
+
+### Security & Access Control
+- **Role-Based Access** — Platform Admin, Owner, Business Admin, Agent (36 permissions)
+- **Two-Factor Authentication** — TOTP-based 2FA for admins and owners
+- **Aadhaar Protection** — SHA-256 hashed, only last 4 digits stored
+- **Rate Limiting** — Login lockout, registration throttling
+- **Data Isolation** — Strict per-owner data separation at the query level
+
+### Progressive Web App (PWA)
+- **Installable** — Add to home screen on Android and iOS
+- **Offline Fallback** — Branded offline page when network is unavailable
+- **App Shell Caching** — Faster repeat visits via service worker cache
+
+## Production Deployment
+
+Deployed on Oracle Cloud Always Free ARM VM (VM.Standard.A1.Flex):
+- Docker Compose: Next.js app + PostgreSQL + DuckDNS dynamic DNS
+- Automated database backups
+- Zero-downtime deployment via safe-deploy script
 
 ---
 

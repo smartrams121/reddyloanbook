@@ -141,7 +141,6 @@ export default async function CustomersPage({ params, searchParams }: Props) {
           village: c.village,
           _count: c._count,
         }))}
-        villages={villages.map(v => ({ id: v.id, name: v.name }))}
         businessId={businessId}
         isAdminOrOwner={isAdminOrOwner}
       />

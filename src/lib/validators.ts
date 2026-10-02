@@ -56,7 +56,7 @@ export const createBusinessSchema = z.object({
     ])
     .optional(),
   interestModel: z.enum(['ADDON', 'UPFRONT']).default('ADDON'),
-  collectOnSundays: z.boolean().default(false),
+  collectionDays: z.string().default("MON,TUE,WED,THU,FRI,SAT,SUN"),
   villages: z.array(z.string().min(1)).min(1, 'At least one location is required'),
 })
 
@@ -79,6 +79,7 @@ export const createLoanSchema = z.object({
   customerId: z.string().min(1),
   loanAmount: z.number().int().positive('Loan amount must be positive'),
   interestAmount: z.number().int().min(0, 'Interest cannot be negative'),
+  interestModel: z.enum(['ADDON', 'UPFRONT']).default('ADDON'),
   collectionType: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']),
   collectionDay: z
     .enum([

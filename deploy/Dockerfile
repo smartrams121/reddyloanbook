@@ -17,7 +17,11 @@ COPY . .
 # Switch to PostgreSQL schema for production build
 COPY deploy/prisma.schema.postgresql prisma/schema.prisma
 RUN npx prisma generate
+
+# Limit Node.js heap to 512MB during build (prevents OOM on 1GB servers)
+ENV NODE_OPTIONS="--max-old-space-size=512"
 RUN npm run build
+ENV NODE_OPTIONS=""
 
 # ── Production ────────────────────────────────────────────────────────────────
 FROM base AS runner

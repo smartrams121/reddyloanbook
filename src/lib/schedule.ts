@@ -3,7 +3,7 @@ import {
   DayOfWeek,
   DAY_OF_WEEK_JS_MAP,
 } from './constants'
-import { parseISODate, formatDateISO, addDays, addMonths, isSunday } from './date'
+import { parseISODate, formatDateISO, addDays, addMonths } from './date'
 
 export interface ScheduleEntry {
   installmentNumber: number
@@ -18,7 +18,7 @@ export interface ScheduleInput {
   lastInstallmentAmount: number // paise
   collectionType: CollectionType
   collectionDay?: DayOfWeek // required for WEEKLY
-  collectOnSundays: boolean
+  collectionDays: string    // comma-separated: "MON,TUE,WED,THU,FRI,SAT,SUN"
   holidays: string[]        // YYYY-MM-DD[]
 }
 
@@ -30,24 +30,27 @@ export function generateSchedule(input: ScheduleInput): ScheduleEntry[] {
     lastInstallmentAmount,
     collectionType,
     collectionDay,
-    collectOnSundays,
+    collectionDays,
     holidays,
   } = input
 
   const holidaySet = new Set(holidays)
   const entries: ScheduleEntry[] = []
 
+  const DAY_CODE_TO_JS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 }
+  const activeDays = new Set(collectionDays.split(',').map(d => DAY_CODE_TO_JS[d.trim()]).filter(d => d !== undefined))
+
   if (collectionType === CollectionType.DAILY) {
-    let currentDate = parseISODate(startDate)
+    let currentDate = addDays(parseISODate(startDate), 1)
     let installmentNum = 0
 
     while (installmentNum < numberOfInstallments) {
       const dateStr = formatDateISO(currentDate)
 
       const isHoliday = holidaySet.has(dateStr)
-      const isSun = isSunday(currentDate) && !collectOnSundays
+      const isSkipDay = !activeDays.has(currentDate.getDay())
 
-      if (!isHoliday && !isSun) {
+      if (!isHoliday && !isSkipDay) {
         installmentNum++
         const amount =
           installmentNum === numberOfInstallments

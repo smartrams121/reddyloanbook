@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { createLoanSchema } from '@/lib/validators'
-import { parseISODate, addDays, addWeeks, addMonths, isSunday, formatDateISO } from '@/lib/date'
+import { parseISODate, addDays, addWeeks, addMonths, formatDateISO } from '@/lib/date'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -67,7 +67,7 @@ export async function POST(request: Request, { params }: Props) {
   }
 
   const {
-    customerId, loanAmount, interestAmount, collectionType, collectionDay,
+    customerId, loanAmount, interestAmount, interestModel, collectionType, collectionDay,
     installmentAmount, numberOfInstallments, startDate, agentId, notes, renewFromLoanId,
     documents,
   } = parsed.data
@@ -81,7 +81,7 @@ export async function POST(request: Request, { params }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { id: true, interestModel: true, collectOnSundays: true, loanSeq: true, receiptPrefix: true },
+    select: { id: true, collectionDays: true, loanSeq: true, receiptPrefix: true },
   })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
@@ -95,21 +95,23 @@ export async function POST(request: Request, { params }: Props) {
   }
 
   const totalRepayable = loanAmount + interestAmount
-  const amountGiven = business.interestModel === 'UPFRONT'
-    ? loanAmount - interestAmount
-    : loanAmount
+  const amountGiven = loanAmount
   const lastInstallmentAmount = totalRepayable - installmentAmount * (numberOfInstallments - 1)
 
   // Generate schedule
+  const DAY_CODE_TO_JS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 }
+  const activeDays = new Set((business.collectionDays || 'MON,TUE,WED,THU,FRI,SAT,SUN').split(',').map(d => DAY_CODE_TO_JS[d.trim()]).filter(d => d !== undefined))
+
   const schedule: { installmentNumber: number; dueDate: string; amount: number }[] = []
   let currentDate = parseISODate(startDate)
+  if (collectionType === 'DAILY') {
+    currentDate = addDays(currentDate, 1)
+  }
 
   for (let i = 1; i <= numberOfInstallments; i++) {
-    // Skip Sundays unless business allows
-    if (!business.collectOnSundays) {
-      while (isSunday(currentDate)) {
-        currentDate = addDays(currentDate, 1)
-      }
+    // Skip days not in collectionDays
+    while (!activeDays.has(currentDate.getDay())) {
+      currentDate = addDays(currentDate, 1)
     }
 
     const amt = i === numberOfInstallments ? lastInstallmentAmount : installmentAmount
@@ -161,6 +163,7 @@ export async function POST(request: Request, { params }: Props) {
           interestAmount,
           totalRepayable,
           amountGiven,
+          interestModel,
           collectionType,
           collectionDay: collectionDay || null,
           installmentAmount,

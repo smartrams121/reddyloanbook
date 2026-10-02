@@ -13,8 +13,7 @@ interface BusinessSettings {
   receiptPrefix: string | null
   collectionType: string
   defaultCollectionDay: string | null
-  interestModel: string
-  collectOnSundays: boolean
+  collectionDays: string
   gracePeriodDaily: number
   gracePeriodWeekly: number
   gracePeriodMonthly: number
@@ -67,10 +66,8 @@ export default function SettingsPage() {
           address: settings.address || undefined,
           phone: settings.phone || undefined,
           receiptPrefix: settings.receiptPrefix || undefined,
-          collectionType: settings.collectionType,
           defaultCollectionDay: settings.defaultCollectionDay || undefined,
-          interestModel: settings.interestModel,
-          collectOnSundays: settings.collectOnSundays,
+          collectionDays: settings.collectionDays,
           gracePeriodDaily: settings.gracePeriodDaily,
           gracePeriodWeekly: settings.gracePeriodWeekly,
           gracePeriodMonthly: settings.gracePeriodMonthly,
@@ -222,11 +219,8 @@ export default function SettingsPage() {
 
           <div>
             <label className="label">Collection Type</label>
-            <select className="input" value={settings.collectionType} onChange={(e) => update('collectionType', e.target.value)}>
-              <option value="DAILY">Daily</option>
-              <option value="WEEKLY">Weekly</option>
-              <option value="MONTHLY">Monthly</option>
-            </select>
+            <input className="input bg-gray-100 text-gray-500 cursor-not-allowed" value={settings.collectionType === 'DAILY' ? 'Daily' : settings.collectionType === 'WEEKLY' ? 'Weekly' : 'Monthly'} disabled readOnly />
+            <p className="text-[10px] text-gray-400 mt-1">Set at business creation, cannot be changed</p>
           </div>
 
           {settings.collectionType === 'WEEKLY' && (
@@ -241,23 +235,37 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div>
-            <label className="label">Interest Model</label>
-            <select className="input" value={settings.interestModel} onChange={(e) => update('interestModel', e.target.value)}>
-              <option value="ADDON">Add-on (interest added to total)</option>
-              <option value="UPFRONT">Upfront (interest deducted from given amount)</option>
-            </select>
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.collectOnSundays}
-              onChange={(e) => update('collectOnSundays', e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-primary-600"
-            />
-            <span className="text-sm text-gray-700">Collect on Sundays</span>
-          </label>
+          {settings.collectionType === 'DAILY' && (
+            <div>
+              <label className="label">Collection Days</label>
+              <div className="flex flex-wrap gap-2">
+                {(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const).map((day) => {
+                  const labels: Record<string, string> = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' }
+                  const days = (settings.collectionDays || 'MON,TUE,WED,THU,FRI,SAT,SUN').split(',')
+                  const active = days.includes(day)
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        const current = (settings.collectionDays || 'MON,TUE,WED,THU,FRI,SAT,SUN').split(',')
+                        const updated = active ? current.filter(d => d !== day) : [...current, day]
+                        update('collectionDays', updated.join(','))
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        active
+                          ? 'bg-primary-600 text-white border-primary-600'
+                          : 'bg-white text-gray-500 border-gray-200'
+                      }`}
+                    >
+                      {labels[day]}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Uncheck days when no collection happens</p>
+            </div>
+          )}
         </div>
 
         {/* Grace Periods */}
