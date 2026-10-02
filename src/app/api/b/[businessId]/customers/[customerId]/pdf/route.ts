@@ -144,7 +144,7 @@ export async function GET(request: Request, { params }: Props) {
   doc.end()
   const buffer = await done
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${customer.customerId}-details.pdf"`,
