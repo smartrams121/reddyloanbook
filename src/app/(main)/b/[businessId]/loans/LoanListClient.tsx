@@ -27,6 +27,7 @@ interface LoanData {
 interface Props {
   loans: LoanData[]
   businessId: string
+  isAdminOrOwner?: boolean
 }
 
 function statusBadgeClass(status: string): string {
@@ -39,7 +40,7 @@ function statusBadgeClass(status: string): string {
   }
 }
 
-export default function LoanListClient({ loans, businessId }: Props) {
+export default function LoanListClient({ loans, businessId, isAdminOrOwner = true }: Props) {
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -94,7 +95,7 @@ export default function LoanListClient({ loans, businessId }: Props) {
   return (
     <div className="space-y-2 relative">
       {/* Select All */}
-      {loans.length > 0 && (
+      {isAdminOrOwner && loans.length > 0 && (
         <div className="flex items-center gap-2 mb-1">
           <input
             type="checkbox"
@@ -124,12 +125,14 @@ export default function LoanListClient({ loans, businessId }: Props) {
             key={loan.id}
             className={`card p-3 flex gap-3 items-start transition-colors ${health.border} ${isSelected ? 'ring-2 ring-primary-300 bg-primary-50/30' : ''}`}
           >
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => toggleOne(loan.id)}
-              className="w-4 h-4 mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
-            />
+            {isAdminOrOwner && (
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleOne(loan.id)}
+                className="w-4 h-4 mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
+              />
+            )}
             <Link
               href={`/b/${businessId}/customers/${loan.customer.id}`}
               className="flex-1 min-w-0 block hover:opacity-80 transition-opacity"
@@ -182,9 +185,11 @@ export default function LoanListClient({ loans, businessId }: Props) {
       {loans.length === 0 && (
         <div className="card p-8 text-center">
           <p className="text-gray-500 mb-4">No loans found.</p>
-          <Link href={`/b/${businessId}/loans/new`} className="btn-primary">
-            Create First Loan
-          </Link>
+          {isAdminOrOwner && (
+            <Link href={`/b/${businessId}/loans/new`} className="btn-primary">
+              Create First Loan
+            </Link>
+          )}
         </div>
       )}
 

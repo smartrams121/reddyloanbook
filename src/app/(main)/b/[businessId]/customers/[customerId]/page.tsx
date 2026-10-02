@@ -104,7 +104,8 @@ export default function CustomerDetailPage() {
   const closedLoans = customer.loans.filter(l => COMPLETED_STATUSES.includes(l.derivedStatus))
   const s = customer.summary
   const overallProgress = s.totalRepayable > 0 ? Math.round((s.totalPaid / s.totalRepayable) * 100) : 0
-  const canDownload = userRole === 'OWNER' || userRole === 'BUSINESS_ADMIN'
+  const isAdminOrOwner = userRole === 'OWNER' || userRole === 'BUSINESS_ADMIN'
+  const canDownload = isAdminOrOwner
   const displayStatus = s.customerStatus
 
   function toggleLoanSelect(loanId: string) {
@@ -156,11 +157,13 @@ export default function CustomerDetailPage() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-gray-900">{customer.fullName}</h1>
-            <Link href={`/b/${businessId}/customers/${customerId}/edit`} className="p-1 rounded hover:bg-gray-100 text-gray-400" aria-label="Edit customer">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-              </svg>
-            </Link>
+            {isAdminOrOwner && (
+              <Link href={`/b/${businessId}/customers/${customerId}/edit`} className="p-1 rounded hover:bg-gray-100 text-gray-400" aria-label="Edit customer">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                </svg>
+              </Link>
+            )}
           </div>
           <p className="text-sm text-gray-500">{customer.customerId} &middot; {customer.phone} &middot; {customer.village.name}</p>
           <div className="flex items-center gap-2 mt-1">
@@ -209,15 +212,19 @@ export default function CustomerDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900">
             Loans {activeLoans.length > 0 && <span className="text-sm font-normal text-gray-400">({activeLoans.length} active)</span>}
           </h2>
-          <Link href={`/b/${businessId}/loans/new?customerId=${customer.id}`} className="text-sm text-primary-600 font-medium">
-            + New Loan
-          </Link>
+          {isAdminOrOwner && (
+            <Link href={`/b/${businessId}/loans/new?customerId=${customer.id}`} className="text-sm text-primary-600 font-medium">
+              + New Loan
+            </Link>
+          )}
         </div>
 
         {customer.loans.length === 0 && (
           <div className="card p-8 text-center text-gray-400">
             <p>No loans yet</p>
-            <Link href={`/b/${businessId}/loans/new?customerId=${customer.id}`} className="btn-primary mt-4 inline-block">Create First Loan</Link>
+            {isAdminOrOwner && (
+              <Link href={`/b/${businessId}/loans/new?customerId=${customer.id}`} className="btn-primary mt-4 inline-block">Create First Loan</Link>
+            )}
           </div>
         )}
 

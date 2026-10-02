@@ -55,7 +55,7 @@ export async function POST(request: Request, { params }: Props) {
         passwordHash: regRequest.passwordHash,
         role: Role.OWNER,
         isActive: true,
-        mustChangePassword: true,
+        mustChangePassword: false,
       },
     })
 

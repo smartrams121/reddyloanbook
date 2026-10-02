@@ -185,6 +185,8 @@ export default function AppShell({ user, children }: AppShellProps) {
             >
               Profile & Settings
             </Link>
+            <div className="border-t border-gray-100 my-1" />
+            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Help</p>
             <Link
               href="/contact-us"
               onClick={() => setMenuOpen(false)}
@@ -199,6 +201,7 @@ export default function AppShell({ user, children }: AppShellProps) {
             >
               FAQ
             </Link>
+            <div className="border-t border-gray-100 my-1" />
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-gray-50"
@@ -213,7 +216,7 @@ export default function AppShell({ user, children }: AppShellProps) {
       {navOpen && (
         <>
           <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setNavOpen(false)} />
-          <nav className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl overflow-y-auto">
+          <nav className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl overflow-y-auto flex flex-col">
             <div className="flex items-center justify-between px-4 h-14 border-b border-gray-200">
               <span className="font-semibold text-gray-900">All Features</span>
               <button onClick={() => setNavOpen(false)} className="p-1 rounded hover:bg-gray-100">
@@ -237,19 +240,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-2">
-                <Link href="/profile" onClick={() => setNavOpen(false)} className="text-xs text-primary-600 font-medium hover:underline">My Profile</Link>
-                <span className="text-gray-300">|</span>
-                <Link href="/contact-us" onClick={() => setNavOpen(false)} className="text-xs text-gray-500 font-medium hover:underline">Contact Us</Link>
-                <span className="text-gray-300">|</span>
-                <Link href="/faq" onClick={() => setNavOpen(false)} className="text-xs text-gray-500 font-medium hover:underline">FAQ</Link>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="mt-2 text-xs text-danger-600 font-medium hover:underline"
-              >
-                Sign Out
-              </button>
+              <Link href="/profile" onClick={() => setNavOpen(false)} className="text-xs text-primary-600 font-medium hover:underline">My Profile</Link>
             </div>
 
             <div className="py-2">
@@ -302,6 +293,23 @@ export default function AppShell({ user, children }: AppShellProps) {
                   <NavLink href="/profile" icon="👤" label="My Profile" active={pathname === '/profile'} />
                 </NavSection>
               )}
+
+              {/* Help section */}
+              <NavSection title="Help">
+                <NavLink href="/contact-us" icon="📞" label="Contact Us" active={pathname === '/contact-us'} />
+                <NavLink href="/faq" icon="❓" label="FAQ" active={pathname === '/faq'} />
+              </NavSection>
+            </div>
+
+            {/* Sign Out — pinned to bottom */}
+            <div className="border-t border-gray-200 px-4 py-3 mt-auto">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-danger-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <span className="text-base">🚪</span>
+                <span>Sign Out</span>
+              </button>
             </div>
           </nav>
         </>

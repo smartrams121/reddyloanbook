@@ -133,7 +133,6 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
   ],
   [Role.AGENT]: [
     'view_village_list',
-    'create_customer',
     'view_customer',
     'post_payment',
     'edit_own_payment_today',

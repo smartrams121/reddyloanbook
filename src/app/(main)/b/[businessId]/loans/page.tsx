@@ -7,6 +7,7 @@ import Link from 'next/link'
 
 import SearchBox from '../customers/SearchBox'
 import LoanListClient from './LoanListClient'
+import { Role } from '@/lib/constants'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -51,6 +52,8 @@ export default async function LoansPage({ params, searchParams }: Props) {
   } catch {
     redirect('/dashboard')
   }
+
+  const isOwnerOrAdmin = user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
@@ -133,9 +136,11 @@ export default async function LoansPage({ params, searchParams }: Props) {
           <h1 className="text-xl font-bold text-gray-900">Loans</h1>
           <p className="text-sm text-gray-500">{business?.name} &middot; {filteredLoans.length} loans</p>
         </div>
-        <Link href={`/b/${businessId}/loans/new`} className="btn-primary text-sm">
-          + New Loan
-        </Link>
+        {isOwnerOrAdmin && (
+          <Link href={`/b/${businessId}/loans/new`} className="btn-primary text-sm">
+            + New Loan
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -193,6 +198,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
       {/* Loan List with Bulk Actions */}
       <LoanListClient
         businessId={businessId}
+        isAdminOrOwner={isOwnerOrAdmin}
         loans={filteredLoans.map((loan) => ({
           id: loan.id,
           loanNumber: loan.loanNumber,
