@@ -16,11 +16,6 @@ interface CustomerRow {
   _count: { loans: number }
 }
 
-interface VillageOption {
-  id: string
-  name: string
-}
-
 interface CustomerDetail {
   id: string
   customerId: string
@@ -71,7 +66,6 @@ interface CustomerDetail {
 
 interface Props {
   customers: CustomerRow[]
-  villages: VillageOption[]
   businessId: string
   isAdminOrOwner: boolean
 }
