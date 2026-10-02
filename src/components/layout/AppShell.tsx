@@ -377,7 +377,7 @@ function MobileBottomNav({
 
   const navItems = [
     { href: `${base}/dashboard`, label: 'Home', icon: HomeIcon },
-    { href: `${base}/posting`, label: 'Collect', icon: CollectIcon },
+    { href: `${base}/posting/individual`, label: 'Collect', icon: CollectIcon },
     { href: `${base}/posting/bulk`, label: 'Bulk', icon: BulkIcon },
     { href: `${base}/reports`, label: 'Reports', icon: ReportsIcon },
   ]
