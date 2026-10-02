@@ -265,8 +265,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                       <NavLink href={`/b/${activeBusinessId}/loans/new`} icon="📝" label="New Loan" active={pathname === `/b/${activeBusinessId}/loans/new`} />
                     </>
                   )}
-                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label="Record Payment" active={pathname === `/b/${activeBusinessId}/posting`} />
-                  <NavLink href={`/b/${activeBusinessId}/posting/bulk`} icon="📋" label="Bulk Posting" active={pathname === `/b/${activeBusinessId}/posting/bulk`} />
+                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label="New Payments" active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
                   {isOwnerOrAdmin && (
                     <>
                       <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label="Reports" active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
