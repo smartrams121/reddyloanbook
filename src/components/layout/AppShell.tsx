@@ -258,7 +258,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               {/* Business-scoped links — only when a business is selected */}
               {activeBusinessId && (
                 <NavSection title={businesses.find(b => b.id === activeBusinessId)?.name || 'Business'}>
-                  <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label="Add Locations" active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
+                  <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={isOwnerOrAdmin ? 'Add Locations' : 'Locations'} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
                   {isOwnerOrAdmin && (
                     <>
                       <NavLink href={`/b/${activeBusinessId}/customers/new`} icon="➕" label="New Customer" active={pathname === `/b/${activeBusinessId}/customers/new`} />
