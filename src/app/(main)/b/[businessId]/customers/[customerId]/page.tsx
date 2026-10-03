@@ -121,7 +121,13 @@ export default function CustomerDetailPage() {
     const params = new URLSearchParams({ format })
     if (scope === 'all') params.set('all', 'true')
     else params.set('loanIds', Array.from(selectedLoans).join(','))
-    window.open(`/api/b/${businessId}/customers/${customerId}/report?${params}`, '_blank')
+    const a = document.createElement('a')
+    a.href = `/api/b/${businessId}/customers/${customerId}/report?${params}`
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   const postableSelected = customer ? customer.loans.filter(l => selectedLoans.has(l.id) && l.outstanding > 0) : []

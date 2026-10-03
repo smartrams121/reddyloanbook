@@ -18,6 +18,8 @@ const updateSettingsSchema = z.object({
   gracePeriodMonthly: z.number().int().min(0).max(12).optional(),
   ratingGoodMaxPct: z.number().int().min(0).max(100).optional(),
   ratingAverageMaxPct: z.number().int().min(0).max(200).optional(),
+  repaymentMultiplierDailyWeekly: z.number().min(1).max(5).optional(),
+  repaymentMultiplierMonthly: z.number().min(1).max(5).optional(),
   whatsappTemplate: z.string().max(500).optional(),
   autoLogoutMinutes: z.number().int().min(5).max(480).optional(),
 })
@@ -44,6 +46,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       receiptPrefix: true, collectionType: true, defaultCollectionDay: true,
       interestModel: true, collectionDays: true,
       gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true,
+      repaymentMultiplierDailyWeekly: true, repaymentMultiplierMonthly: true,
       ratingGoodMaxPct: true, ratingAverageMaxPct: true,
       whatsappTemplate: true, autoLogoutMinutes: true,
       isActive: true,

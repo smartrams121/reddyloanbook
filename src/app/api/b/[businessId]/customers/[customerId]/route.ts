@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
-import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import { z } from 'zod'
 import { phoneSchema } from '@/lib/validators'
 
@@ -36,6 +36,11 @@ export async function GET(request: Request, { params }: Props) {
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
+
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
+  })
 
   const customer = await prisma.customer.findFirst({
     where: { id: customerId, businessId },
@@ -82,7 +87,7 @@ export async function GET(request: Request, { params }: Props) {
 
   const loansWithTotals = customer.loans.map((l) => {
     const totalPaid = paidMap.get(l.id) || 0
-    const derived = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid)
+    const derived = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid, getGracePeriod(business!, l.collectionType), l.collectionType)
     const outstanding = derived !== 'COMPLETED' ? l.totalRepayable - totalPaid : 0
     return { ...l, totalPaid, outstanding, derivedStatus: derived }
   })

@@ -2,10 +2,11 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
-import { deriveLoanStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 
 import SearchBox from '../customers/SearchBox'
+import CsvBulkLoanUpload from './CsvBulkLoanUpload'
 import LoanListClient from './LoanListClient'
 import { Role } from '@/lib/constants'
 
@@ -39,7 +40,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { name: true },
+    select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
   })
 
   const where: Record<string, unknown> = { businessId }
@@ -77,7 +78,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
 
   const loansWithDerived = loans.map((loan) => {
     const paid = paidMap.get(loan.id) || 0
-    const derivedStatus = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, paid)
+    const derivedStatus = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, paid, getGracePeriod(business!, loan.collectionType), loan.collectionType)
     return {
       ...loan,
       derivedStatus,
@@ -86,15 +87,25 @@ export default async function LoansPage({ params, searchParams }: Props) {
   })
 
   const statusFilter = filters.status || ''
-  const filteredByStatus = statusFilter
-    ? loansWithDerived.filter((l) => l.derivedStatus === statusFilter)
+  const activeStatuses = statusFilter ? statusFilter.split(',').filter(Boolean) : []
+
+  const filteredByStatus = activeStatuses.length > 0
+    ? loansWithDerived.filter((l) => activeStatuses.includes(l.derivedStatus))
     : loansWithDerived
 
   const filteredLoans = filteredByStatus
 
   function buildUrl(statusKey: string) {
+    let newStatuses: string[]
+    if (!statusKey) {
+      newStatuses = []
+    } else if (activeStatuses.includes(statusKey)) {
+      newStatuses = activeStatuses.filter(s => s !== statusKey)
+    } else {
+      newStatuses = [...activeStatuses, statusKey]
+    }
     const parts: string[] = []
-    if (statusKey) parts.push(`status=${statusKey}`)
+    if (newStatuses.length > 0) parts.push(`status=${newStatuses.join(',')}`)
     if (searchQuery) parts.push(`search=${encodeURIComponent(searchQuery)}`)
     return `/b/${businessId}/loans${parts.length ? '?' + parts.join('&') : ''}`
   }
@@ -113,13 +124,19 @@ export default async function LoansPage({ params, searchParams }: Props) {
         )}
       </div>
 
+      {isOwnerOrAdmin && (
+        <div className="hidden md:block mb-4">
+          <CsvBulkLoanUpload businessId={businessId} />
+        </div>
+      )}
+
       {/* Search */}
       <SearchBox initialQuery={filters.search || ''} />
 
       {/* Status Filters */}
       <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
         {STATUS_FILTERS.map((f) => {
-          const active = statusFilter === f.key
+          const active = f.key === '' ? activeStatuses.length === 0 : activeStatuses.includes(f.key)
           return (
             <Link
               key={f.key}

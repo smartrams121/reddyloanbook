@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { Role } from '@/lib/constants'
-import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 import SearchBox from './SearchBox'
 import CustomerList from './CustomerList'
@@ -28,7 +28,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { name: true },
+    select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
   })
 
   const where: Record<string, unknown> = { businessId }
@@ -56,7 +56,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       where,
       include: {
         village: { select: { id: true, name: true } },
-        loans: { select: { id: true, expectedEndDate: true, totalRepayable: true } },
+        loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true } },
         _count: { select: { loans: true } },
       },
       orderBy: { fullName: 'asc' },
@@ -79,14 +79,31 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
   const customersWithStatus = customersRaw.map(c => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType)
     )
     return { ...c, derivedStatus: deriveCustomerStatus(loanStatuses) }
   })
 
-  const customers = filters.status
-    ? customersWithStatus.filter(c => c.derivedStatus === filters.status)
+  const activeStatuses = filters.status ? (filters.status as string).split(',').filter(Boolean) : []
+  const customers = activeStatuses.length > 0
+    ? customersWithStatus.filter(c => activeStatuses.includes(c.derivedStatus))
     : customersWithStatus
+
+  function buildCustomerUrl(statusKey: string) {
+    let newStatuses: string[]
+    if (!statusKey) {
+      newStatuses = []
+    } else if (activeStatuses.includes(statusKey)) {
+      newStatuses = activeStatuses.filter(s => s !== statusKey)
+    } else {
+      newStatuses = [...activeStatuses, statusKey]
+    }
+    const parts: string[] = []
+    if (newStatuses.length > 0) parts.push(`status=${newStatuses.join(',')}`)
+    if (searchQuery) parts.push(`search=${encodeURIComponent(searchQuery)}`)
+    if (filters.village) parts.push(`village=${filters.village}`)
+    return `/b/${businessId}/customers${parts.length ? '?' + parts.join('&') : ''}`
+  }
 
   const isAdminOrOwner = user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN
 
@@ -106,7 +123,9 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
       {/* CSV Bulk Upload */}
       {isAdminOrOwner && (
-        <CsvBulkUpload businessId={businessId} villageNames={villages.map(v => v.name)} />
+        <div className="hidden md:block">
+          <CsvBulkUpload businessId={businessId} villageNames={villages.map(v => v.name)} />
+        </div>
       )}
 
       {/* Search */}
@@ -114,12 +133,12 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
       {/* Filters */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <FilterChip href={`/b/${businessId}/customers${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`} active={!filters.status && !filters.village} label="All" />
-        <FilterChip href={`/b/${businessId}/customers?status=ACTIVE${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'ACTIVE'} label="Active" activeClass="bg-success-600 text-white" />
-        <FilterChip href={`/b/${businessId}/customers?status=OVERDUE${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'OVERDUE'} label="Overdue" activeClass="bg-red-600 text-white" />
-        <FilterChip href={`/b/${businessId}/customers?status=DEFAULTER${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'DEFAULTER'} label="Defaulter" activeClass="bg-red-600 text-white" />
-        <FilterChip href={`/b/${businessId}/customers?status=COMPLETED${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'COMPLETED'} label="Completed" activeClass="bg-blue-600 text-white" />
-        <FilterChip href={`/b/${businessId}/customers?status=NO LOANS${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`} active={filters.status === 'NO LOANS'} label="No Loans" activeClass="bg-gray-400 text-white" />
+        <FilterChip href={buildCustomerUrl('')} active={activeStatuses.length === 0 && !filters.village} label="All" />
+        <FilterChip href={buildCustomerUrl('ACTIVE')} active={activeStatuses.includes('ACTIVE')} label="Active" activeClass="bg-success-600 text-white" />
+        <FilterChip href={buildCustomerUrl('OVERDUE')} active={activeStatuses.includes('OVERDUE')} label="Overdue" activeClass="bg-red-600 text-white" />
+        <FilterChip href={buildCustomerUrl('DEFAULTER')} active={activeStatuses.includes('DEFAULTER')} label="Defaulter" activeClass="bg-red-600 text-white" />
+        <FilterChip href={buildCustomerUrl('COMPLETED')} active={activeStatuses.includes('COMPLETED')} label="Completed" activeClass="bg-blue-600 text-white" />
+        <FilterChip href={buildCustomerUrl('NO LOANS')} active={activeStatuses.includes('NO LOANS')} label="No Loans" activeClass="bg-gray-400 text-white" />
         {villages.map((v) => (
           <FilterChip
             key={v.id}

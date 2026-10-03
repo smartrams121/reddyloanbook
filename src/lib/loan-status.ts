@@ -7,6 +7,8 @@ export function deriveLoanStatus(
   expectedEndDate: string,
   totalRepayable: number,
   totalPaid: number,
+  gracePeriod: number = 0,
+  collectionType: string = 'DAILY',
 ): DerivedLoanStatus {
   if (totalPaid >= totalRepayable) return 'COMPLETED'
 
@@ -14,14 +16,36 @@ export function deriveLoanStatus(
   today.setHours(0, 0, 0, 0)
   const dueDate = new Date(expectedEndDate + 'T00:00:00')
 
-  if (today <= dueDate) return 'ACTIVE'
+  // Add grace period to the due date
+  const graceEndDate = new Date(dueDate)
+  if (collectionType === 'WEEKLY') {
+    graceEndDate.setDate(graceEndDate.getDate() + gracePeriod * 7)
+  } else if (collectionType === 'MONTHLY') {
+    graceEndDate.setMonth(graceEndDate.getMonth() + gracePeriod)
+  } else {
+    graceEndDate.setDate(graceEndDate.getDate() + gracePeriod)
+  }
 
-  const oneYearAfterDue = new Date(dueDate)
-  oneYearAfterDue.setFullYear(oneYearAfterDue.getFullYear() + 1)
+  if (today <= graceEndDate) return 'ACTIVE'
 
-  if (today <= oneYearAfterDue) return 'OVERDUE'
+  const oneYearAfterGrace = new Date(graceEndDate)
+  oneYearAfterGrace.setFullYear(oneYearAfterGrace.getFullYear() + 1)
+
+  if (today <= oneYearAfterGrace) return 'OVERDUE'
 
   return 'DEFAULTER'
+}
+
+export interface GracePeriodConfig {
+  gracePeriodDaily: number
+  gracePeriodWeekly: number
+  gracePeriodMonthly: number
+}
+
+export function getGracePeriod(config: GracePeriodConfig, collectionType: string): number {
+  if (collectionType === 'WEEKLY') return config.gracePeriodWeekly
+  if (collectionType === 'MONTHLY') return config.gracePeriodMonthly
+  return config.gracePeriodDaily
 }
 
 export function deriveCustomerStatus(

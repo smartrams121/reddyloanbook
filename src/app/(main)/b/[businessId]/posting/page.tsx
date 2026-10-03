@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
 import { formatDateDisplay } from '@/lib/date'
+import CsvBulkPaymentUpload from './CsvBulkPaymentUpload'
 
 interface CustomerResult {
   id: string
@@ -31,6 +32,7 @@ export default function PostingPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [query, setQuery] = useState('')
   const [customers, setCustomers] = useState<CustomerResult[]>([])
+  const [recentCustomers, setRecentCustomers] = useState<CustomerResult[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerResult | null>(null)
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [loadingPayments, setLoadingPayments] = useState(false)
@@ -39,7 +41,15 @@ export default function PostingPage() {
   useEffect(() => {
     fetch(`/api/b/${businessId}/customers`)
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setCustomers(data) })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCustomers(data)
+          const sorted = [...data].sort((a: CustomerResult & { updatedAt?: string }, b: CustomerResult & { updatedAt?: string }) =>
+            (b.updatedAt || '').localeCompare(a.updatedAt || '')
+          )
+          setRecentCustomers(sorted.slice(0, 10))
+        }
+      })
       .catch(() => {})
   }, [businessId])
 
@@ -74,6 +84,10 @@ export default function PostingPage() {
     <div className="px-4 py-6 max-w-md mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-1">Payments</h1>
       <p className="text-sm text-gray-500 mb-6">Choose a posting method</p>
+
+      <div className="hidden md:block mb-4">
+        <CsvBulkPaymentUpload businessId={businessId} />
+      </div>
 
       <div className="space-y-4">
         {/* Individual Posting */}
@@ -182,6 +196,25 @@ export default function PostingPage() {
                 {query.trim().length > 0 && filtered.length === 0 && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg px-3 py-3 z-20">
                     <p className="text-xs text-gray-400 text-center">No customers found</p>
+                  </div>
+                )}
+
+                {/* Recent customers when search is empty */}
+                {query.trim().length === 0 && recentCustomers.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Recent Customers</p>
+                    <div className="space-y-1">
+                      {recentCustomers.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => selectCustomer(c)}
+                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 border border-gray-100 transition-colors"
+                        >
+                          <p className="text-sm font-medium text-gray-900">{c.fullName}</p>
+                          <p className="text-xs text-gray-500">{c.customerId} · {c.phone} · {c.village.name}</p>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

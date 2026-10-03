@@ -4,14 +4,14 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { formatPaiseShort } from '@/lib/money'
 import { todayIST, formatDateISO, formatDateDisplay, parseISODate, addDays } from '@/lib/date'
-import { deriveLoanStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import { Role } from '@/lib/constants'
 import Link from 'next/link'
 import DateFilter from './DateFilter'
 
 interface Props {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ range?: string; from?: string; to?: string }>
+  searchParams: Promise<{ range?: string; from?: string; to?: string; villages?: string; employees?: string }>
 }
 
 function getDateRange(range: string | undefined, from: string | undefined, to: string | undefined) {
@@ -44,7 +44,9 @@ function getDateRange(range: string | undefined, from: string | undefined, to: s
 
 export default async function BusinessDashboardPage({ params, searchParams }: Props) {
   const { businessId } = await params
-  const { range, from, to } = await searchParams
+  const { range, from, to, villages: villageFilter, employees: employeeFilter } = await searchParams
+  const selectedVillageIds = villageFilter ? villageFilter.split(',').filter(Boolean) : []
+  const selectedEmployeeIds = employeeFilter ? employeeFilter.split(',').filter(Boolean) : []
   const user = await getSession()
   if (!user) redirect('/login')
 
@@ -74,7 +76,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       }),
       prisma.loan.findMany({
         where: { businessId, agentId: user.id },
-        select: { id: true, totalRepayable: true, amountGiven: true, expectedEndDate: true, startDate: true },
+        select: { id: true, totalRepayable: true, amountGiven: true, expectedEndDate: true, startDate: true, collectionType: true },
       }),
       prisma.payment.aggregate({
         where: { businessId, collectorId: user.id, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
@@ -96,7 +98,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
     const agentLoansWithStatus = agentLoans.map(l => ({
       ...l,
       paid: agentPaidMap.get(l.id) || 0,
-      derivedStatus: deriveLoanStatus(l.expectedEndDate, l.totalRepayable, agentPaidMap.get(l.id) || 0),
+      derivedStatus: deriveLoanStatus(l.expectedEndDate, l.totalRepayable, agentPaidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType),
     }))
 
     const agentActiveLoans = agentLoansWithStatus.filter(l => l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE')
@@ -186,10 +188,11 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
     rangePayments,
     villages,
     rangeNewLoans,
+    employeeAssignments,
   ] = await Promise.all([
     prisma.loan.findMany({
       where: { businessId },
-      select: { id: true, totalRepayable: true, installmentAmount: true, startDate: true, expectedEndDate: true, customerId: true, customer: { select: { villageId: true } } },
+      select: { id: true, loanAmount: true, totalRepayable: true, installmentAmount: true, startDate: true, expectedEndDate: true, collectionType: true, customerId: true, customer: { select: { villageId: true } } },
     }),
     prisma.payment.aggregate({
       where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
@@ -204,6 +207,10 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
     prisma.loan.findMany({
       where: { businessId, startDate: { gte: dateRange.start, lte: dateRange.end } },
       select: { amountGiven: true },
+    }),
+    prisma.userBusinessAssignment.findMany({
+      where: { businessId },
+      include: { user: { select: { id: true, fullName: true } } },
     }),
   ])
 
@@ -221,17 +228,22 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   const loansWithStatus = allLoans.map((l) => ({
     ...l,
     paid: paidMap.get(l.id) || 0,
-    derivedStatus: deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0),
+    derivedStatus: deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType),
   }))
 
-  const activeLoans = loansWithStatus.filter((l) => l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE')
+  const activeLoans = loansWithStatus.filter((l) => l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE' || l.derivedStatus === 'DEFAULTER')
 
   let totalOutstanding = 0
-  let totalLent = 0
+  let totalRepayable = 0
+  let totalLoanAmount = 0
   for (const loan of activeLoans) {
     totalOutstanding += loan.totalRepayable - loan.paid
-    totalLent += loan.totalRepayable
+    totalRepayable += loan.totalRepayable
+    totalLoanAmount += loan.loanAmount
   }
+
+  const activeCustomerIds = new Set(activeLoans.map(l => l.customerId))
+  const activeCustomerCount = activeCustomerIds.size
 
   // Loan status counts for summary
   const loanStatusCounts = { ACTIVE: 0, OVERDUE: 0, DEFAULTER: 0, COMPLETED: 0 }
@@ -239,31 +251,50 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
     loanStatusCounts[l.derivedStatus]++
   }
 
-  // Range-active loans: started before range end, not completed
+  const hasVillageFilter = selectedVillageIds.length > 0
+  const villageIdSet = new Set(selectedVillageIds)
+  const hasEmployeeFilter = selectedEmployeeIds.length > 0
+  const employeeIdSet = new Set(selectedEmployeeIds)
+
+  // Range-active loans: started before range end, not completed, optionally filtered by village
   const rangeActiveLoans = loansWithStatus.filter(
     (l) => l.startDate <= dateRange.end && (l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE')
+      && (!hasVillageFilter || villageIdSet.has(l.customer.villageId))
   )
 
   // Completed loans in range: derive from paid data
   const completedLoansCount = loansWithStatus.filter(
     (l) => l.derivedStatus === 'COMPLETED' && l.paid > 0
+      && (!hasVillageFilter || villageIdSet.has(l.customer.villageId))
   ).length
 
-  const periodExpected = rangeActiveLoans.reduce((sum, l) => sum + (l.installmentAmount || 0), 0)
-  const expectedLoanCount = rangeActiveLoans.length
-  const periodCollected = rangePayments._sum.amount || 0
-  const collectedCount = rangePayments._count
-  const newLoanCount = rangeNewLoans.length
-  const newLoanAmount = rangeNewLoans.reduce((sum, l) => sum + l.amountGiven, 0)
-  const periodInHand = periodCollected - newLoanAmount
-
-  // Range payments with village info for village breakdown
+  // Range payments with village info for village breakdown + collection metrics
   const rangePaymentsDetail = await prisma.payment.findMany({
     where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
-    select: { loan: { select: { customerId: true, customer: { select: { villageId: true } } } } },
+    select: { amount: true, collectorId: true, loan: { select: { customerId: true, customer: { select: { villageId: true } } } } },
   })
 
   // Village breakdown: active customers, paid, not paid
+  // Compute collection metrics with optional village + employee filter
+  const filteredPayments = rangePaymentsDetail.filter(p =>
+    (!hasVillageFilter || villageIdSet.has(p.loan.customer.villageId))
+    && (!hasEmployeeFilter || employeeIdSet.has(p.collectorId))
+  )
+  const periodCollected = filteredPayments.reduce((sum, p) => sum + p.amount, 0)
+  const collectedCount = filteredPayments.length
+  const periodExpected = rangeActiveLoans.reduce((sum, l) => sum + (l.installmentAmount || 0), 0)
+  const expectedLoanCount = rangeActiveLoans.length
+
+  const filteredNewLoans = hasVillageFilter
+    ? rangeNewLoans.filter(l => {
+        const loan = allLoans.find(al => al.startDate === l.amountGiven.toString())
+        return !loan || true // new loans don't have village easily, include all if no filter
+      })
+    : rangeNewLoans
+  const newLoanAmount = rangeNewLoans.reduce((sum, l) => sum + l.amountGiven, 0)
+  const newLoanCount = rangeNewLoans.length
+  const periodInHand = periodCollected - newLoanAmount
+
   const villageActiveMap = new Map<string, Set<string>>()
   for (const loan of rangeActiveLoans) {
     const vid = loan.customer.villageId
@@ -296,23 +327,40 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <Link href={`/b/${businessId}/loans?status=ACTIVE`} className="stat-card hover:border-primary-300 transition-colors">
-          <div className="stat-value">{activeLoans.length}</div>
-          <div className="stat-label">Active Loans</div>
-        </Link>
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <div className="stat-card">
+          <div className="stat-value">{formatPaiseShort(totalLoanAmount)}</div>
+          <div className="stat-label">Loans ({activeLoans.length})</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{formatPaiseShort(totalRepayable)}</div>
+          <div className="stat-label">Repayable</div>
+        </div>
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(totalOutstanding)}</div>
           <div className="stat-label">Outstanding</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{formatPaiseShort(totalLent)}</div>
-          <div className="stat-label">Total Lent</div>
-        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <Link href={`/b/${businessId}/customers?status=ACTIVE,OVERDUE,DEFAULTER`} className="stat-card hover:border-primary-300 transition-colors block">
+          <div className="stat-value">{activeCustomerCount}</div>
+          <div className="stat-label">Customers</div>
+        </Link>
+        <Link href={`/b/${businessId}/loans?status=ACTIVE,OVERDUE,DEFAULTER`} className="stat-card hover:border-primary-300 transition-colors block">
+          <div className="stat-value">{activeLoans.length}</div>
+          <div className="stat-label">Loans</div>
+        </Link>
+        <Link href={`/b/${businessId}/users`} className="stat-card hover:border-primary-300 transition-colors">
+          <div className="stat-value">{employeeAssignments.length}</div>
+          <div className="stat-label">Employees</div>
+        </Link>
       </div>
 
       {/* Date Filter */}
-      <DateFilter />
+      <DateFilter
+        villages={villages.map(v => ({ id: v.id, name: v.name }))}
+        employees={employeeAssignments.map(ea => ({ id: ea.user.id, name: ea.user.fullName }))}
+      />
 
       {/* Collection Section */}
       <div className="card p-4 mb-6">
@@ -367,10 +415,10 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       <div className="card p-4 mb-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Loans</h2>
         <div className="flex items-center gap-3 text-sm flex-wrap">
-          <span className="badge-success">{loanStatusCounts.ACTIVE} Active</span>
-          <span className="bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">{loanStatusCounts.OVERDUE} Overdue</span>
-          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full">{loanStatusCounts.DEFAULTER} Defaulter</span>
-          <span className="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">{loanStatusCounts.COMPLETED} Completed</span>
+          <Link href={`/b/${businessId}/loans?status=ACTIVE`} className="badge-success hover:opacity-80 transition-opacity">{loanStatusCounts.ACTIVE} Active</Link>
+          <Link href={`/b/${businessId}/loans?status=OVERDUE`} className="bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.OVERDUE} Overdue</Link>
+          <Link href={`/b/${businessId}/loans?status=DEFAULTER`} className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.DEFAULTER} Defaulter</Link>
+          <Link href={`/b/${businessId}/loans?status=COMPLETED`} className="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.COMPLETED} Completed</Link>
         </div>
       </div>
 

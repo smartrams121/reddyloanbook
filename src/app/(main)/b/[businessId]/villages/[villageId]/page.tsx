@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { formatPaiseShort } from '@/lib/money'
-import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 
 interface Props {
@@ -27,12 +27,17 @@ export default async function VillageDetailPage({ params }: Props) {
 
   if (!village) redirect(`/b/${businessId}/villages`)
 
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
+  })
+
   const [customers, agents] = await Promise.all([
     prisma.customer.findMany({
       where: { villageId, businessId },
       include: {
         loans: {
-          select: { id: true, totalRepayable: true, amountGiven: true, expectedEndDate: true },
+          select: { id: true, totalRepayable: true, amountGiven: true, expectedEndDate: true, collectionType: true },
         },
       },
       orderBy: { fullName: 'asc' },
@@ -57,7 +62,7 @@ export default async function VillageDetailPage({ params }: Props) {
 
   const customerData = customers.map((c) => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType)
     )
     const activeLoans = c.loans.filter((_, i) => loanStatuses[i] === 'ACTIVE' || loanStatuses[i] === 'OVERDUE')
     let outstanding = 0
@@ -79,7 +84,7 @@ export default async function VillageDetailPage({ params }: Props) {
   const activeCount = customerData.filter((c) => c.status === 'ACTIVE' || c.status === 'OVERDUE').length
   const activeLoansAll = customers.flatMap((c, ci) =>
     c.loans.filter((_, li) => {
-      const s = deriveLoanStatus(c.loans[li].expectedEndDate, c.loans[li].totalRepayable, paidMap.get(c.loans[li].id) || 0)
+      const s = deriveLoanStatus(c.loans[li].expectedEndDate, c.loans[li].totalRepayable, paidMap.get(c.loans[li].id) || 0, getGracePeriod(business!, c.loans[li].collectionType), c.loans[li].collectionType)
       return s === 'ACTIVE' || s === 'OVERDUE'
     })
   )

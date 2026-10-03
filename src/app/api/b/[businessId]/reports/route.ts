@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
-import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod, GracePeriodConfig } from '@/lib/loan-status'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -34,16 +34,26 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json({ error: 'from and to dates are required' }, { status: 400 })
   }
 
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
+  })
+  const graceConfig: GracePeriodConfig = {
+    gracePeriodDaily: business?.gracePeriodDaily ?? 30,
+    gracePeriodWeekly: business?.gracePeriodWeekly ?? 4,
+    gracePeriodMonthly: business?.gracePeriodMonthly ?? 1,
+  }
+
   switch (entity) {
     case 'customers':
-      return getCustomersReport(businessId, startDate, endDate)
+      return getCustomersReport(businessId, startDate, endDate, graceConfig)
     case 'loans':
-      return getLoansReport(businessId, startDate, endDate, statuses)
+      return getLoansReport(businessId, startDate, endDate, statuses, graceConfig)
     case 'villages':
-      if (villageId) return getVillageCustomersReport(businessId, villageId, startDate, endDate)
-      return getVillagesReport(businessId, startDate, endDate)
+      if (villageId) return getVillageCustomersReport(businessId, villageId, startDate, endDate, graceConfig)
+      return getVillagesReport(businessId, startDate, endDate, graceConfig)
     case 'employees':
-      return getEmployeesReport(businessId, startDate, endDate)
+      return getEmployeesReport(businessId, startDate, endDate, graceConfig)
     case 'payments':
       return getPaymentsReport(businessId, startDate, endDate)
     case 'payslips':
@@ -53,7 +63,7 @@ export async function GET(request: Request, { params }: Props) {
   }
 }
 
-async function getCustomersReport(businessId: string, from: string, to: string) {
+async function getCustomersReport(businessId: string, from: string, to: string, graceConfig: GracePeriodConfig) {
   const customers = await prisma.customer.findMany({
     where: {
       businessId,
@@ -61,7 +71,7 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
     },
     include: {
       village: { select: { name: true } },
-      loans: { select: { id: true, expectedEndDate: true, totalRepayable: true } },
+      loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true } },
       _count: { select: { loans: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -79,7 +89,7 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
 
   const rows = customers.map((c) => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0)
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
     )
     return {
       customerId: c.customerId,
@@ -112,7 +122,7 @@ async function getCustomersReport(businessId: string, from: string, to: string) 
   })
 }
 
-async function getLoansReport(businessId: string, from: string, to: string, statuses: string | null) {
+async function getLoansReport(businessId: string, from: string, to: string, statuses: string | null, graceConfig: GracePeriodConfig) {
   const where: Record<string, unknown> = {
     businessId,
     startDate: { gte: from, lte: to },
@@ -144,7 +154,7 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
   const rows = loans
     .map((l) => {
       const totalPaid = paidMap.get(l.id) || 0
-      const status = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid)
+      const status = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
       return {
         loanNumber: l.loanNumber,
         customerId: l.customer.customerId,
@@ -194,7 +204,7 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
   })
 }
 
-async function getVillagesReport(businessId: string, from: string, to: string) {
+async function getVillagesReport(businessId: string, from: string, to: string, graceConfig: GracePeriodConfig) {
   const villages = await prisma.village.findMany({
     where: { businessId, isActive: true },
     include: {
@@ -203,7 +213,7 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
         select: {
           id: true,
           loans: {
-            select: { id: true, loanAmount: true, installmentAmount: true, totalRepayable: true, expectedEndDate: true },
+            select: { id: true, loanAmount: true, installmentAmount: true, totalRepayable: true, expectedEndDate: true, collectionType: true },
           },
         },
       },
@@ -242,7 +252,7 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
 
     v.customers.forEach((c) => {
       const loanStatuses = c.loans.map((l) =>
-        deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0)
+        deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
       )
       const custStatus = deriveCustomerStatus(loanStatuses)
       if (custStatus === 'ACTIVE' || custStatus === 'OVERDUE') activeCustomers++
@@ -287,7 +297,7 @@ async function getVillagesReport(businessId: string, from: string, to: string) {
   })
 }
 
-async function getVillageCustomersReport(businessId: string, villageId: string, from: string, to: string) {
+async function getVillageCustomersReport(businessId: string, villageId: string, from: string, to: string, graceConfig: GracePeriodConfig) {
   const village = await prisma.village.findFirst({
     where: { id: villageId, businessId },
     select: { name: true },
@@ -307,6 +317,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
           loanAmount: true,
           totalRepayable: true,
           expectedEndDate: true,
+          collectionType: true,
           payments: {
             where: { isDeleted: false, paymentDate: { gte: from, lte: to } },
             select: { amount: true },
@@ -329,7 +340,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
 
   const rows = customers.map((c) => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0)
+      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
     )
     const activeLoans = loanStatuses.filter((s) => s === 'ACTIVE' || s === 'OVERDUE').length
     const totalLent = c.loans.reduce((s, l) => s + l.loanAmount, 0)
@@ -373,7 +384,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
   })
 }
 
-async function getEmployeesReport(businessId: string, from: string, to: string) {
+async function getEmployeesReport(businessId: string, from: string, to: string, graceConfig: GracePeriodConfig) {
   const assignments = await prisma.userBusinessAssignment.findMany({
     where: { businessId },
     include: {
@@ -389,7 +400,7 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
           },
           assignedLoans: {
             where: { businessId },
-            select: { id: true, loanAmount: true, totalRepayable: true, expectedEndDate: true },
+            select: { id: true, loanAmount: true, totalRepayable: true, expectedEndDate: true, collectionType: true },
           },
           collectedPayments: {
             where: { businessId, isDeleted: false, paymentDate: { gte: from, lte: to } },
@@ -415,7 +426,7 @@ async function getEmployeesReport(businessId: string, from: string, to: string) 
     const totalCollected = u.collectedPayments.reduce((s, p) => s + p.amount, 0)
     const activeLoans = u.assignedLoans.filter((l) => {
       const paid = empPaidMap.get(l.id) || 0
-      const s = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid)
+      const s = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
       return s === 'ACTIVE' || s === 'OVERDUE'
     })
     const totalLoanGiven = activeLoans.reduce((s, l) => s + l.loanAmount, 0)

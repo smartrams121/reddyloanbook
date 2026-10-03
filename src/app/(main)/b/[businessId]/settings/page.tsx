@@ -19,6 +19,8 @@ interface BusinessSettings {
   gracePeriodMonthly: number
   ratingGoodMaxPct: number
   ratingAverageMaxPct: number
+  repaymentMultiplierDailyWeekly: number
+  repaymentMultiplierMonthly: number
   whatsappTemplate: string
   autoLogoutMinutes: number
 }
@@ -33,6 +35,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [basicInfoOpen, setBasicInfoOpen] = useState(false)
+  const [otherOpen, setOtherOpen] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -71,6 +75,8 @@ export default function SettingsPage() {
           gracePeriodDaily: settings.gracePeriodDaily,
           gracePeriodWeekly: settings.gracePeriodWeekly,
           gracePeriodMonthly: settings.gracePeriodMonthly,
+          repaymentMultiplierDailyWeekly: settings.repaymentMultiplierDailyWeekly,
+          repaymentMultiplierMonthly: settings.repaymentMultiplierMonthly,
           ratingGoodMaxPct: settings.ratingGoodMaxPct,
           ratingAverageMaxPct: settings.ratingAverageMaxPct,
           whatsappTemplate: settings.whatsappTemplate,
@@ -92,13 +98,11 @@ export default function SettingsPage() {
     }
   }
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
   async function handleDeleteBusiness() {
-    if (!settings) return
-    const confirmation = prompt(`This will permanently delete "${settings.name}" and ALL its data (customers, loans, payments, locations, etc.).\n\nType the business name to confirm:`)
-    if (confirmation !== settings.name) {
-      if (confirmation !== null) setError('Business name did not match. Deletion cancelled.')
-      return
-    }
+    if (!settings || deleteConfirmText !== 'DELETE') return
 
     setError('')
     setDeleting(true)
@@ -111,6 +115,8 @@ export default function SettingsPage() {
       setError('Network error')
     } finally {
       setDeleting(false)
+      setShowDeleteModal(false)
+      setDeleteConfirmText('')
     }
   }
 
@@ -134,7 +140,7 @@ export default function SettingsPage() {
       document.body.appendChild(a)
       a.click()
       a.remove()
-      URL.revokeObjectURL(url)
+      setTimeout(() => URL.revokeObjectURL(url), 3000)
     } catch {
       setError('Network error during export')
     } finally {
@@ -177,8 +183,12 @@ export default function SettingsPage() {
         )}
 
         {/* Basic Info */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Basic Info</h2>
+        <div className="card">
+          <button type="button" onClick={() => setBasicInfoOpen(!basicInfoOpen)} className="w-full p-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Basic Info</h2>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${basicInfoOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {basicInfoOpen && <div className="px-4 pb-4 space-y-4">
 
           <div>
             <label className="label">Business ID</label>
@@ -211,6 +221,7 @@ export default function SettingsPage() {
               maxLength={5}
             />
           </div>
+        </div>}
         </div>
 
         {/* Collection Settings */}
@@ -266,48 +277,50 @@ export default function SettingsPage() {
               <p className="text-[10px] text-gray-400 mt-1">Uncheck days when no collection happens</p>
             </div>
           )}
-        </div>
 
-        {/* Grace Periods */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Grace Periods</h2>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="label text-xs">Daily (days)</label>
-              <input type="number" className="input" value={settings.gracePeriodDaily} onChange={(e) => update('gracePeriodDaily', parseInt(e.target.value) || 0)} min={0} />
-            </div>
-            <div>
-              <label className="label text-xs">Weekly (weeks)</label>
-              <input type="number" className="input" value={settings.gracePeriodWeekly} onChange={(e) => update('gracePeriodWeekly', parseInt(e.target.value) || 0)} min={0} />
-            </div>
-            <div>
-              <label className="label text-xs">Monthly (months)</label>
-              <input type="number" className="input" value={settings.gracePeriodMonthly} onChange={(e) => update('gracePeriodMonthly', parseInt(e.target.value) || 0)} min={0} />
-            </div>
+          <div>
+            <label className="label">Repayment Multiplier</label>
+            <input
+              type="number"
+              className="input"
+              step="0.01"
+              min="1"
+              max="5"
+              value={settings.collectionType === 'MONTHLY' ? settings.repaymentMultiplierMonthly : settings.repaymentMultiplierDailyWeekly}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value) || (settings.collectionType === 'MONTHLY' ? 1.40 : 1.20)
+                if (settings.collectionType === 'MONTHLY') update('repaymentMultiplierMonthly', v)
+                else update('repaymentMultiplierDailyWeekly', v)
+              }}
+            />
+            <p className="text-[10px] text-gray-400 mt-1">Applied to principal for ADDON loans. e.g. 1.20 = 20% interest.</p>
           </div>
-        </div>
 
-        {/* Rating Thresholds */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Rating Thresholds</h2>
-          <p className="text-xs text-gray-500">% of grace period used. Excellent = 0%, Good ≤ X%, Average ≤ Y%, Bad = above Y%</p>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label text-xs">Good max %</label>
-              <input type="number" className="input" value={settings.ratingGoodMaxPct} onChange={(e) => update('ratingGoodMaxPct', parseInt(e.target.value) || 0)} min={0} max={100} />
-            </div>
-            <div>
-              <label className="label text-xs">Average max %</label>
-              <input type="number" className="input" value={settings.ratingAverageMaxPct} onChange={(e) => update('ratingAverageMaxPct', parseInt(e.target.value) || 0)} min={0} max={200} />
-            </div>
+          <div>
+            <label className="label">Grace Period ({settings.collectionType === 'DAILY' ? 'days' : settings.collectionType === 'WEEKLY' ? 'weeks' : 'months'})</label>
+            <input
+              type="number"
+              className="input"
+              min="0"
+              value={settings.collectionType === 'MONTHLY' ? settings.gracePeriodMonthly : settings.collectionType === 'WEEKLY' ? settings.gracePeriodWeekly : settings.gracePeriodDaily}
+              onChange={(e) => {
+                const v = parseInt(e.target.value) || 0
+                if (settings.collectionType === 'MONTHLY') update('gracePeriodMonthly', v)
+                else if (settings.collectionType === 'WEEKLY') update('gracePeriodWeekly', v)
+                else update('gracePeriodDaily', v)
+              }}
+            />
+            <p className="text-[10px] text-gray-400 mt-1">After the last due date + grace period, the loan becomes overdue.</p>
           </div>
         </div>
 
         {/* Other */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Other</h2>
+        <div className="card">
+          <button type="button" onClick={() => setOtherOpen(!otherOpen)} className="w-full p-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Other</h2>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${otherOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {otherOpen && <div className="px-4 pb-4 space-y-4">
 
           <div>
             <label className="label">WhatsApp Template</label>
@@ -333,6 +346,7 @@ export default function SettingsPage() {
               max={480}
             />
           </div>
+        </div>}
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full btn-lg">
@@ -363,13 +377,52 @@ export default function SettingsPage() {
           </p>
           <button
             type="button"
-            onClick={handleDeleteBusiness}
-            disabled={deleting}
-            className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+            onClick={() => { setShowDeleteModal(true); setDeleteConfirmText('') }}
+            className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
           >
-            {deleting ? 'Deleting...' : 'Delete Business'}
+            Delete Business
           </button>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
+              <h3 className="text-base font-semibold text-red-700">Delete &quot;{settings.name}&quot;?</h3>
+              <p className="text-xs text-gray-600">
+                This will permanently delete all customers, loans, payments, locations, employees, and reports. This action cannot be undone.
+              </p>
+              <div>
+                <label className="label text-xs">Type <span className="font-bold">DELETE</span> to confirm</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="DELETE"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteModal(false); setDeleteConfirmText('') }}
+                  className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteBusiness}
+                  disabled={deleteConfirmText !== 'DELETE' || deleting}
+                  className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   )

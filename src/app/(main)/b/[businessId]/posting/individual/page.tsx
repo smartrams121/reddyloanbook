@@ -57,11 +57,12 @@ export default function RecordPaymentPage() {
 
   const [amountStr, setAmountStr] = useState('')
   const [collectorId, setCollectorId] = useState('')
-  const [note, setNote] = useState('')
+  const [note, setNote] = useState('Cash')
   const [postingDate, setPostingDate] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
+  const [loanSummaryOpen, setLoanSummaryOpen] = useState(false)
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
 
@@ -404,101 +405,86 @@ export default function RecordPaymentPage() {
             </div>
           </div>
 
-          {/* Outstanding summary */}
+          {/* Loan Summary (collapsed by default, includes dates) */}
           {(() => {
             const paid = loanPaidMap[selectedLoan.id] || 0
             const outstanding = selectedLoan.totalRepayable - paid + existingAmountPaise
             const pctPaid = selectedLoan.totalRepayable > 0 ? Math.round(((paid - existingAmountPaise) / selectedLoan.totalRepayable) * 100) : 0
             return (
-              <div className="card p-4 space-y-3">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Summary</h2>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Total Repayable</span>
-                    <span className="font-semibold text-gray-900">{formatPaiseShort(selectedLoan.totalRepayable)}</span>
+              <div className="card">
+                <button type="button" onClick={() => setLoanSummaryOpen(!loanSummaryOpen)} className="w-full p-4 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Summary</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-700">Outstanding: {formatPaiseShort(outstanding)}</span>
+                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${loanSummaryOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Already Paid</span>
-                    <span className="text-success-600 font-semibold">{formatPaiseShort(paid)}</span>
+                </button>
+                {loanSummaryOpen && <div className="px-4 pb-4 space-y-3">
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Total Repayable</span>
+                      <span className="font-semibold text-gray-900">{formatPaiseShort(selectedLoan.totalRepayable)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Already Paid</span>
+                      <span className="text-success-600 font-semibold">{formatPaiseShort(paid)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 font-semibold">Outstanding</span>
+                      <span className="font-bold text-gray-900">{formatPaiseShort(outstanding)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500 font-semibold">Outstanding</span>
-                    <span className="font-bold text-gray-900">{formatPaiseShort(outstanding)}</span>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-primary-600 h-2 rounded-full transition-all" style={{ width: `${Math.min(pctPaid, 100)}%` }} />
                   </div>
-                </div>
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary-600 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(pctPaid, 100)}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-gray-400 text-right">{pctPaid}% collected</p>
+                  <p className="text-[10px] text-gray-400 text-right">{pctPaid}% collected</p>
 
-                {/* Expected installment hint */}
-                <div className="bg-primary-50 rounded-lg px-3 py-2 text-xs text-primary-700">
-                  Expected installment: {formatPaiseShort(selectedLoan.installmentAmount)}
-                </div>
-
-                {existingPaymentId && (
-                  <div className="bg-amber-50 rounded-lg px-3 py-2 text-xs text-amber-700">
-                    Existing payment of {formatPaiseShort(existingAmountPaise)} found for {formatDisplayDate(postingDate)} — editing will update it
+                  <div className="bg-primary-50 rounded-lg px-3 py-2 text-xs text-primary-700">
+                    Expected installment: {formatPaiseShort(selectedLoan.installmentAmount)}
                   </div>
-                )}
+
+                  {existingPaymentId && (
+                    <div className="bg-amber-50 rounded-lg px-3 py-2 text-xs text-amber-700">
+                      Existing payment of {formatPaiseShort(existingAmountPaise)} found for {formatDisplayDate(postingDate)} — editing will update it
+                    </div>
+                  )}
+
+                  {/* Agent Name */}
+                  <div className="pt-2">
+                    <label className="label">Agent Name</label>
+                    {agents.length > 0 ? (
+                      <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                        <option value="">Myself (logged-in employee)</option>
+                        {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-400 py-2">No agents assigned to this business.</p>
+                    )}
+                  </div>
+                </div>}
               </div>
             )
           })()}
 
-          {/* Posting & Submission Date */}
-          <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Date</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Posting Date *</label>
-                <input
-                  type="date"
-                  className="input text-sm"
-                  value={postingDate}
-                  onChange={(e) => setPostingDate(e.target.value)}
-                  min={selectedLoan.startDate > minDateStr ? selectedLoan.startDate : minDateStr}
-                  max={todayStr}
-                  required
-                />
-                {postingDate !== todayStr && (
-                  <p className="text-[10px] text-amber-600 mt-1">Backdated to {formatDisplayDate(postingDate)}</p>
-                )}
-              </div>
-              <div>
-                <label className="label">Submission Date</label>
-                <input
-                  type="text"
-                  className="input text-sm bg-gray-50 cursor-not-allowed"
-                  value={formatDisplayDate(todayStr)}
-                  disabled
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Collected By */}
-          <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Collected By</h2>
-            <div>
-              <label className="label">Who collected this payment?</label>
-              {agents.length > 0 ? (
-                <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                  <option value="">Myself (logged-in employee)</option>
-                  {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
-                </select>
-              ) : (
-                <p className="text-sm text-gray-400 py-2">No agents assigned to this business.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Payment amount */}
+          {/* Payment */}
           <div className="card p-4 space-y-4">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Payment</h2>
+
+            <div>
+              <label className="label">Posting Date *</label>
+              <input
+                type="date"
+                className="input text-sm"
+                value={postingDate}
+                onChange={(e) => setPostingDate(e.target.value)}
+                min={selectedLoan.startDate > minDateStr ? selectedLoan.startDate : minDateStr}
+                max={todayStr}
+                required
+              />
+              {postingDate !== todayStr && (
+                <p className="text-[10px] text-amber-600 mt-1">Backdated to {formatDisplayDate(postingDate)}</p>
+              )}
+            </div>
 
             <div>
               <label className="label">Amount (₹) *</label>
@@ -546,8 +532,23 @@ export default function RecordPaymentPage() {
             })()}
 
             <div>
-              <label className="label">Note (optional)</label>
-              <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Paid via cash" />
+              <label className="label">Payment Mode</label>
+              <div className="flex gap-2">
+                {['Cash', 'UPI'].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setNote(mode)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                      note === mode
+                        ? 'bg-primary-600 text-white border-primary-600'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

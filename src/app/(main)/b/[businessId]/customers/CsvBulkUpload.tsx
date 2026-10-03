@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { parseCsv } from '@/lib/csv-parse'
 
 interface CsvRow {
   fullName: string; phone: string; villageName: string; age?: string
@@ -10,39 +11,6 @@ interface CsvRow {
 }
 
 interface CsvRowError { row: number; field: string; message: string }
-
-function parseCsvLine(line: string): string[] {
-  const result: string[] = []
-  let current = ''
-  let inQuotes = false
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i]
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') { current += '"'; i++ }
-        else inQuotes = false
-      } else { current += ch }
-    } else {
-      if (ch === '"') inQuotes = true
-      else if (ch === ',') { result.push(current); current = '' }
-      else current += ch
-    }
-  }
-  result.push(current)
-  return result
-}
-
-function parseCsv(text: string): CsvRow[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim())
-  if (lines.length < 2) return []
-  const headers = parseCsvLine(lines[0]).map(h => h.trim())
-  return lines.slice(1).map(line => {
-    const vals = parseCsvLine(line)
-    const row: Record<string, string> = {}
-    headers.forEach((h, i) => { row[h] = (vals[i] || '').trim() })
-    return row as unknown as CsvRow
-  })
-}
 
 interface Props {
   businessId: string
@@ -73,7 +41,7 @@ export default function CsvBulkUpload({ businessId, villageNames }: Props) {
     document.body.appendChild(a)
     a.click()
     a.remove()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 3000)
   }
 
   async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -86,7 +54,7 @@ export default function CsvBulkUpload({ businessId, villageNames }: Props) {
     setError('')
 
     const text = await file.text()
-    const rows = parseCsv(text)
+    const rows = parseCsv<CsvRow>(text)
     if (rows.length === 0) {
       setError('CSV file is empty or has no data rows')
       if (csvInputRef.current) csvInputRef.current.value = ''

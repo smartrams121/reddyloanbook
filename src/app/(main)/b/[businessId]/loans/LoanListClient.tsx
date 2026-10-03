@@ -81,7 +81,13 @@ function statusBadgeClass(status: string): string {
 
 function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; businessId: string; onClose: () => void }) {
   function handleSharePdf() {
-    window.open(`/api/b/${businessId}/loans/${loan.id}/pdf`, '_blank')
+    const a = document.createElement('a')
+    a.href = `/api/b/${businessId}/loans/${loan.id}/pdf`
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   function handleShareWhatsApp() {
@@ -102,7 +108,13 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
       ...(loan.agent ? [`Agent: ${loan.agent.fullName}`] : []),
     ]
     const text = encodeURIComponent(lines.join('\n'))
-    window.open(`https://wa.me/?text=${text}`, '_blank')
+    const a = document.createElement('a')
+    a.href = `https://wa.me/?text=${text}`
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   const rows: { label: string; value: string }[] = [

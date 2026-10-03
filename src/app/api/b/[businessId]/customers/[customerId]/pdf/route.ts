@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
-import { deriveLoanStatus, deriveCustomerStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import PDFDocument from 'pdfkit'
 
 interface Props {
@@ -51,7 +51,7 @@ export async function GET(request: Request, { params }: Props) {
   })
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
 
-  const business = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true } })
+  const business = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true } })
 
   const loanIds = customer.loans.map(l => l.id)
   const paidSums = loanIds.length > 0
@@ -65,7 +65,7 @@ export async function GET(request: Request, { params }: Props) {
 
   const loansWithPaid = customer.loans.map(l => {
     const paid = paidMap.get(l.id) || 0
-    const derived = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid)
+    const derived = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid, getGracePeriod(business!, l.collectionType), l.collectionType)
     return { ...l, totalPaid: paid, outstanding: l.totalRepayable - paid, derivedStatus: derived }
   })
 

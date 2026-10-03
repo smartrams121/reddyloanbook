@@ -148,12 +148,20 @@ export default function ReportsPage() {
     const { from, to } = getDateRange()
 
     if (format === 'pdf') {
-      window.open(url, '_blank')
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
     } else {
       const a = document.createElement('a')
       a.href = url
       a.download = `${entity}_report_${from}_${to}.xlsx`
+      document.body.appendChild(a)
       a.click()
+      a.remove()
     }
   }
 
@@ -187,11 +195,19 @@ export default function ReportsPage() {
         const a = document.createElement('a')
         a.href = blobUrl
         a.download = fileName
+        document.body.appendChild(a)
         a.click()
-        URL.revokeObjectURL(blobUrl)
+        a.remove()
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
 
         const text = encodeURIComponent(`${entity.charAt(0).toUpperCase() + entity.slice(1)} Report (${formatDD(from)} – ${formatDD(to)})`)
-        window.open(`https://wa.me/?text=${text}`, '_blank')
+        const wa = document.createElement('a')
+        wa.href = `https://wa.me/?text=${text}`
+        wa.target = '_blank'
+        wa.rel = 'noopener noreferrer'
+        document.body.appendChild(wa)
+        wa.click()
+        wa.remove()
       }
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {

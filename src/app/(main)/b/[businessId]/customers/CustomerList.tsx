@@ -74,7 +74,13 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
   const s = customer.summary
 
   function handleSharePdf() {
-    window.open(`/api/b/${businessId}/customers/${customer.id}/pdf`, '_blank')
+    const a = document.createElement('a')
+    a.href = `/api/b/${businessId}/customers/${customer.id}/pdf`
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   function handleShareWhatsApp() {
@@ -95,7 +101,13 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
       `Loans: ${s.totalLoans} (${s.activeLoans} active)`,
     ]
     const text = encodeURIComponent(lines.join('\n'))
-    window.open(`https://wa.me/?text=${text}`, '_blank')
+    const a = document.createElement('a')
+    a.href = `https://wa.me/?text=${text}`
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   const rows: { label: string; value: string }[] = [

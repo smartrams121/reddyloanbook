@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ businessId: string; customerId: string }>
 }
 
-import { deriveLoanStatus } from '@/lib/loan-status'
+import { deriveLoanStatus, getGracePeriod, GracePeriodConfig } from '@/lib/loan-status'
 
 function fmtPaise(paise: number): string {
   const r = paise / 100
@@ -42,7 +42,7 @@ export async function GET(request: Request, { params }: Props) {
   const all = searchParams.get('all') === 'true'
 
   const [business, customer] = await Promise.all([
-    prisma.business.findUnique({ where: { id: businessId }, select: { name: true, receiptPrefix: true } }),
+    prisma.business.findUnique({ where: { id: businessId }, select: { name: true, receiptPrefix: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true } }),
     prisma.customer.findFirst({
       where: { id: customerId, businessId },
       include: {
@@ -96,10 +96,16 @@ export async function GET(request: Request, { params }: Props) {
 
   const generatedAt = formatDateTimeFull(nowIST())
 
-  if (format === 'pdf') {
-    return generatePDF(businessName, customer, loans, paymentsByLoan, paidMap, user.fullName, generatedAt)
+  const graceConfig: GracePeriodConfig = {
+    gracePeriodDaily: business?.gracePeriodDaily ?? 30,
+    gracePeriodWeekly: business?.gracePeriodWeekly ?? 4,
+    gracePeriodMonthly: business?.gracePeriodMonthly ?? 1,
   }
-  return generateXLSX(businessName, customer, loans, paymentsByLoan, paidMap, user.fullName, generatedAt)
+
+  if (format === 'pdf') {
+    return generatePDF(businessName, customer, loans, paymentsByLoan, paidMap, user.fullName, generatedAt, graceConfig)
+  }
+  return generateXLSX(businessName, customer, loans, paymentsByLoan, paidMap, user.fullName, generatedAt, graceConfig)
 }
 
 interface CustomerData {
@@ -127,6 +133,7 @@ async function generateXLSX(
   paidMap: Map<string, number>,
   generatedBy: string,
   generatedAt: string,
+  graceConfig: GracePeriodConfig,
 ) {
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Daily Finance'
@@ -166,7 +173,7 @@ async function generateXLSX(
 
     loans.forEach((loan, idx) => {
       const paid = paidMap.get(loan.id) || 0
-      const derived = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, paid)
+      const derived = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, paid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType)
       const outstanding = derived !== 'COMPLETED' ? loan.totalRepayable - paid : 0
       const r = summaryWs.addRow([
         loan.loanNumber,
@@ -187,7 +194,7 @@ async function generateXLSX(
     const totalPaid = loans.reduce((s, l) => s + (paidMap.get(l.id) || 0), 0)
     const totalOut = loans.reduce((s, l) => {
       const paid = paidMap.get(l.id) || 0
-      const d = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid)
+      const d = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
       return s + (d !== 'COMPLETED' ? l.totalRepayable - paid : 0)
     }, 0)
     const totRow = summaryWs.addRow(['TOTAL', '', '', fmtPaise(totalPaid), fmtPaise(totalOut), ''])
@@ -200,7 +207,7 @@ async function generateXLSX(
   for (const loan of loans) {
     const ws = wb.addWorksheet(loan.loanNumber.replace(/[^a-zA-Z0-9]/g, '_'))
     styleSheet(ws)
-    addLoanSheet(ws, businessName, customer, loan, paymentsByLoan.get(loan.id) || [], paidMap.get(loan.id) || 0, generatedAt, generatedBy)
+    addLoanSheet(ws, businessName, customer, loan, paymentsByLoan.get(loan.id) || [], paidMap.get(loan.id) || 0, generatedAt, generatedBy, graceConfig)
   }
 
   const buffer = await wb.xlsx.writeBuffer()
@@ -221,6 +228,7 @@ function addLoanSheet(
   totalPaid: number,
   generatedAt: string,
   generatedBy: string,
+  graceConfig: GracePeriodConfig,
 ) {
   ws.mergeCells(1, 1, 1, 6)
   const titleCell = ws.getCell('A1')
@@ -277,7 +285,7 @@ function addLoanSheet(
     row.commit()
   })
 
-  const dStatus = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, totalPaid)
+  const dStatus = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, totalPaid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType)
   const outstanding = dStatus !== 'COMPLETED' ? loan.totalRepayable - totalPaid : 0
   const totRowIdx = startRow + 1 + payments.length + 1
   ws.getCell(totRowIdx, 1).value = ''
@@ -326,11 +334,12 @@ function generatePDF(
   paidMap: Map<string, number>,
   generatedBy: string,
   generatedAt: string,
+  graceConfig: GracePeriodConfig,
 ) {
   const loanSections = loans.map((loan) => {
     const payments = paymentsByLoan.get(loan.id) || []
     const totalPaid = paidMap.get(loan.id) || 0
-    const loanDerived = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, totalPaid)
+    const loanDerived = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, totalPaid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType)
     const outstanding = loanDerived !== 'COMPLETED' ? loan.totalRepayable - totalPaid : 0
 
     let balance = loan.totalRepayable

@@ -7,7 +7,7 @@ import Link from 'next/link'
 interface Village { id: string; name: string }
 interface Agent { id: string; fullName: string; role: string }
 interface CustomerResult { id: string; customerId: string; fullName: string; phone: string; village: { id: string; name: string }; status: string }
-interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; collectionDays: string }
+interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; collectionDays: string; repaymentMultiplierDailyWeekly: number; repaymentMultiplierMonthly: number }
 interface ActiveLoan { id: string; loanNumber: string; loanAmount: number; totalRepayable: number; status: string; startDate: string }
 interface DocAttachment { filePath: string; originalName: string; mimeType: string; previewUrl?: string }
 
@@ -76,6 +76,7 @@ export default function NewLoanPage() {
 
   // Loan step — redesigned
   const [agentId, setAgentId] = useState('')
+  const [loanDetailsOpen, setLoanDetailsOpen] = useState(false)
   const [startDate, setStartDate] = useState(todayISO)
   const [principalStr, setPrincipalStr] = useState('')
   const [numInstallmentsStr, setNumInstallmentsStr] = useState('')
@@ -98,7 +99,9 @@ export default function NewLoanPage() {
   const collectionType = settings?.collectionType || 'DAILY'
   const isWeekly = collectionType === 'WEEKLY'
   const isMonthly = collectionType === 'MONTHLY'
-  const addonMultiplier = isMonthly ? 1.40 : 1.20
+  const addonMultiplier = isMonthly
+    ? (settings?.repaymentMultiplierMonthly ?? 1.40)
+    : (settings?.repaymentMultiplierDailyWeekly ?? 1.20)
   const principal = parseInt(principalStr) || 0
   const upfrontInterest = parseInt(upfrontInterestStr) || 0
   const totalRepayment = interestModel === 'UPFRONT'
@@ -150,7 +153,11 @@ export default function NewLoanPage() {
     ]).then(([biz, vils, users, custs]) => {
       setSettings(biz)
       if (Array.isArray(vils)) setVillages(vils)
-      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+      if (Array.isArray(users)) {
+        const agentList = users.filter((u: Agent) => u.role === 'AGENT')
+        setAgents(agentList)
+        if (agentList.length > 0 && !agentId) setAgentId(agentList[0].id)
+      }
       if (Array.isArray(custs)) {
         setCustomers(custs)
         const defaultJobs = ['Shop', 'Business', 'Farmer', 'Labour', 'Driver', 'Others']
@@ -756,31 +763,33 @@ export default function NewLoanPage() {
             </div>
           )}
 
-          {/* Loan Details — single merged section */}
-          <div className="card p-4 space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Loan Details — collapsed by default */}
+          <div className="card">
+            <button type="button" onClick={() => setLoanDetailsOpen(!loanDetailsOpen)} className="w-full p-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Details</h2>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                collectionType === 'DAILY' ? 'bg-blue-100 text-blue-700' :
-                collectionType === 'WEEKLY' ? 'bg-purple-100 text-purple-700' :
-                'bg-orange-100 text-orange-700'
-              }`}>
-                {collectionType}
-              </span>
-            </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  collectionType === 'DAILY' ? 'bg-blue-100 text-blue-700' :
+                  collectionType === 'WEEKLY' ? 'bg-purple-100 text-purple-700' :
+                  'bg-orange-100 text-orange-700'
+                }`}>
+                  {collectionType}
+                </span>
+                <svg className={`w-4 h-4 text-gray-400 transition-transform ${loanDetailsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </button>
+            {loanDetailsOpen && <div className="px-4 pb-4 space-y-4">
 
             {/* Agent */}
             <div>
               <label className="label">Agent *</label>
               {agents.length > 0 ? (
                 <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                  <option value="">Select agent</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
                 </select>
               ) : (
                 <p className="text-sm text-gray-400 py-2">No agents assigned. Add agents from the Team page.</p>
               )}
-              <p className="text-[10px] text-gray-400 mt-1">Who is giving the loan</p>
             </div>
 
             {/* Loan Creation Date */}
@@ -795,7 +804,6 @@ export default function NewLoanPage() {
                 max={todayISO()}
                 required
               />
-              <p className="text-[10px] text-gray-400 mt-1">Today auto-selected. Can backdate up to 1 month.</p>
             </div>
 
             {/* Interest Model */}
@@ -810,6 +818,12 @@ export default function NewLoanPage() {
                 <option value="UPFRONT">Upfront (interest deducted from the given amount)</option>
               </select>
             </div>
+            </div>}
+          </div>
+
+          {/* Loan Payment */}
+          <div className="card p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Payment</h2>
 
             {/* Principal Amount */}
             <div>
@@ -901,7 +915,7 @@ export default function NewLoanPage() {
                   required
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
-                  {userEditedTotal ? 'Manually set' : `Auto-calculated: Principal × ${isMonthly ? '1.40' : '1.20'} (editable)`}
+                  {userEditedTotal ? 'Manually set' : `Auto-calculated: Principal × ${addonMultiplier.toFixed(2)} (editable)`}
                 </p>
               </div>
             )}

@@ -42,7 +42,7 @@ export async function GET(request: Request, { params }: Props) {
     where,
     select: {
       id: true, customerId: true, fullName: true, phone: true,
-      age: true, status: true, photoPath: true,
+      age: true, status: true, photoPath: true, updatedAt: true,
       village: { select: { id: true, name: true } },
       _count: { select: { loans: true } },
     },

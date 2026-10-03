@@ -57,6 +57,8 @@ export const createBusinessSchema = z.object({
     .optional(),
   interestModel: z.enum(['ADDON', 'UPFRONT']).default('ADDON'),
   collectionDays: z.string().default("MON,TUE,WED,THU,FRI,SAT,SUN"),
+  repaymentMultiplierDailyWeekly: z.number().min(1).max(5).optional(),
+  repaymentMultiplierMonthly: z.number().min(1).max(5).optional(),
   villages: z.array(z.string().min(1)).min(1, 'At least one location is required'),
 })
 
