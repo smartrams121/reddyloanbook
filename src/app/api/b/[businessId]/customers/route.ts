@@ -107,7 +107,7 @@ export async function POST(request: Request, { params }: Props) {
           customerId,
           fullName: parsed.data.fullName,
           age: parsed.data.age,
-          phone: parsed.data.phone,
+          phone: parsed.data.phone || '',
           altPhone: parsed.data.altPhone || null,
           address: parsed.data.address || null,
           aadhaarHash: aadhaarHash || null,
