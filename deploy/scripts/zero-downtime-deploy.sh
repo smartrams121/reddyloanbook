@@ -55,7 +55,7 @@ echo "  Disk: $(df -h / | awk 'NR==2{print $4}') free"
 echo ""
 echo "▸ Step 1/8: Database backup..."
 if docker ps --format '{{.Names}}' | grep -q dailyfinance_postgres; then
-  bash "$APP_DIR/scripts/db-backup.sh" 2>&1 | tail -1 || echo "  Backup script not found, skipping"
+  bash "$APP_DIR/deploy/scripts/backup.sh" 2>&1 | tail -1 || echo "  Backup script not found, skipping"
 else
   echo "  PostgreSQL not running — skipping backup"
 fi
@@ -96,7 +96,7 @@ set +a
 
 docker run -d \
   --name dailyfinance_app_new \
-  --network "$(docker network ls --filter name=dailyfinance -q | head -1)" \
+  --network "$(docker network ls --filter name=deploy -q | head -1 | xargs docker network inspect --format '{{.Name}}')" \
   -e DATABASE_URL="postgresql://${POSTGRES_USER:-financeapp}:${POSTGRES_PASSWORD:-financeapp123}@dailyfinance_postgres:5432/${POSTGRES_DB:-financeapp_db}" \
   -e JWT_SECRET="${JWT_SECRET:-change-this-to-a-random-64-char-string}" \
   -e SESSION_EXPIRY_HOURS="${SESSION_EXPIRY_HOURS:-24}" \
