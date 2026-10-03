@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { todayIST, parseISODate, addMonths } from '@/lib/date'
+import { Role } from '@/lib/constants'
 import { z } from 'zod'
 
 interface Props {
@@ -41,6 +42,12 @@ export async function GET(request: Request, { params }: Props) {
   const collectorId = searchParams.get('collectorId')
 
   const where: Record<string, unknown> = { businessId, isDeleted: false }
+
+  // Agents only see payments for their assigned loans
+  if (user.role === Role.AGENT) {
+    where.loan = { ...((where.loan as Record<string, unknown>) || {}), agentId: user.id }
+  }
+
   if (loanId) where.loanId = loanId
   if (date) where.paymentDate = date
   if (from && to) where.paymentDate = { gte: from, lte: to }

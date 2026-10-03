@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { createCustomerSchema } from '@/lib/validators'
+import { Role } from '@/lib/constants'
 import crypto from 'crypto'
 
 interface Props {
@@ -30,6 +31,16 @@ export async function GET(request: Request, { params }: Props) {
   const where: Record<string, unknown> = { businessId }
   if (villageId) where.villageId = villageId
   if (status) where.status = status
+
+  // Agents only see customers in their assigned villages
+  if (user.role === Role.AGENT && !villageId) {
+    const agentVillages = await prisma.userVillageAssignment.findMany({
+      where: { userId: user.id, village: { businessId } },
+      select: { villageId: true },
+    })
+    const vIds = agentVillages.map(v => v.villageId)
+    if (vIds.length > 0) where.villageId = { in: vIds }
+  }
   if (search) {
     where.OR = [
       { fullName: { contains: search } },
