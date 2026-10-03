@@ -122,11 +122,29 @@ export default function AppShell({ user, children }: AppShellProps) {
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">Loans</span>
                 </Link>
-                <Link href={`/b/${activeBusinessId}/posting`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="Payments">
+                <Link href={`/b/${activeBusinessId}/posting/view`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="View Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">Payments</span>
+                </Link>
+                <Link href={`/b/${activeBusinessId}/posting/individual`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors" title="New Payment">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  <span className="text-[10px] leading-tight font-medium">New Payment</span>
+                </Link>
+                <Link href={`/b/${activeBusinessId}/posting/bulk`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title="Bulk Payments">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.243 1.007-2.25 2.25-2.25" />
+                  </svg>
+                  <span className="text-[10px] leading-tight font-medium">Bulk Payments</span>
+                </Link>
+                <Link href={`/b/${activeBusinessId}/employees`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors" title="Employees">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                  </svg>
+                  <span className="text-[10px] leading-tight font-medium">Employees</span>
                 </Link>
                 <Link href={`/b/${activeBusinessId}/reports`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors" title="Reports">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

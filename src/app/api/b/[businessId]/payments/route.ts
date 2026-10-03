@@ -35,19 +35,36 @@ export async function GET(request: Request, { params }: Props) {
   const customerId = searchParams.get('customerId')
   const date = searchParams.get('date')
 
+  const from = searchParams.get('from')
+  const to = searchParams.get('to')
+  const villageId = searchParams.get('villageId')
+  const collectorId = searchParams.get('collectorId')
+
   const where: Record<string, unknown> = { businessId, isDeleted: false }
   if (loanId) where.loanId = loanId
-  if (customerId) where.loan = { customerId }
   if (date) where.paymentDate = date
+  if (from && to) where.paymentDate = { gte: from, lte: to }
+  else if (from) where.paymentDate = { gte: from }
+  if (collectorId) where.collectorId = collectorId
+
+  const loanFilter: Record<string, unknown> = {}
+  if (customerId) loanFilter.customerId = customerId
+  if (villageId) loanFilter.customer = { villageId }
+  if (Object.keys(loanFilter).length > 0) where.loan = loanFilter
 
   const payments = await prisma.payment.findMany({
     where,
     include: {
-      loan: { select: { loanNumber: true, customer: { select: { id: true, fullName: true, customerId: true } } } },
+      loan: {
+        select: {
+          loanNumber: true, totalRepayable: true,
+          customer: { select: { id: true, fullName: true, customerId: true, village: { select: { id: true, name: true } } } },
+        },
+      },
       collector: { select: { id: true, fullName: true } },
     },
     orderBy: [{ paymentDate: 'desc' }, { createdAt: 'desc' }],
-    take: 200,
+    take: 500,
   })
 
   return NextResponse.json(payments)
