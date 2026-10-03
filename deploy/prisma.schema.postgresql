@@ -100,6 +100,9 @@ model Business {
   gracePeriodWeekly    Int     @default(4)
   gracePeriodMonthly   Int     @default(1)
 
+  repaymentMultiplierDailyWeekly Float @default(1.20)
+  repaymentMultiplierMonthly     Float @default(1.40)
+
   ratingGoodMaxPct     Int     @default(50)
   ratingAverageMaxPct  Int     @default(100)
 
