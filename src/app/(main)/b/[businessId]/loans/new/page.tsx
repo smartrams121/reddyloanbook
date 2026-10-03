@@ -797,7 +797,7 @@ export default function NewLoanPage() {
               <label className="label">Loan Creation Date *</label>
               <input
                 type="date"
-                className="input"
+                className="input text-xs py-1.5"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 min={oneMonthAgoISO()}
@@ -817,6 +817,69 @@ export default function NewLoanPage() {
                 <option value="ADDON">Add on (interest added to total)</option>
                 <option value="UPFRONT">Upfront (interest deducted from the given amount)</option>
               </select>
+            </div>
+
+            <div>
+              <label className="label">Notes</label>
+              <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional loan notes" />
+            </div>
+
+            <div>
+              <label className="label">Attachments (ID proof, agreement, photos)</label>
+              <input
+                ref={docInputRef}
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => handleDocUpload(e.target.files)}
+              />
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  disabled={docUploading || documents.length >= 10}
+                  onClick={() => { if (docInputRef.current) { docInputRef.current.removeAttribute('capture'); docInputRef.current.click() } }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {docUploading ? 'Uploading...' : 'Add Files'}
+                </button>
+                <button
+                  type="button"
+                  disabled={docUploading || documents.length >= 10}
+                  onClick={() => { if (docInputRef.current) { docInputRef.current.setAttribute('capture', 'environment'); docInputRef.current.click() } }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Camera
+                </button>
+                <span className="text-[10px] text-gray-400 self-center">{documents.length}/10</span>
+              </div>
+
+              {documents.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {documents.map((doc, idx) => (
+                    <div key={idx} className="relative group rounded-lg border border-gray-200 overflow-hidden">
+                      {doc.previewUrl ? (
+                        <img src={doc.previewUrl} alt={doc.originalName} className="w-full h-20 object-cover" />
+                      ) : (
+                        <div className="w-full h-20 bg-gray-50 flex flex-col items-center justify-center">
+                          <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                          </svg>
+                          <span className="text-[9px] text-gray-500 mt-0.5 px-1 truncate max-w-full">PDF</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setDocuments(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs opacity-80 hover:opacity-100"
+                      >
+                        ×
+                      </button>
+                      <p className="text-[9px] text-gray-500 px-1 py-0.5 truncate">{doc.originalName}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             </div>}
           </div>
@@ -963,74 +1026,6 @@ export default function NewLoanPage() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Notes & Attachments */}
-          <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional</h2>
-
-            <div>
-              <label className="label">Notes</label>
-              <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional loan notes" />
-            </div>
-
-            <div>
-              <label className="label">Attachments (ID proof, agreement, photos)</label>
-              <input
-                ref={docInputRef}
-                type="file"
-                accept="image/*,.pdf,application/pdf"
-                multiple
-                className="hidden"
-                onChange={(e) => handleDocUpload(e.target.files)}
-              />
-              <div className="flex gap-2 mb-3">
-                <button
-                  type="button"
-                  disabled={docUploading || documents.length >= 10}
-                  onClick={() => { if (docInputRef.current) { docInputRef.current.removeAttribute('capture'); docInputRef.current.click() } }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
-                >
-                  {docUploading ? 'Uploading...' : 'Add Files'}
-                </button>
-                <button
-                  type="button"
-                  disabled={docUploading || documents.length >= 10}
-                  onClick={() => { if (docInputRef.current) { docInputRef.current.setAttribute('capture', 'environment'); docInputRef.current.click() } }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
-                >
-                  Camera
-                </button>
-                <span className="text-[10px] text-gray-400 self-center">{documents.length}/10</span>
-              </div>
-
-              {documents.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {documents.map((doc, idx) => (
-                    <div key={idx} className="relative group rounded-lg border border-gray-200 overflow-hidden">
-                      {doc.previewUrl ? (
-                        <img src={doc.previewUrl} alt={doc.originalName} className="w-full h-20 object-cover" />
-                      ) : (
-                        <div className="w-full h-20 bg-gray-50 flex flex-col items-center justify-center">
-                          <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                          </svg>
-                          <span className="text-[9px] text-gray-500 mt-0.5 px-1 truncate max-w-full">PDF</span>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setDocuments(prev => prev.filter((_, i) => i !== idx))}
-                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs opacity-80 hover:opacity-100"
-                      >
-                        ×
-                      </button>
-                      <p className="text-[9px] text-gray-500 px-1 py-0.5 truncate">{doc.originalName}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Submit */}

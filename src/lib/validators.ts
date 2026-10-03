@@ -65,7 +65,7 @@ export const createBusinessSchema = z.object({
 export const createCustomerSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   age: z.number().int().min(18).max(100).optional(),
-  phone: phoneSchema,
+  phone: phoneSchema.optional().or(z.literal('')),
   altPhone: phoneSchema.optional().or(z.literal('')),
   villageId: z.string().min(1, 'Location is required'),
   address: z.string().optional(),

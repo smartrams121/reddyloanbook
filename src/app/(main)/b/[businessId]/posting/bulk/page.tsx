@@ -44,6 +44,7 @@ export default function VillageBulkPostingPage() {
   const [villages, setVillages] = useState<Village[]>([])
   const [selectedVillage, setSelectedVillage] = useState(preVillageId || '')
   const [collectorId, setCollectorId] = useState('')
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<PaymentRow[]>([])
   const [error, setError] = useState('')
@@ -284,50 +285,56 @@ export default function VillageBulkPostingPage() {
             </select>
           </div>
 
-          {/* Posting Date */}
+          {/* Details — collapsed by default */}
           {selectedVillage && (
-            <div className="mb-5 card p-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="mb-5 card">
+              <button type="button" onClick={() => setDetailsOpen(!detailsOpen)} className="w-full p-4 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Details</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">{formatDisplayDate(postingDate)}</span>
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </button>
+              {detailsOpen && <div className="px-4 pb-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-xs">Posting Date *</label>
+                    <input
+                      type="date"
+                      className="input text-xs py-1.5"
+                      value={postingDate}
+                      onChange={(e) => setPostingDate(e.target.value)}
+                      min={minDateStr}
+                      max={todayStr}
+                      required
+                    />
+                    {postingDate !== todayStr && (
+                      <p className="text-[10px] text-amber-600 mt-1">Backdated</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="label text-xs">Submission Date</label>
+                    <input
+                      type="text"
+                      className="input text-xs py-1.5 bg-gray-50 cursor-not-allowed"
+                      value={formatDisplayDate(todayStr)}
+                      disabled
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="label">Posting Date *</label>
-                  <input
-                    type="date"
-                    className="input text-sm"
-                    value={postingDate}
-                    onChange={(e) => setPostingDate(e.target.value)}
-                    min={minDateStr}
-                    max={todayStr}
-                    required
-                  />
-                  {postingDate !== todayStr && (
-                    <p className="text-[10px] text-amber-600 mt-1">Backdated to {formatDisplayDate(postingDate)}</p>
+                  <label className="label text-xs">Who collected this payment?</label>
+                  {agents.length > 0 ? (
+                    <select className="input text-xs" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                      <option value="">Myself (logged-in employee)</option>
+                      {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-gray-400 py-2">No agents assigned.</p>
                   )}
                 </div>
-                <div>
-                  <label className="label">Submission Date</label>
-                  <input
-                    type="text"
-                    className="input text-sm bg-gray-50 cursor-not-allowed"
-                    value={formatDisplayDate(todayStr)}
-                    disabled
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Collected By */}
-          {selectedVillage && (
-            <div className="mb-5 card p-4">
-              <label className="label">Who collected this payment?</label>
-              {agents.length > 0 ? (
-                <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                  <option value="">Myself (logged-in employee)</option>
-                  {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
-                </select>
-              ) : (
-                <p className="text-sm text-gray-400 py-2">No agents assigned to this business.</p>
-              )}
+              </div>}
             </div>
           )}
 

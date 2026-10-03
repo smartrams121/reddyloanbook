@@ -474,7 +474,7 @@ export default function RecordPaymentPage() {
               <label className="label">Posting Date *</label>
               <input
                 type="date"
-                className="input text-sm"
+                className="input text-xs py-1.5"
                 value={postingDate}
                 onChange={(e) => setPostingDate(e.target.value)}
                 min={selectedLoan.startDate > minDateStr ? selectedLoan.startDate : minDateStr}
