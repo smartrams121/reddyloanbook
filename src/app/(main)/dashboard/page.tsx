@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   const today = todayIST()
   const stats = await Promise.all(
     businesses.map(async (biz) => {
-      const [customerCount, allLoans, todayPayments] = await Promise.all([
+      const [customerCount, allLoans, todayPayments, todayNewLoans] = await Promise.all([
         prisma.customer.count({ where: { businessId: biz.id } }),
         prisma.loan.findMany({
           where: { businessId: biz.id },
@@ -47,6 +47,10 @@ export default async function DashboardPage() {
         prisma.payment.aggregate({
           where: { businessId: biz.id, paymentDate: today, isDeleted: false },
           _sum: { amount: true },
+        }),
+        prisma.loan.findMany({
+          where: { businessId: biz.id, startDate: today },
+          select: { amountGiven: true },
         }),
       ])
 
@@ -76,6 +80,8 @@ export default async function DashboardPage() {
         activeLoanCount: activeLoans.length,
         totalOutstanding,
         todayCollection: todayPayments._sum.amount || 0,
+        todayNewLoanCount: todayNewLoans.length,
+        todayDisbursed: todayNewLoans.reduce((sum, l) => sum + l.amountGiven, 0),
       }
     })
   )
@@ -86,8 +92,10 @@ export default async function DashboardPage() {
       loans: acc.loans + s.activeLoanCount,
       outstanding: acc.outstanding + s.totalOutstanding,
       todayCollection: acc.todayCollection + s.todayCollection,
+      todayNewLoans: acc.todayNewLoans + s.todayNewLoanCount,
+      todayDisbursed: acc.todayDisbursed + s.todayDisbursed,
     }),
-    { customers: 0, loans: 0, outstanding: 0, todayCollection: 0 }
+    { customers: 0, loans: 0, outstanding: 0, todayCollection: 0, todayNewLoans: 0, todayDisbursed: 0 }
   )
 
   return (
@@ -97,30 +105,31 @@ export default async function DashboardPage() {
         {businesses.length} business{businesses.length !== 1 ? 'es' : ''} &middot; Select a business from the top-right dropdown to manage it
       </p>
 
-      {/* Grand Totals */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      {/* Today's Totals */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="stat-card">
-          <div className="stat-value">{grandTotals.customers}</div>
-          <div className="stat-label">Active Customers</div>
+          <div className="stat-value">{grandTotals.todayNewLoans}</div>
+          <div className="stat-label">New Loans</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{formatPaiseShort(grandTotals.outstanding)}</div>
-          <div className="stat-label">Total Outstanding</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{grandTotals.loans}</div>
-          <div className="stat-label">Active Loans</div>
+          <div className="stat-value">{formatPaiseShort(grandTotals.todayDisbursed)}</div>
+          <div className="stat-label">Disbursed</div>
         </div>
         <div className="stat-card">
           <div className="stat-value text-success-600">
             {formatPaiseShort(grandTotals.todayCollection)}
           </div>
-          <div className="stat-label">Today&apos;s Collection</div>
+          <div className="stat-label">Collection</div>
         </div>
       </div>
 
-      {/* Business List — simple cards, click to open */}
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">My Businesses</h2>
+      {/* Business List */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-gray-900">My Businesses</h2>
+        <Link href="/businesses/new" className="text-xs font-medium px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors">
+          + New Business
+        </Link>
+      </div>
       <div className="space-y-2">
         {stats.map(({ business, customerCount, totalOutstanding, todayCollection }) => (
           <div key={business.id} className="card p-4 hover:border-primary-300 transition-colors">
@@ -153,13 +162,8 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Register New Business */}
       {businesses.length > 0 && (
-        <div className="mt-6">
-          <Link href="/businesses/new" className="btn-secondary w-full">
-            + Register New Business
-          </Link>
-        </div>
+        <div className="mt-0"></div>
       )}
     </div>
   )

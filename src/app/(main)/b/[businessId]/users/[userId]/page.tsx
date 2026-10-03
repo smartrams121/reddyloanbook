@@ -46,15 +46,18 @@ export default function EmployeeDetailPage() {
   const today = todayStr()
   const [fromDate, setFromDate] = useState(today)
   const [toDate, setToDate] = useState(today)
+  const [selectedVillage, setSelectedVillage] = useState('')
   const [data, setData] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const fetchActivity = useCallback(async (from: string, to: string) => {
+  const fetchActivity = useCallback(async (from: string, to: string, villageId?: string) => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`/api/b/${businessId}/users/${userId}/activity?from=${from}&to=${to}`)
+      let url = `/api/b/${businessId}/users/${userId}/activity?from=${from}&to=${to}`
+      if (villageId) url += `&villageId=${villageId}`
+      const res = await fetch(url)
       if (!res.ok) {
         const d = await res.json()
         setError(d.error || 'Failed to load')
@@ -68,7 +71,7 @@ export default function EmployeeDetailPage() {
     setLoading(false)
   }, [businessId, userId])
 
-  useEffect(() => { fetchActivity(fromDate, toDate) }, [fetchActivity, fromDate, toDate])
+  useEffect(() => { fetchActivity(fromDate, toDate, selectedVillage || undefined) }, [fetchActivity, fromDate, toDate, selectedVillage])
 
   if (loading && !data) {
     return (
@@ -90,7 +93,7 @@ export default function EmployeeDetailPage() {
     <div className="px-4 py-6 max-w-2xl mx-auto">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 mb-4 flex items-center gap-1">
-        <Link href={`/b/${businessId}/users`} className="text-primary-600 hover:underline">Employees</Link>
+        <Link href={`/b/${businessId}/employees`} className="text-primary-600 hover:underline">Employees</Link>
         <span>&rsaquo;</span>
         <span className="text-gray-700 font-medium">{user.fullName}</span>
       </nav>
@@ -126,41 +129,56 @@ export default function EmployeeDetailPage() {
         </div>
       </div>
 
-      {/* Date Range Filter */}
-      <div className="card p-3 mb-6">
-        <div className="flex items-end gap-3">
+      {/* Filters */}
+      <div className="card p-3 mb-6 space-y-3">
+        {/* Date presets */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: 'Today', fn: () => { setFromDate(today); setToDate(today) }, active: fromDate === today && toDate === today },
+            { label: 'Yesterday', fn: () => { const d = new Date(); d.setDate(d.getDate() - 1); const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; setFromDate(s); setToDate(s) }, active: false },
+            { label: '7 Days', fn: () => { const d = new Date(); d.setDate(d.getDate()-7); setFromDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`); setToDate(today) }, active: false },
+            { label: '1 Month', fn: () => { const d = new Date(); d.setMonth(d.getMonth()-1); setFromDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`); setToDate(today) }, active: false },
+          ].map(p => (
+            <button key={p.label} onClick={p.fn} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${p.active ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom date range */}
+        <div className="flex items-end gap-2">
           <div className="flex-1">
             <label className="label text-xs">From</label>
-            <input type="date" className="input text-sm" value={fromDate} onChange={e => setFromDate(e.target.value)} max={toDate} />
+            <input type="date" className="input text-xs py-1.5" value={fromDate} onChange={e => setFromDate(e.target.value)} max={toDate} />
           </div>
           <div className="flex-1">
             <label className="label text-xs">To</label>
-            <input type="date" className="input text-sm" value={toDate} onChange={e => setToDate(e.target.value)} min={fromDate} max={today} />
-          </div>
-          <div className="flex gap-1">
-            <button onClick={() => { setFromDate(today); setToDate(today) }} className={`text-xs px-2.5 py-2 rounded-lg border ${fromDate === today && toDate === today ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              Today
-            </button>
-            <button onClick={() => {
-              const d = new Date(); d.setDate(d.getDate() - 7)
-              setFromDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
-              setToDate(today)
-            }} className="text-xs px-2.5 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
-              7D
-            </button>
-            <button onClick={() => {
-              const d = new Date(); d.setMonth(d.getMonth() - 1)
-              setFromDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
-              setToDate(today)
-            }} className="text-xs px-2.5 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
-              30D
-            </button>
+            <input type="date" className="input text-xs py-1.5" value={toDate} onChange={e => setToDate(e.target.value)} min={fromDate} max={today} />
           </div>
         </div>
-        {fromDate !== toDate && (
-          <p className="text-xs text-gray-400 mt-2">
-            Showing activity from {formatDateDisplay(fromDate)} to {formatDateDisplay(toDate)}
-          </p>
+
+        {/* Village filter */}
+        {user.villages.length > 0 && (
+          <div>
+            <label className="label text-xs">Location</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedVillage('')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!selectedVillage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                All
+              </button>
+              {user.villages.map(v => (
+                <button
+                  key={v.id}
+                  onClick={() => setSelectedVillage(selectedVillage === v.id ? '' : v.id)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${selectedVillage === v.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

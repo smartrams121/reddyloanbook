@@ -35,7 +35,7 @@ export default async function MorePage({ params }: Props) {
     { href: `/b/${businessId}/posting`, label: 'Record Payment', icon: '💰', show: true },
     { href: `/b/${businessId}/posting/bulk`, label: 'Bulk Posting', icon: '📋', show: true },
     { href: `/b/${businessId}/reports`, label: 'Reports', icon: '📑', show: isAdminOrOwner },
-    { href: `/b/${businessId}/users`, label: 'Manage Employees', icon: '👤', show: isAdminOrOwner },
+    { href: `/b/${businessId}/employees`, label: 'Manage Employees', icon: '👤', show: isAdminOrOwner },
     { href: `/b/${businessId}/settings`, label: 'Settings', icon: '⚙️', show: isAdminOrOwner },
   ]
 

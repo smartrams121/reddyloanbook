@@ -350,7 +350,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
           <div className="stat-value">{activeLoans.length}</div>
           <div className="stat-label">Loans</div>
         </Link>
-        <Link href={`/b/${businessId}/users`} className="stat-card hover:border-primary-300 transition-colors">
+        <Link href={`/b/${businessId}/employees`} className="stat-card hover:border-primary-300 transition-colors block">
           <div className="stat-value">{employeeAssignments.length}</div>
           <div className="stat-label">Employees</div>
         </Link>

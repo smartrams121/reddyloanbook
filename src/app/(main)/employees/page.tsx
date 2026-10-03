@@ -18,6 +18,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [actionMenu, setActionMenu] = useState<string | null>(null)
 
   // Create form
   const [fullName, setFullName] = useState('')
@@ -29,20 +30,28 @@ export default function EmployeesPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => {
+  // Edit form
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editRole, setEditRole] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  function loadEmployees() {
     fetch('/api/owner/employees')
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setEmployees(data) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { loadEmployees() }, [])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setSuccess('')
     setCreating(true)
-
     try {
       const res = await fetch('/api/owner/employees', {
         method: 'POST',
@@ -50,27 +59,80 @@ export default function EmployeesPage() {
         body: JSON.stringify({ fullName, username, phone: phone || undefined, role, password }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Failed to create employee')
-        return
-      }
+      if (!res.ok) { setError(data.error || 'Failed to create'); return }
       setSuccess(`Created ${data.fullName} (${data.username})`)
-      setFullName('')
-      setUsername('')
-      setPhone('')
-      setPassword('')
-      setRole('AGENT')
+      setFullName(''); setUsername(''); setPhone(''); setPassword(''); setRole('AGENT')
       setShowCreate(false)
+      loadEmployees()
+    } catch { setError('Network error') }
+    finally { setCreating(false) }
+  }
 
-      // Refresh list
-      const listRes = await fetch('/api/owner/employees')
-      const listData = await listRes.json()
-      if (Array.isArray(listData)) setEmployees(listData)
-    } catch {
-      setError('Network error')
-    } finally {
-      setCreating(false)
-    }
+  function startEdit(emp: Employee) {
+    setEditingId(emp.id)
+    setEditName(emp.fullName)
+    setEditPhone(emp.phone || '')
+    setEditRole(emp.role)
+    setActionMenu(null)
+  }
+
+  async function handleSaveEdit() {
+    if (!editingId) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/owner/employees/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: editName, phone: editPhone, role: editRole }),
+      })
+      if (res.ok) {
+        setEditingId(null)
+        setSuccess('Employee updated')
+        loadEmployees()
+      }
+    } catch {}
+    finally { setSaving(false) }
+  }
+
+  async function handleResetPassword(emp: Employee) {
+    setActionMenu(null)
+    if (!confirm(`Reset ${emp.fullName}'s password to their username (${emp.username})?`)) return
+    try {
+      const res = await fetch(`/api/owner/employees/${emp.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset-password' }),
+      })
+      const data = await res.json()
+      if (res.ok) setSuccess(data.message)
+    } catch {}
+  }
+
+  async function handleToggleSuspend(emp: Employee) {
+    setActionMenu(null)
+    try {
+      const res = await fetch(`/api/owner/employees/${emp.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'suspend' }),
+      })
+      if (res.ok) {
+        setSuccess(`${emp.fullName} ${emp.isActive ? 'suspended' : 'activated'}`)
+        loadEmployees()
+      }
+    } catch {}
+  }
+
+  async function handleDelete(emp: Employee) {
+    setActionMenu(null)
+    if (!confirm(`Permanently delete ${emp.fullName}? This will remove all their assignments.`)) return
+    try {
+      const res = await fetch(`/api/owner/employees/${emp.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setSuccess(`${emp.fullName} deleted`)
+        loadEmployees()
+      }
+    } catch {}
   }
 
   if (loading) {
@@ -88,10 +150,7 @@ export default function EmployeesPage() {
           <h1 className="text-xl font-bold text-gray-900">Employees</h1>
           <p className="text-sm text-gray-500">{employees.length} employees across all businesses</p>
         </div>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="btn-primary text-sm"
-        >
+        <button onClick={() => setShowCreate(!showCreate)} className="btn-primary text-sm">
           + New Employee
         </button>
       </div>
@@ -151,29 +210,91 @@ export default function EmployeesPage() {
       ) : (
         <div className="space-y-2">
           {employees.map((emp) => (
-            <div key={emp.id} className="card p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
-                {emp.fullName.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{emp.fullName}</p>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                    emp.role === 'AGENT' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                  }`}>
-                    {emp.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'}
-                  </span>
-                  {!emp.isActive && (
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">Inactive</span>
-                  )}
+            <div key={emp.id} className="card p-4">
+              {/* Edit Mode */}
+              {editingId === emp.id ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="label text-xs">Full Name</label>
+                    <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label text-xs">Phone</label>
+                      <input className="input" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Role</label>
+                      <select className="input" value={editRole} onChange={(e) => setEditRole(e.target.value)}>
+                        <option value="AGENT">Agent</option>
+                        <option value="BUSINESS_ADMIN">Business Admin</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleSaveEdit} disabled={saving} className="btn-primary text-xs flex-1">
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="btn-secondary text-xs flex-1">Cancel</button>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500">@{emp.username}{emp.phone ? ` · ${emp.phone}` : ''}</p>
-                {emp.businesses.length > 0 ? (
-                  <p className="text-[10px] text-gray-400 mt-0.5">{emp.businesses.join(', ')}</p>
-                ) : (
-                  <p className="text-[10px] text-amber-500 mt-0.5">Not assigned to any business</p>
-                )}
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
+                    {emp.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{emp.fullName}</p>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                        emp.role === 'AGENT' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                      }`}>
+                        {emp.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'}
+                      </span>
+                      {!emp.isActive && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">Suspended</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">@{emp.username}{emp.phone ? ` · ${emp.phone}` : ''}</p>
+                    {emp.businesses.length > 0 ? (
+                      <p className="text-[10px] text-gray-400 mt-0.5">{emp.businesses.join(', ')}</p>
+                    ) : (
+                      <p className="text-[10px] text-amber-500 mt-0.5">Not assigned to any business</p>
+                    )}
+                  </div>
+
+                  {/* Action Menu */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setActionMenu(actionMenu === emp.id ? null : emp.id)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                      </svg>
+                    </button>
+
+                    {actionMenu === emp.id && (
+                      <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 w-44 py-1">
+                        <button onClick={() => startEdit(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Edit
+                        </button>
+                        <button onClick={() => handleResetPassword(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Reset Password
+                        </button>
+                        <button onClick={() => handleToggleSuspend(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          {emp.isActive ? 'Suspend' : 'Activate'}
+                        </button>
+                        <button onClick={() => handleDelete(emp)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

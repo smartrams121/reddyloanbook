@@ -125,7 +125,7 @@ export default function EditUserPage() {
         return
       }
 
-      router.push(`/b/${businessId}/users`)
+      router.push(`/b/${businessId}/employees`)
       router.refresh()
     } catch {
       setError('Network error. Please try again.')
@@ -144,7 +144,7 @@ export default function EditUserPage() {
   return (
     <div className="px-4 py-6 max-w-md mx-auto">
       <div className="mb-6">
-        <Link href={`/b/${businessId}/users`} className="text-sm text-primary-600 hover:underline">
+        <Link href={`/b/${businessId}/employees`} className="text-sm text-primary-600 hover:underline">
           ← Back to Employees
         </Link>
         <h1 className="text-xl font-bold text-gray-900 mt-2">Edit Employee</h1>
@@ -257,7 +257,7 @@ export default function EditUserPage() {
           )}
 
           <div className="flex gap-3 pt-2">
-            <Link href={`/b/${businessId}/users`} className="btn-secondary flex-1 text-center">
+            <Link href={`/b/${businessId}/employees`} className="btn-secondary flex-1 text-center">
               Cancel
             </Link>
             <button type="submit" disabled={loading} className="btn-primary flex-1">

@@ -33,16 +33,31 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { searchParams } = new URL(request.url)
   const from = searchParams.get('from')
   const to = searchParams.get('to')
+  const villageId = searchParams.get('villageId')
   if (!from || !to) return NextResponse.json({ error: 'from and to are required' }, { status: 400 })
+
+  const paymentWhere: Record<string, unknown> = {
+    collectorId: userId,
+    businessId,
+    isDeleted: false,
+    paymentDate: { gte: from, lte: to },
+  }
+  if (villageId) {
+    paymentWhere.loan = { customer: { villageId } }
+  }
+
+  const loanWhere: Record<string, unknown> = {
+    agentId: userId,
+    businessId,
+    startDate: { gte: from, lte: to },
+  }
+  if (villageId) {
+    loanWhere.customer = { villageId }
+  }
 
   const [payments, loans] = await Promise.all([
     prisma.payment.findMany({
-      where: {
-        collectorId: userId,
-        businessId,
-        isDeleted: false,
-        paymentDate: { gte: from, lte: to },
-      },
+      where: paymentWhere,
       include: {
         loan: {
           select: {
@@ -54,11 +69,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       orderBy: [{ paymentDate: 'asc' }, { createdAt: 'asc' }],
     }),
     prisma.loan.findMany({
-      where: {
-        agentId: userId,
-        businessId,
-        startDate: { gte: from, lte: to },
-      },
+      where: loanWhere,
       select: {
         id: true, loanNumber: true, amountGiven: true, totalRepayable: true,
         startDate: true, status: true, collectionType: true,

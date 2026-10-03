@@ -511,35 +511,6 @@ export default function NewBusinessPage() {
           <p className="text-[10px] text-gray-400">At least one location is required. You can add more later.</p>
         </div>
 
-        {/* Agent Assignment */}
-        {agents.length > 0 && (
-          <div className="card p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Assign Agents</h2>
-            <p className="text-xs text-gray-400">Select existing agents who should have access to this business</p>
-
-            <div className="space-y-2">
-              {agents.map((agent) => (
-                <label key={agent.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedAgentIds.includes(agent.id)}
-                    onChange={() => toggleAgent(agent.id)}
-                    className="rounded border-gray-300 text-primary-600"
-                  />
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold">
-                      {agent.fullName.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{agent.fullName}</p>
-                      {agent.phone && <p className="text-xs text-gray-500">{agent.phone}</p>}
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Submit */}
         <div className="flex gap-3 pt-2">
