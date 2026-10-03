@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: Props) {
   if (customerId) where.customerId = customerId
   if (activeOnDate) {
     where.startDate = { lte: activeOnDate }
-    where.status = { in: ['ACTIVE', 'OVERDUE'] }
+    where.status = 'ACTIVE'
   }
 
   const loans = await prisma.loan.findMany({
