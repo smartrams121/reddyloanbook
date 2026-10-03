@@ -150,17 +150,19 @@ echo "▸ Step 7/8: Replacing old container..."
 docker stop dailyfinance_app 2>/dev/null || true
 docker rm dailyfinance_app 2>/dev/null || true
 
-# Remove old image tag, retag new
+# Remove old images, retag new as both names (compose uses deploy-app)
 docker rmi dailyfinance_app:latest 2>/dev/null || true
+docker rmi deploy-app:latest 2>/dev/null || true
 docker tag dailyfinance_app:new dailyfinance_app:latest
+docker tag dailyfinance_app:new deploy-app:latest
 docker rmi dailyfinance_app:new 2>/dev/null || true
 
 # Stop the temp container
 docker stop dailyfinance_app_new 2>/dev/null || true
 docker rm dailyfinance_app_new 2>/dev/null || true
 
-# Start final container on port 3000 using compose
-$COMPOSE up -d app
+# Start final container on port 3000 using compose (--no-build to use pre-built image)
+$COMPOSE up -d --no-build app
 sleep 5
 
 # Wait for app on 3000
