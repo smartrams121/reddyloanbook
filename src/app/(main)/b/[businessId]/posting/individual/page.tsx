@@ -8,6 +8,7 @@ interface Agent { id: string; fullName: string; role: string }
 interface CustomerResult {
   id: string; customerId: string; fullName: string; phone: string
   village: { id: string; name: string }; status: string
+  _count?: { loans: number }
 }
 interface LoanResult {
   id: string; loanNumber: string; totalRepayable: number; loanAmount: number
@@ -129,7 +130,7 @@ export default function RecordPaymentPage() {
   }, [customerLoans, preLoanId, step])
 
   const filteredCustomers = useMemo(() => {
-    let list = customers.filter(c => c.status === 'ACTIVE')
+    let list = customers.filter(c => c.status === 'ACTIVE' && (c._count?.loans || 0) > 0)
 
     // Filter by payment status on filterDate
     list = list.filter(c =>
