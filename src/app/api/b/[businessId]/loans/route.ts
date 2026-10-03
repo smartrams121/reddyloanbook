@@ -24,10 +24,15 @@ export async function GET(request: Request, { params }: Props) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const customerId = searchParams.get('customerId')
+  const activeOnDate = searchParams.get('activeOnDate')
 
   const where: Record<string, unknown> = { businessId }
   if (status) where.status = status
   if (customerId) where.customerId = customerId
+  if (activeOnDate) {
+    where.startDate = { lte: activeOnDate }
+    where.status = { in: ['ACTIVE', 'OVERDUE'] }
+  }
 
   const loans = await prisma.loan.findMany({
     where,

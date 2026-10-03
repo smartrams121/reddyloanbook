@@ -57,6 +57,7 @@ export default function RecordPaymentPage() {
   })
   const [showCompleted, setShowCompleted] = useState(false)
   const [paidCustomerIds, setPaidCustomerIds] = useState<Set<string>>(new Set())
+  const [eligibleCustomerIds, setEligibleCustomerIds] = useState<Set<string> | null>(null)
 
   const [customerLoans, setCustomerLoans] = useState<LoanResult[]>([])
   const [loanPaidMap, setLoanPaidMap] = useState<Record<string, number>>({})
@@ -105,15 +106,17 @@ export default function RecordPaymentPage() {
   }, [businessId])
 
   useEffect(() => {
-    fetch(`/api/b/${businessId}/payments?date=${filterDate}`)
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const ids = new Set<string>(data.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id))
-          setPaidCustomerIds(ids)
-        }
-      })
-      .catch(() => {})
+    Promise.all([
+      fetch(`/api/b/${businessId}/payments?date=${filterDate}`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/loans?activeOnDate=${filterDate}`).then(r => r.json()),
+    ]).then(([payments, loans]) => {
+      if (Array.isArray(payments)) {
+        setPaidCustomerIds(new Set(payments.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id)))
+      }
+      if (Array.isArray(loans)) {
+        setEligibleCustomerIds(new Set(loans.map((l: { customer: { id: string } }) => l.customer.id)))
+      }
+    }).catch(() => {})
   }, [businessId, filterDate])
 
   const [preSelected, setPreSelected] = useState(false)
@@ -132,6 +135,11 @@ export default function RecordPaymentPage() {
   const filteredCustomers = useMemo(() => {
     let list = customers.filter(c => c.status === 'ACTIVE' && (c._count?.loans || 0) > 0)
 
+    // Only show customers with loans that started on or before filterDate
+    if (eligibleCustomerIds) {
+      list = list.filter(c => eligibleCustomerIds.has(c.id))
+    }
+
     // Filter by payment status on filterDate
     list = list.filter(c =>
       showCompleted ? paidCustomerIds.has(c.id) : !paidCustomerIds.has(c.id)
@@ -147,7 +155,7 @@ export default function RecordPaymentPage() {
     }
 
     return list
-  }, [customers, searchQuery, showCompleted, paidCustomerIds])
+  }, [customers, searchQuery, showCompleted, paidCustomerIds, eligibleCustomerIds])
 
   const checkExistingPayment = useCallback(async (loanId: string, date: string) => {
     try {
@@ -346,14 +354,13 @@ export default function RecordPaymentPage() {
             <button
               type="button"
               onClick={() => {
-                fetch(`/api/b/${businessId}/payments?date=${filterDate}`)
-                  .then(r => r.json())
-                  .then(data => {
-                    if (Array.isArray(data)) {
-                      const ids = new Set<string>(data.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id))
-                      setPaidCustomerIds(ids)
-                    }
-                  }).catch(() => {})
+                Promise.all([
+                  fetch(`/api/b/${businessId}/payments?date=${filterDate}`).then(r => r.json()),
+                  fetch(`/api/b/${businessId}/loans?activeOnDate=${filterDate}`).then(r => r.json()),
+                ]).then(([payments, loans]) => {
+                  if (Array.isArray(payments)) setPaidCustomerIds(new Set(payments.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id)))
+                  if (Array.isArray(loans)) setEligibleCustomerIds(new Set(loans.map((l: { customer: { id: string } }) => l.customer.id)))
+                }).catch(() => {})
               }}
               className="px-2 py-1 text-xs rounded border border-primary-200 text-primary-600 hover:bg-primary-50"
             >
