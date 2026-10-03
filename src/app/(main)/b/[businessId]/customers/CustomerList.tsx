@@ -300,80 +300,69 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
         <div className="bg-danger-50 text-danger-700 text-sm px-4 py-2 rounded-lg mb-2">{error}</div>
       )}
 
-      {/* Customer List */}
-      <div className="space-y-2">
-        {customers.length > 0 && isAdminOrOwner && (
-          <div className="flex items-center gap-3 px-1 mb-1">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={toggleAll}
-                className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              />
-              {selected.size > 0 ? `${selected.size} selected` : 'Select All'}
-            </label>
-          </div>
-        )}
-
-        {customers.map((c) => (
-          <div
-            key={c.id}
-            className={`card p-3 flex items-center gap-3 transition-colors ${selected.has(c.id) ? 'ring-2 ring-primary-300 bg-primary-50/30' : 'hover:border-primary-300'}`}
-          >
-            {isAdminOrOwner && (
-              <input
-                type="checkbox"
-                checked={selected.has(c.id)}
-                onChange={() => toggleOne(c.id)}
-                onClick={(e) => e.stopPropagation()}
-                className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
-              />
-            )}
-            <Link
-              href={`/b/${businessId}/customers/${c.id}`}
-              className="flex items-center justify-between flex-1 min-w-0"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-sm font-bold shrink-0">
-                  {c.fullName.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{c.fullName}</p>
-                  <p className="text-xs text-gray-500">{c.customerId} &middot; {c.phone} &middot; {c.village.name}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                  c.status === 'ACTIVE' ? 'bg-success-50 text-success-700' :
-                  c.status === 'OVERDUE' ? 'bg-red-50 text-red-700' :
-                  c.status === 'DEFAULTER' ? 'bg-red-50 text-red-700' :
-                  c.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700' :
-                  c.status === 'NO LOANS' ? 'bg-gray-100 text-gray-400' :
-                  'bg-gray-100 text-gray-500'
-                }`}>
-                  {c.status}
-                </span>
-                <span className="text-xs text-gray-400">{c._count.loans} loans</span>
-                <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-              </div>
+      {/* Customer Table */}
+      {customers.length === 0 ? (
+        <div className="card p-8 text-center">
+          <p className="text-gray-500 mb-4">No customers found.</p>
+          {isAdminOrOwner && (
+            <Link href={`/b/${businessId}/customers/new`} className="btn-primary">
+              Add First Customer
             </Link>
-          </div>
-        ))}
-
-        {customers.length === 0 && (
-          <div className="card p-8 text-center">
-            <p className="text-gray-500 mb-4">No customers found.</p>
-            {isAdminOrOwner && (
-              <Link href={`/b/${businessId}/customers/new`} className="btn-primary">
-                Add First Customer
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      ) : (
+        <div className="card overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-left text-gray-500 bg-gray-50">
+                {isAdminOrOwner && (
+                  <th className="py-2 px-3 w-8">
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                  </th>
+                )}
+                <th className="py-2 px-3">Customer</th>
+                <th className="py-2 px-3 hidden md:table-cell">Phone</th>
+                <th className="py-2 px-3 hidden md:table-cell">Location</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3 text-right hidden md:table-cell">Loans</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((c) => (
+                <tr key={c.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(c.id) ? 'bg-primary-50/30' : ''}`}>
+                  {isAdminOrOwner && (
+                    <td className="py-2 px-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(c.id)}
+                        onChange={() => toggleOne(c.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                      />
+                    </td>
+                  )}
+                  <td className="py-2 px-3">
+                    <Link href={`/b/${businessId}/customers/${c.id}`} className="font-medium text-primary-600 hover:underline">{c.fullName}</Link>
+                    <p className="text-[10px] text-gray-400 md:hidden">{c.customerId} · {c.phone} · {c.village.name}</p>
+                  </td>
+                  <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{c.phone || '-'}</td>
+                  <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{c.village.name}</td>
+                  <td className="py-2 px-3">
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                      c.status === 'ACTIVE' ? 'bg-success-50 text-success-700' :
+                      c.status === 'OVERDUE' ? 'bg-red-50 text-red-700' :
+                      c.status === 'DEFAULTER' ? 'bg-red-50 text-red-700' :
+                      c.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700' :
+                      c.status === 'NO LOANS' ? 'bg-gray-100 text-gray-400' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>{c.status}</span>
+                  </td>
+                  <td className="py-2 px-3 text-right text-gray-500 hidden md:table-cell">{c._count.loans}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Floating Action Bar */}
       {selected.size > 0 && isAdminOrOwner && (

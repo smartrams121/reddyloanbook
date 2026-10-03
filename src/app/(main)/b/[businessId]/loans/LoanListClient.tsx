@@ -371,90 +371,13 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
   const selectedLoanId = selected.size === 1 ? Array.from(selected)[0] : null
 
   return (
-    <div className="space-y-2 relative">
-      {/* Select All */}
-      {isAdminOrOwner && loans.length > 0 && (
-        <div className="flex items-center gap-2 mb-1">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleAll}
-            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-          />
-          <span className="text-xs text-gray-500">
-            {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
-          </span>
-        </div>
-      )}
-
+    <div className="relative">
       {error && (
-        <div className="bg-danger-50 text-danger-700 text-sm px-4 py-2 rounded-lg">{error}</div>
+        <div className="bg-danger-50 text-danger-700 text-sm px-4 py-2 rounded-lg mb-2">{error}</div>
       )}
 
-      {/* Loan Cards */}
-      {loans.map((loan) => {
-        const outstanding = loan.totalRepayable - loan.paid
-        const progress = loan.totalRepayable > 0 ? Math.round((loan.paid / loan.totalRepayable) * 100) : 0
-        const isSelected = selected.has(loan.id)
-
-        return (
-          <div
-            key={loan.id}
-            className={`card p-3 flex gap-3 items-start transition-colors ${isSelected ? 'ring-2 ring-primary-300 bg-primary-50/30' : ''}`}
-          >
-            {isAdminOrOwner && (
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggleOne(loan.id)}
-                className="w-4 h-4 mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
-              />
-            )}
-            <Link
-              href={`/b/${businessId}/customers/${loan.customer.id}`}
-              className="flex-1 min-w-0 block hover:opacity-80 transition-opacity"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{loan.customer.fullName}</p>
-                  <p className="text-xs text-gray-500">
-                    {loan.loanNumber} &middot; {loan.customer.phone}
-                    {loan.agent && <> · <span className="text-primary-600">{loan.agent.fullName}</span></>}
-                  </p>
-                </div>
-                <div className="shrink-0 ml-2">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadgeClass(loan.status)}`}>
-                    {loan.status.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                <span>Lent: {formatPaiseShort(loan.amountGiven)}</span>
-                <span>Repayable: {formatPaiseShort(loan.totalRepayable)}</span>
-                <span>Due: {formatPaiseShort(outstanding)}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${progress >= 100 ? 'bg-success-500' : 'bg-primary-500'}`}
-                    style={{ width: `${Math.min(100, progress)}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 shrink-0">{progress}%</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1.5">
-                <span>{loan.collectionType} · {formatPaiseShort(loan.installmentAmount)}/inst</span>
-                <span>Due: {formatDateDisplay(loan.expectedEndDate)} · Started {formatDateDisplay(loan.startDate)}</span>
-              </div>
-            </Link>
-          </div>
-        )
-      })}
-
-      {loans.length === 0 && (
+      {/* Loan Table */}
+      {loans.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-gray-500 mb-4">No loans found.</p>
           {isAdminOrOwner && (
@@ -462,6 +385,53 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
               Create First Loan
             </Link>
           )}
+        </div>
+      ) : (
+        <div className="card overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-left text-gray-500 bg-gray-50">
+                {isAdminOrOwner && (
+                  <th className="py-2 px-3 w-8">
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                  </th>
+                )}
+                <th className="py-2 px-3">Customer</th>
+                <th className="py-2 px-3 hidden md:table-cell">Loan #</th>
+                <th className="py-2 px-3 text-right hidden md:table-cell">Lent</th>
+                <th className="py-2 px-3 text-right">Due</th>
+                <th className="py-2 px-3 hidden md:table-cell">Agent</th>
+                <th className="py-2 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loans.map((loan) => {
+                const outstanding = loan.totalRepayable - loan.paid
+                return (
+                  <tr key={loan.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(loan.id) ? 'bg-primary-50/30' : ''}`}>
+                    {isAdminOrOwner && (
+                      <td className="py-2 px-3">
+                        <input type="checkbox" checked={selected.has(loan.id)} onChange={() => toggleOne(loan.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                      </td>
+                    )}
+                    <td className="py-2 px-3">
+                      <Link href={`/b/${businessId}/customers/${loan.customer.id}`} className="font-medium text-primary-600 hover:underline">{loan.customer.fullName}</Link>
+                      <p className="text-[10px] text-gray-400 md:hidden">{loan.loanNumber} · {formatPaiseShort(loan.amountGiven)}{loan.agent ? ` · ${loan.agent.fullName}` : ''}</p>
+                    </td>
+                    <td className="py-2 px-3 text-gray-500 font-mono hidden md:table-cell">{loan.loanNumber}</td>
+                    <td className="py-2 px-3 text-right text-gray-700 hidden md:table-cell">{formatPaiseShort(loan.amountGiven)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-gray-900">{formatPaiseShort(outstanding)}</td>
+                    <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{loan.agent?.fullName || '-'}</td>
+                    <td className="py-2 px-3">
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadgeClass(loan.status)}`}>
+                        {loan.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
