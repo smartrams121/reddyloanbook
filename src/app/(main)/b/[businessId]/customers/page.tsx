@@ -34,6 +34,16 @@ export default async function CustomersPage({ params, searchParams }: Props) {
   const where: Record<string, unknown> = { businessId }
   if (filters.village) where.villageId = filters.village
 
+  // Agents only see customers in their assigned villages
+  if (user.role === Role.AGENT) {
+    const agentVillages = await prisma.userVillageAssignment.findMany({
+      where: { userId: user.id, village: { businessId } },
+      select: { villageId: true },
+    })
+    const villageIds = agentVillages.map(v => v.villageId)
+    if (villageIds.length > 0) where.villageId = { in: villageIds }
+  }
+
   const searchQuery = filters.search?.trim().toLowerCase()
 
   if (searchQuery) {

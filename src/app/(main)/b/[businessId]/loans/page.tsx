@@ -45,6 +45,11 @@ export default async function LoansPage({ params, searchParams }: Props) {
 
   const where: Record<string, unknown> = { businessId }
 
+  // Agents only see their own loans
+  if (user.role === Role.AGENT) {
+    where.agentId = user.id
+  }
+
   const searchQuery = filters.search?.trim().toLowerCase()
   if (searchQuery) {
     where.OR = [
