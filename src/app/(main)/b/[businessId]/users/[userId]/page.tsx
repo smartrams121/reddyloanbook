@@ -47,6 +47,8 @@ export default function EmployeeDetailPage() {
   const [fromDate, setFromDate] = useState(today)
   const [toDate, setToDate] = useState(today)
   const [selectedVillage, setSelectedVillage] = useState('')
+  const [collectionsOpen, setCollectionsOpen] = useState(false)
+  const [disbursementsOpen, setDisbursementsOpen] = useState(false)
   const [data, setData] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -190,7 +192,10 @@ export default function EmployeeDetailPage() {
 
       {/* Section 1: Collections */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Collections</h2>
+        <button onClick={() => setCollectionsOpen(!collectionsOpen)} className="flex items-center justify-between w-full mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Collections</h2>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${collectionsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        </button>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="stat-card">
             <div className="stat-value text-success-600">{formatPaiseShort(collections.totalAmount)}</div>
@@ -202,7 +207,7 @@ export default function EmployeeDetailPage() {
           </div>
         </div>
 
-        {collections.payments.length === 0 ? (
+        {collectionsOpen && (collections.payments.length === 0 ? (
           <div className="card p-6 text-center text-gray-400 text-sm">No collections for this period</div>
         ) : (
           <div className="card overflow-hidden">
@@ -244,12 +249,15 @@ export default function EmployeeDetailPage() {
               </table>
             </div>
           </div>
-        )}
+        ))}
       </div>
 
       {/* Section 2: Disbursements */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Loans Disbursed</h2>
+        <button onClick={() => setDisbursementsOpen(!disbursementsOpen)} className="flex items-center justify-between w-full mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Loans Disbursed</h2>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${disbursementsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        </button>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="stat-card">
             <div className="stat-value text-primary-600">{formatPaiseShort(disbursements.totalAmount)}</div>
@@ -261,7 +269,7 @@ export default function EmployeeDetailPage() {
           </div>
         </div>
 
-        {disbursements.loans.length === 0 ? (
+        {disbursementsOpen && (disbursements.loans.length === 0 ? (
           <div className="card p-6 text-center text-gray-400 text-sm">No loans disbursed in this period</div>
         ) : (
           <div className="card overflow-hidden">
@@ -309,7 +317,7 @@ export default function EmployeeDetailPage() {
               </table>
             </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   )

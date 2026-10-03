@@ -64,10 +64,15 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
 
   const isAgent = user.role === Role.AGENT
 
+  // Agents go to their own activity page as dashboard
+  if (isAgent) {
+    redirect(`/b/${businessId}/users/${user.id}`)
+  }
+
   const today = todayIST()
   const dateRange = getDateRange(range, from, to)
 
-  if (isAgent) {
+  if (false) {
     const [agentPayments, agentLoans, agentRangePayments] = await Promise.all([
       prisma.payment.aggregate({
         where: { businessId, collectorId: user.id, isDeleted: false },
