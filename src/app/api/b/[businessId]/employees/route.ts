@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
+import { Role } from '@/lib/constants'
 import { z } from 'zod'
 
 interface RouteParams {
@@ -16,6 +17,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   try { await assertBusinessAccess(user, businessId) } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
+
+  // Agents cannot view/manage other employees
+  if (user.role === Role.AGENT) {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
 
   const business = await prisma.business.findUnique({
