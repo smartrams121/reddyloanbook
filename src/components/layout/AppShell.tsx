@@ -265,11 +265,9 @@ export default function AppShell({ user, children }: AppShellProps) {
               {user.role === Role.OWNER && (
                 <NavSection title="Owner Objects">
                   <NavLink href="/businesses/new" icon="➕" label="Register New Business" active={pathname === '/businesses/new'} />
+                  <NavLink href="/employees" icon="👤" label="Manage Employees" active={pathname.startsWith('/employees')} />
                   {activeBusinessId && (
-                    <>
-                      <NavLink href={`/b/${activeBusinessId}/users`} icon="👤" label="Manage Employees" active={pathname.startsWith(`/b/${activeBusinessId}/users`)} />
-                      <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label="Business Settings" active={pathname === `/b/${activeBusinessId}/settings`} />
-                    </>
+                    <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label="Business Settings" active={pathname === `/b/${activeBusinessId}/settings`} />
                   )}
                   <NavLink href="/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
                 </NavSection>
