@@ -343,6 +343,22 @@ export default function RecordPaymentPage() {
             <span className="text-xs text-gray-400">
               {showCompleted ? `${filteredCustomers.length} paid` : `${filteredCustomers.length} pending`}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                fetch(`/api/b/${businessId}/payments?date=${filterDate}`)
+                  .then(r => r.json())
+                  .then(data => {
+                    if (Array.isArray(data)) {
+                      const ids = new Set<string>(data.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id))
+                      setPaidCustomerIds(ids)
+                    }
+                  }).catch(() => {})
+              }}
+              className="px-2 py-1 text-xs rounded border border-primary-200 text-primary-600 hover:bg-primary-50"
+            >
+              Refresh
+            </button>
           </div>
 
           <div>

@@ -72,7 +72,10 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       orderBy: { fullName: 'asc' },
     }),
     prisma.village.findMany({
-      where: { businessId, isActive: true },
+      where: {
+        businessId, isActive: true,
+        ...(user.role === Role.AGENT ? { agentAssignments: { some: { userId: user.id } } } : {}),
+      },
       orderBy: { name: 'asc' },
     }),
   ])
