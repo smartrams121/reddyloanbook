@@ -228,14 +228,44 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
   )
 }
 
+const PAGE_SIZES = [15, 25, 50, 100, 0] as const
+
 export default function CustomerList({ customers, businessId, isAdminOrOwner }: Props) {
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 15)
+  const [sortField, setSortField] = useState<string>('fullName')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const [viewCustomer, setViewCustomer] = useState<CustomerDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
+
+  function toggleSort(field: string) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+    setPage(1)
+  }
+  const sortIcon = (field: string) => sortField === field ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  const sorted = [...customers].sort((a, b) => {
+    let va: string | number = '', vb: string | number = ''
+    switch (sortField) {
+      case 'fullName': va = a.fullName; vb = b.fullName; break
+      case 'phone': va = a.phone || ''; vb = b.phone || ''; break
+      case 'village': va = a.village.name; vb = b.village.name; break
+      case 'status': va = a.status; vb = b.status; break
+      case 'loans': va = a._count.loans; vb = b._count.loans; break
+    }
+    if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va
+    return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
+  })
+
+  const showAll = pageSize === 0
+  const totalPages = showAll ? 1 : Math.ceil(sorted.length / pageSize)
+  const pagedCustomers = showAll ? sorted : sorted.slice((page - 1) * pageSize, page * pageSize)
 
   const allIds = customers.map(c => c.id)
   const allSelected = customers.length > 0 && selected.size === customers.length
@@ -320,15 +350,15 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
                 )}
-                <th className="py-2 px-3">Customer</th>
-                <th className="py-2 px-3 hidden md:table-cell">Phone</th>
-                <th className="py-2 px-3 hidden md:table-cell">Location</th>
-                <th className="py-2 px-3">Status</th>
-                <th className="py-2 px-3 text-right hidden md:table-cell">Loans</th>
+                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('fullName')}>Customer{sortIcon('fullName')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('phone')}>Phone{sortIcon('phone')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Location{sortIcon('village')}</th>
+                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
+                <th className="py-2 px-3 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loans')}>Loans{sortIcon('loans')}</th>
               </tr>
             </thead>
             <tbody>
-              {customers.map((c) => (
+              {pagedCustomers.map((c) => (
                 <tr key={c.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(c.id) ? 'bg-primary-50/30' : ''}`}>
                   {isAdminOrOwner && (
                     <td className="py-2 px-3">
@@ -342,7 +372,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                   )}
                   <td className="py-2 px-3">
                     <Link href={`/b/${businessId}/customers/${c.id}`} className="font-medium text-primary-600 hover:underline">{c.fullName}</Link>
-                    <p className="text-[10px] text-gray-400 md:hidden">{c.customerId} · {c.phone} · {c.village.name}</p>
+                    <span className="block text-[10px] text-gray-400 md:hidden">{c.customerId} · {c.phone} · {c.village.name}</span>
                   </td>
                   <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{c.phone || '-'}</td>
                   <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{c.village.name}</td>
@@ -361,6 +391,71 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {customers.length > 0 && (
+        <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {showAll ? `All ${customers.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, customers.length)} of ${customers.length}`}
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+              className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600"
+            >
+              {PAGE_SIZES.map(s => (
+                <option key={s} value={s}>{s === 0 ? 'All' : s}</option>
+              ))}
+            </select>
+          </div>
+          {totalPages > 1 && <div className="flex gap-1">
+            <button
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .map((p, idx, arr) => (
+                <span key={p}>
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                  <button
+                    onClick={() => setPage(p)}
+                    className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+                      p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </span>
+              ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page === totalPages}
+              className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Last
+            </button>
+          </div>}
         </div>
       )}
 

@@ -277,17 +277,49 @@ function PaymentHistoryModal({ payments, loanNumber, totalRepayable, onClose }: 
   )
 }
 
+const PAGE_SIZES = [15, 25, 50, 100, 0] as const
+
 export default function LoanListClient({ loans, businessId, isAdminOrOwner = true }: Props) {
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 15)
+  const [sortField, setSortField] = useState<string>('customer')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const [viewLoan, setViewLoan] = useState<LoanDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
   const [payments, setPayments] = useState<PaymentRecord[] | null>(null)
   const [paymentsLoan, setPaymentsLoan] = useState<{ loanNumber: string; totalRepayable: number } | null>(null)
   const [paymentsLoading, setPaymentsLoading] = useState(false)
+
+  function toggleSort(field: string) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+    setPage(1)
+  }
+  const sortIcon = (field: string) => sortField === field ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  const sorted = [...loans].sort((a, b) => {
+    let va: string | number = '', vb: string | number = ''
+    switch (sortField) {
+      case 'customer': va = a.customer.fullName; vb = b.customer.fullName; break
+      case 'loanNumber': va = a.loanNumber; vb = b.loanNumber; break
+      case 'startDate': va = a.startDate; vb = b.startDate; break
+      case 'lent': va = a.amountGiven; vb = b.amountGiven; break
+      case 'due': va = a.totalRepayable - a.paid; vb = b.totalRepayable - b.paid; break
+      case 'agent': va = a.agent?.fullName || ''; vb = b.agent?.fullName || ''; break
+      case 'status': va = a.status; vb = b.status; break
+    }
+    if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va
+    return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
+  })
+
+  const showAll = pageSize === 0
+  const totalPages = showAll ? 1 : Math.ceil(sorted.length / pageSize)
+  const pagedLoans = showAll ? sorted : sorted.slice((page - 1) * pageSize, page * pageSize)
 
   const allIds = loans.map((l) => l.id)
   const allSelected = loans.length > 0 && selected.size === loans.length
@@ -396,16 +428,17 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
                 )}
-                <th className="py-2 px-3">Customer</th>
-                <th className="py-2 px-3 hidden md:table-cell">Loan #</th>
-                <th className="py-2 px-3 text-right hidden md:table-cell">Lent</th>
-                <th className="py-2 px-3 text-right">Due</th>
-                <th className="py-2 px-3 hidden md:table-cell">Agent</th>
-                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
+                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('startDate')}>Date{sortIcon('startDate')}</th>
+                <th className="py-2 px-3 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('lent')}>Loan{sortIcon('lent')}</th>
+                <th className="py-2 px-3 text-right cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('due')}>Due{sortIcon('due')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('agent')}>Agent{sortIcon('agent')}</th>
+                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
               </tr>
             </thead>
             <tbody>
-              {loans.map((loan) => {
+              {pagedLoans.map((loan) => {
                 const outstanding = loan.totalRepayable - loan.paid
                 return (
                   <tr key={loan.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(loan.id) ? 'bg-primary-50/30' : ''}`}>
@@ -414,14 +447,15 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                         <input type="checkbox" checked={selected.has(loan.id)} onChange={() => toggleOne(loan.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                       </td>
                     )}
+                    <td className="py-2 px-3 text-gray-500 font-mono hidden md:table-cell">{loan.loanNumber}</td>
                     <td className="py-2 px-3">
                       <Link href={`/b/${businessId}/customers/${loan.customer.id}`} className="font-medium text-primary-600 hover:underline">{loan.customer.fullName}</Link>
-                      <p className="text-[10px] text-gray-400 md:hidden">{loan.loanNumber} · {formatPaiseShort(loan.amountGiven)}{loan.agent ? ` · ${loan.agent.fullName}` : ''}</p>
+                      <span className="block text-[10px] text-gray-400 md:hidden">{loan.loanNumber} · {formatDateDisplay(loan.startDate)} · {formatPaiseShort(loan.amountGiven)}{loan.agent ? ` · ${loan.agent.fullName}` : ''}</span>
                     </td>
-                    <td className="py-2 px-3 text-gray-500 font-mono hidden md:table-cell">{loan.loanNumber}</td>
+                    <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{formatDateDisplay(loan.startDate)}</td>
                     <td className="py-2 px-3 text-right text-gray-700 hidden md:table-cell">{formatPaiseShort(loan.amountGiven)}</td>
                     <td className="py-2 px-3 text-right font-semibold text-gray-900">{formatPaiseShort(outstanding)}</td>
-                    <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{loan.agent?.fullName || '-'}</td>
+                    <td className="py-2 px-3 hidden md:table-cell">{loan.agent ? <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline">{loan.agent.fullName}</Link> : '-'}</td>
                     <td className="py-2 px-3">
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadgeClass(loan.status)}`}>
                         {loan.status.replace(/_/g, ' ')}
@@ -432,6 +466,32 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {loans.length > 0 && (
+        <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {showAll ? `All ${loans.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, loans.length)} of ${loans.length}`}
+            </span>
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600">
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? 'All' : s}</option>)}
+            </select>
+          </div>
+          {totalPages > 1 && <div className="flex gap-1">
+            <button onClick={() => setPage(1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">First</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1).map((p, idx, arr) => (
+              <span key={p}>
+                {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                <button onClick={() => setPage(p)} className={`px-2.5 py-1 text-xs rounded border transition-colors ${p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+              </span>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Last</button>
+          </div>}
         </div>
       )}
 

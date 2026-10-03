@@ -38,6 +38,7 @@ export async function GET(request: Request, { params }: Props) {
         select: {
           id: true, loanNumber: true, installmentAmount: true,
           totalRepayable: true, status: true, startDate: true, createdAt: true,
+          agent: { select: { id: true, fullName: true } },
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -99,6 +100,8 @@ export async function GET(request: Request, { params }: Props) {
             totalPaid,
             outstanding,
             status: l.status,
+            agentId: l.agent?.id || null,
+            agentName: l.agent?.fullName || null,
             existingPayment: existing,
           }
         })

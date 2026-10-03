@@ -19,6 +19,8 @@ interface Props {
   canEdit: boolean
 }
 
+const PAGE_SIZES = [15, 25, 50, 100, 0] as const
+
 export default function VillageList({ villages, businessId, canAdd, canEdit }: Props) {
   const router = useRouter()
   const [showAdd, setShowAdd] = useState(false)
@@ -27,6 +29,12 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
   const [editName, setEditName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 15)
+
+  const showAllPages = pageSize === 0
+  const totalPages = showAllPages ? 1 : Math.ceil(villages.length / pageSize)
+  const pagedVillages = showAllPages ? villages : villages.slice((page - 1) * pageSize, page * pageSize)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -146,7 +154,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
       )}
 
       <div className="space-y-2">
-        {villages.map((v) => (
+        {pagedVillages.map((v) => (
           <div key={v.id} className={`card p-4 ${!v.isActive ? 'opacity-60' : ''}`}>
             {editId === v.id ? (
               <div className="flex gap-2">
@@ -212,6 +220,32 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {villages.length > 0 && (
+        <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {showAllPages ? `All ${villages.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, villages.length)} of ${villages.length}`}
+            </span>
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600">
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? 'All' : s}</option>)}
+            </select>
+          </div>
+          {totalPages > 1 && <div className="flex gap-1">
+            <button onClick={() => setPage(1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">First</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1).map((p, idx, arr) => (
+              <span key={p}>
+                {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                <button onClick={() => setPage(p)} className={`px-2.5 py-1 text-xs rounded border transition-colors ${p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+              </span>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Last</button>
+          </div>}
+        </div>
+      )}
     </div>
   )
 }

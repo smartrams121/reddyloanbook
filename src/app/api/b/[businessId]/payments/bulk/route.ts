@@ -22,6 +22,7 @@ const bulkPaymentSchema = z.object({
     ),
   paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   collectorId: z.string().min(1).optional(),
+  note: z.string().optional(),
 })
 
 export async function POST(request: Request, { params }: Props) {
@@ -51,6 +52,7 @@ export async function POST(request: Request, { params }: Props) {
   const { payments: entries } = parsed.data
   const today = todayIST()
   const paymentDate = parsed.data.paymentDate || today
+  const note = parsed.data.note || null
   let collector = user.id
   if (parsed.data.collectorId) {
     const assignment = await prisma.userBusinessAssignment.findFirst({
@@ -169,6 +171,7 @@ export async function POST(request: Request, { params }: Props) {
             amount,
             paymentDate,
             collectorId: collector,
+            note,
           },
         })
 

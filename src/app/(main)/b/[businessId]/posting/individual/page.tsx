@@ -13,6 +13,7 @@ interface LoanResult {
   id: string; loanNumber: string; totalRepayable: number; loanAmount: number
   installmentAmount: number; status: string; startDate: string
   customer: { fullName: string; customerId: string }
+  agent?: { id: string; fullName: string } | null
 }
 interface PaymentResult {
   _sum: { amount: number | null }
@@ -49,6 +50,12 @@ export default function RecordPaymentPage() {
   const [customers, setCustomers] = useState<CustomerResult[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerResult | null>(null)
+  const [filterDate, setFilterDate] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [paidCustomerIds, setPaidCustomerIds] = useState<Set<string>>(new Set())
 
   const [customerLoans, setCustomerLoans] = useState<LoanResult[]>([])
   const [loanPaidMap, setLoanPaidMap] = useState<Record<string, number>>({})
@@ -96,6 +103,18 @@ export default function RecordPaymentPage() {
     }).catch(() => {})
   }, [businessId])
 
+  useEffect(() => {
+    fetch(`/api/b/${businessId}/payments?date=${filterDate}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const ids = new Set<string>(data.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id))
+          setPaidCustomerIds(ids)
+        }
+      })
+      .catch(() => {})
+  }, [businessId, filterDate])
+
   const [preSelected, setPreSelected] = useState(false)
   useEffect(() => {
     if (preSelected || !preCustomerId || customers.length === 0) return
@@ -106,20 +125,28 @@ export default function RecordPaymentPage() {
   useEffect(() => {
     if (!preLoanId || customerLoans.length === 0 || step !== 'selectLoan') return
     const loan = customerLoans.find(l => l.id === preLoanId)
-    if (loan) { setSelectedLoan(loan); setStep('payment') }
+    if (loan) { setSelectedLoan(loan); if (loan.agent) setCollectorId(loan.agent.id); setAmountStr(String(loan.installmentAmount / 100)); setStep('payment') }
   }, [customerLoans, preLoanId, step])
 
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers.filter(c => c.status === 'ACTIVE').slice(0, 20)
-    const q = searchQuery.toLowerCase()
-    return customers.filter(c =>
-      c.status === 'ACTIVE' && (
+    let list = customers.filter(c => c.status === 'ACTIVE')
+
+    // Filter by payment status on filterDate
+    list = list.filter(c =>
+      showCompleted ? paidCustomerIds.has(c.id) : !paidCustomerIds.has(c.id)
+    )
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      list = list.filter(c =>
         c.fullName.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
         c.customerId.toLowerCase().includes(q)
       )
-    )
-  }, [customers, searchQuery])
+    }
+
+    return list
+  }, [customers, searchQuery, showCompleted, paidCustomerIds])
 
   const checkExistingPayment = useCallback(async (loanId: string, date: string) => {
     try {
@@ -149,6 +176,7 @@ export default function RecordPaymentPage() {
 
   async function handleSelectCustomer(customer: CustomerResult) {
     setSelectedCustomer(customer)
+    setPostingDate(filterDate)
     setLoadingLoans(true)
     setError('')
     try {
@@ -173,6 +201,8 @@ export default function RecordPaymentPage() {
 
       if (active.length === 1) {
         setSelectedLoan(active[0])
+        if (active[0].agent) setCollectorId(active[0].agent.id)
+        setAmountStr(String(active[0].installmentAmount / 100))
         setStep('payment')
       } else if (active.length === 0) {
         setError('No active loans found for this customer')
@@ -287,6 +317,33 @@ export default function RecordPaymentPage() {
       {/* ─── STEP 1: Search Customer ─── */}
       {step === 'search' && !loadingLoans && (
         <div className="space-y-4">
+          {/* Date + Payment filter */}
+          <div className="card p-3 flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Date:</label>
+              <input
+                type="date"
+                className="input text-xs py-1.5 w-auto"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                max={todayStr}
+                min={minDateStr}
+              />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showCompleted}
+                onChange={(e) => setShowCompleted(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-primary-600"
+              />
+              <span className="text-xs text-gray-600">Payment Completed</span>
+            </label>
+            <span className="text-xs text-gray-400">
+              {showCompleted ? `${filteredCustomers.length} paid` : `${filteredCustomers.length} pending`}
+            </span>
+          </div>
+
           <div>
             <label className="label">Search Customer</label>
             <div className="relative">
@@ -355,7 +412,7 @@ export default function RecordPaymentPage() {
               return (
                 <button
                   key={loan.id}
-                  onClick={() => { setSelectedLoan(loan); setStep('payment') }}
+                  onClick={() => { setSelectedLoan(loan); if (loan.agent) setCollectorId(loan.agent.id); setAmountStr(String(loan.installmentAmount / 100)); setStep('payment') }}
                   className="w-full text-left card p-3 hover:border-primary-300 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">

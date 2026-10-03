@@ -43,6 +43,10 @@ export default function ViewPaymentsPage() {
   const [toDate, setToDate] = useState(today)
   const [villageId, setVillageId] = useState('')
   const [collectorId, setCollectorId] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+  const [sortField, setSortField] = useState('paymentDate')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     Promise.all([
@@ -69,22 +73,90 @@ export default function ViewPaymentsPage() {
       .finally(() => setLoading(false))
   }, [businessId, fromDate, toDate, villageId, collectorId])
 
+  function daysAgo(n: number) {
+    const d = new Date(); d.setDate(d.getDate() - n)
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+
   function selectPreset(key: string) {
     setPreset(key)
     if (key === 'today') { setFromDate(today); setToDate(today) }
     else if (key === 'yesterday') { const y = yesterdayStr(); setFromDate(y); setToDate(y) }
+    else if (key === '7d') { setFromDate(daysAgo(6)); setToDate(today) }
+    else if (key === '15d') { setFromDate(daysAgo(14)); setToDate(today) }
+    else if (key === '30d') { setFromDate(daysAgo(29)); setToDate(today) }
+    else if (key === 'all') { setFromDate('2020-01-01'); setToDate(today) }
   }
 
+  function toggleSort(field: string) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+    setPage(1)
+  }
+  const sortIcon = (field: string) => sortField === field ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  const sorted = [...payments].sort((a, b) => {
+    let va: string | number = '', vb: string | number = ''
+    switch (sortField) {
+      case 'paymentDate': va = a.paymentDate; vb = b.paymentDate; break
+      case 'customer': va = a.loan.customer.fullName; vb = b.loan.customer.fullName; break
+      case 'village': va = a.loan.customer.village.name; vb = b.loan.customer.village.name; break
+      case 'amount': va = a.amount; vb = b.amount; break
+      case 'collector': va = a.collector.fullName; vb = b.collector.fullName; break
+      case 'mode': va = a.note || ''; vb = b.note || ''; break
+      case 'receipt': va = a.receiptNumber; vb = b.receiptNumber; break
+    }
+    if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va
+    return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
+  })
+
+  const PAGE_SIZES = [10, 25, 50, 100, 0] as const
+  const showAll = pageSize === 0
+  const totalPages = showAll ? 1 : Math.ceil(sorted.length / pageSize)
+  const pagedPayments = showAll ? sorted : sorted.slice((page - 1) * pageSize, page * pageSize)
   const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0)
 
-  function handleSharePdf() {
+  useEffect(() => { setPage(1) }, [fromDate, toDate, villageId, collectorId])
+
+  function handleDownload(format: 'pdf' | 'xlsx') {
     const a = document.createElement('a')
-    a.href = `/api/b/${businessId}/reports/download?entity=payments&from=${fromDate}&to=${toDate}&format=pdf`
+    a.href = `/api/b/${businessId}/reports/download?entity=payments&from=${fromDate}&to=${toDate}&format=${format}`
     a.target = '_blank'
     a.rel = 'noopener noreferrer'
     document.body.appendChild(a)
     a.click()
     a.remove()
+  }
+
+  function handleWhatsAppShareFile(format: 'pdf' | 'xlsx') {
+    const ext = format === 'pdf' ? 'pdf' : 'xlsx'
+    const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    const fileName = `payments_${fromDate}_to_${toDate}.${ext}`
+    const url = `/api/b/${businessId}/reports/download?entity=payments&from=${fromDate}&to=${toDate}&format=${format}`
+
+    fetch(url).then(res => res.blob()).then(blob => {
+      const file = new File([blob], fileName, { type: mime })
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ title: 'Payment Report', files: [file] })
+      } else {
+        const blobUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
+        const text = encodeURIComponent(`Payment Report (${formatDateDisplay(fromDate)} – ${formatDateDisplay(toDate)}): ${formatPaiseShort(totalAmount)}`)
+        const wa = document.createElement('a')
+        wa.href = `https://wa.me/?text=${text}`
+        wa.target = '_blank'
+        wa.rel = 'noopener noreferrer'
+        document.body.appendChild(wa)
+        wa.click()
+        wa.remove()
+      }
+    }).catch(() => {})
   }
 
   function handleWhatsAppShare() {
@@ -127,6 +199,10 @@ export default function ViewPaymentsPage() {
           {[
             { key: 'today', label: 'Today' },
             { key: 'yesterday', label: 'Yesterday' },
+            { key: '7d', label: '7 Days' },
+            { key: '15d', label: '15 Days' },
+            { key: '30d', label: '30 Days' },
+            { key: 'all', label: 'All' },
             { key: 'custom', label: 'Custom' },
           ].map(p => (
             <button
@@ -196,22 +272,22 @@ export default function ViewPaymentsPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b text-left text-gray-500 bg-gray-50">
-                <th className="py-2 px-3">Date</th>
-                <th className="py-2 px-3">Customer</th>
-                <th className="py-2 px-3 hidden md:table-cell">Village</th>
-                <th className="py-2 px-3 text-right">Amount</th>
-                <th className="py-2 px-3 hidden md:table-cell">Collector</th>
-                <th className="py-2 px-3 hidden md:table-cell">Mode</th>
-                <th className="py-2 px-3 hidden md:table-cell">Receipt</th>
+                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('paymentDate')}>Date{sortIcon('paymentDate')}</th>
+                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Village{sortIcon('village')}</th>
+                <th className="py-2 px-3 text-right cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('amount')}>Amount{sortIcon('amount')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('collector')}>Collector{sortIcon('collector')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>Mode{sortIcon('mode')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>Receipt{sortIcon('receipt')}</th>
               </tr>
             </thead>
             <tbody>
-              {payments.map(p => (
+              {pagedPayments.map(p => (
                 <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="py-2 px-3 text-gray-500">{formatDateDisplay(p.paymentDate)}</td>
                   <td className="py-2 px-3">
                     <Link href={`/b/${businessId}/customers/${p.loan.customer.id}`} className="font-medium text-primary-600 hover:underline">{p.loan.customer.fullName}</Link>
-                    <p className="text-[10px] text-gray-400 md:hidden">{p.loan.customer.village.name} · {p.collector.fullName}</p>
+                    <span className="block text-[10px] text-gray-400 md:hidden">{p.loan.customer.village.name} · {p.collector.fullName}</span>
                   </td>
                   <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
                   <td className="py-2 px-3 text-right font-semibold text-green-700">{formatPaiseShort(p.amount)}</td>
@@ -232,16 +308,52 @@ export default function ViewPaymentsPage() {
         </div>
       )}
 
-      {/* Actions */}
+      {/* Pagination */}
       {payments.length > 0 && (
-        <div className="flex gap-3 mt-4">
-          <button onClick={handleSharePdf} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors">
-            Download PDF
-          </button>
-          <button onClick={handleWhatsAppShare} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
-            Share WhatsApp
-          </button>
+        <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {showAll ? `All ${payments.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, payments.length)} of ${payments.length}`}
+            </span>
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600">
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? 'All' : s}</option>)}
+            </select>
+          </div>
+          {totalPages > 1 && <div className="flex gap-1">
+            <button onClick={() => setPage(1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">First</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1).map((p, idx, arr) => (
+              <span key={p}>
+                {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                <button onClick={() => setPage(p)} className={`px-2.5 py-1 text-xs rounded border transition-colors ${p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+              </span>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Last</button>
+          </div>}
         </div>
+      )}
+
+      {/* Actions — Desktop: Download PDF + XLSX, Mobile: Share PDF + XLSX via WhatsApp */}
+      {payments.length > 0 && (
+        <>
+          <div className="hidden md:flex gap-3 mt-4">
+            <button onClick={() => handleDownload('pdf')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+              Download PDF
+            </button>
+            <button onClick={() => handleDownload('xlsx')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">
+              Download XLSX
+            </button>
+          </div>
+          <div className="flex md:hidden gap-3 mt-4">
+            <button onClick={() => handleWhatsAppShareFile('pdf')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+              Share PDF
+            </button>
+            <button onClick={() => handleWhatsAppShareFile('xlsx')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+              Share XLSX
+            </button>
+          </div>
+        </>
       )}
     </div>
   )

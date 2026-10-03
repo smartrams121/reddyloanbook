@@ -8,6 +8,7 @@ interface Village { id: string; name: string; _count: { customers: number } }
 interface LoanEntry {
   id: string; loanNumber: string; installmentAmount: number
   totalRepayable: number; totalPaid: number; outstanding: number; status: string
+  agentId?: string | null; agentName?: string | null
   existingPayment?: { id: string; amount: number } | null
 }
 interface CustomerEntry {
@@ -42,11 +43,13 @@ export default function VillageBulkPostingPage() {
 
   const [agents, setAgents] = useState<Agent[]>([])
   const [villages, setVillages] = useState<Village[]>([])
-  const [selectedVillage, setSelectedVillage] = useState(preVillageId || '')
+  const [selectedVillage, setSelectedVillage] = useState(preVillageId || 'all')
   const [collectorId, setCollectorId] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [paymentMode, setPaymentMode] = useState('Cash')
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [allRows, setAllRows] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(false)
-  const [rows, setRows] = useState<PaymentRow[]>([])
   const [error, setError] = useState('')
   const [posting, setPosting] = useState(false)
   const [result, setResult] = useState<{ count: number; totalAmount: number } | null>(null)
@@ -71,6 +74,16 @@ export default function VillageBulkPostingPage() {
     return `${d}/${m}/${y}`
   }
 
+  const [bulkPage, setBulkPage] = useState(0)
+  const BULK_PAGE_SIZE = 10
+
+  const filteredRows = showCompleted
+    ? allRows.filter(r => r.existingPaymentId)
+    : allRows.filter(r => !r.existingPaymentId)
+
+  const totalBulkPages = Math.ceil(filteredRows.length / BULK_PAGE_SIZE)
+  const rows = filteredRows.slice(bulkPage * BULK_PAGE_SIZE, (bulkPage + 1) * BULK_PAGE_SIZE)
+
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -83,24 +96,34 @@ export default function VillageBulkPostingPage() {
     }).catch(() => {})
   }, [businessId])
 
+  const [initialLoaded, setInitialLoaded] = useState(false)
+
   const loadVillageData = useCallback(async (villageId: string) => {
     setLoading(true)
     setError('')
     setResult(null)
     try {
-      const res = await fetch(`/api/b/${businessId}/posting/village?villageId=${villageId}&date=${postingDate}`)
-      const customers: CustomerEntry[] = await res.json()
-      if (!res.ok) {
-        setError('Failed to load location data')
-        setRows([])
-        return
+      let customers: CustomerEntry[] = []
+      if (villageId === 'all') {
+        const results = await Promise.all(
+          villages.map(v => fetch(`/api/b/${businessId}/posting/village?villageId=${v.id}&date=${postingDate}`).then(r => r.json()))
+        )
+        customers = results.flat()
+      } else {
+        const res = await fetch(`/api/b/${businessId}/posting/village?villageId=${villageId}&date=${postingDate}`)
+        if (!res.ok) {
+          setError('Failed to load location data')
+          setAllRows([])
+          return
+        }
+        customers = await res.json()
       }
       const paymentRows: PaymentRow[] = []
       customers.forEach(c => {
         c.loans.forEach(l => {
           const existing = l.existingPayment
           const effectiveOutstanding = existing ? l.outstanding + existing.amount : l.outstanding
-          if (effectiveOutstanding > 0) {
+          if (effectiveOutstanding > 0 || existing) {
             paymentRows.push({
               customerId: c.customerId,
               customerName: c.fullName,
@@ -109,22 +132,33 @@ export default function VillageBulkPostingPage() {
               loanNumber: l.loanNumber,
               installmentAmount: l.installmentAmount,
               outstanding: effectiveOutstanding,
-              amountStr: existing ? String(existing.amount / 100) : '',
+              amountStr: existing ? String(existing.amount / 100) : String(l.installmentAmount / 100),
               existingPaymentId: existing?.id,
               existingAmountPaise: existing?.amount,
             })
           }
         })
       })
-      setRows(paymentRows)
-      inputRefs.current = new Array(paymentRows.length).fill(null)
+      setAllRows(paymentRows)
+      setBulkPage(0)
+      // Set collector from first loan's agent
+      const firstAgent = customers.find(c => c.loans.some(l => l.agentId))?.loans.find(l => l.agentId)
+      if (firstAgent?.agentId) setCollectorId(firstAgent.agentId)
     } catch {
       setError('Network error loading location data')
-      setRows([])
+      setAllRows([])
     } finally {
       setLoading(false)
     }
-  }, [businessId, postingDate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessId, postingDate, villages])
+
+  useEffect(() => {
+    if (!initialLoaded && villages.length > 0 && !preVillageId) {
+      setInitialLoaded(true)
+      loadVillageData('all')
+    }
+  }, [villages, initialLoaded, preVillageId, loadVillageData])
 
   const prevDateRef = useRef(postingDate)
   useEffect(() => {
@@ -145,15 +179,14 @@ export default function VillageBulkPostingPage() {
 
   function handleVillageChange(villageId: string) {
     setSelectedVillage(villageId)
-    if (villageId) loadVillageData(villageId)
-    else setRows([])
+    if (villageId && villages.length > 0) loadVillageData(villageId)
+    else setAllRows([])
   }
 
   function handleAmountChange(index: number, value: string) {
-    setRows(prev => {
-      const next = [...prev]
-      next[index] = { ...next[index], amountStr: value }
-      return next
+    setAllRows(prev => {
+      const row = rows[index]
+      return prev.map(r => r.loanId === row.loanId ? { ...r, amountStr: value } : r)
     })
   }
 
@@ -183,6 +216,10 @@ export default function VillageBulkPostingPage() {
       setError('Enter at least one payment amount')
       return
     }
+    if (payments.length > 10) {
+      setError(`Maximum 10 payments per submission. You have ${payments.length} filled. Clear some and submit in batches.`)
+      return
+    }
 
     // Validate amounts don't exceed outstanding
     for (const r of filledRows) {
@@ -198,7 +235,7 @@ export default function VillageBulkPostingPage() {
       const res = await fetch(`/api/b/${businessId}/payments/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payments, paymentDate: postingDate, collectorId: collectorId || undefined }),
+        body: JSON.stringify({ payments, paymentDate: postingDate, collectorId: collectorId || undefined, note: paymentMode }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -206,17 +243,27 @@ export default function VillageBulkPostingPage() {
         return
       }
       setResult({ count: data.count, totalAmount: data.totalAmount })
+      return true
     } catch {
       setError('Network error')
+      return false
     } finally {
       setPosting(false)
+    }
+  }
+
+  async function handleSubmitAndNext() {
+    const ok = await handleSubmit()
+    if (ok) {
+      setResult(null)
+      loadVillageData(selectedVillage)
     }
   }
 
   function handleReset() {
     setSelectedVillage('')
     setCollectorId('')
-    setRows([])
+    setAllRows([])
     setResult(null)
     setError('')
   }
@@ -231,7 +278,7 @@ export default function VillageBulkPostingPage() {
     }
   }
 
-  const villageName = villages.find(v => v.id === selectedVillage)?.name || ''
+  const villageName = selectedVillage === 'all' ? 'All Locations' : (villages.find(v => v.id === selectedVillage)?.name || '')
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
@@ -278,7 +325,7 @@ export default function VillageBulkPostingPage() {
               value={selectedVillage}
               onChange={(e) => handleVillageChange(e.target.value)}
             >
-              <option value="">— Choose a location —</option>
+              <option value="all">All Locations</option>
               {villages.map(v => (
                 <option key={v.id} value={v.id}>{v.name} ({v._count.customers} customers)</option>
               ))}
@@ -334,6 +381,21 @@ export default function VillageBulkPostingPage() {
                     <p className="text-xs text-gray-400 py-2">No agents assigned.</p>
                   )}
                 </div>
+
+                <div>
+                  <label className="label text-xs">Payment Mode</label>
+                  <div className="flex gap-2">
+                    {['Cash', 'UPI'].map((mode) => (
+                      <button key={mode} type="button" onClick={() => setPaymentMode(mode)} className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${paymentMode === mode ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>{mode}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                  <span className="text-xs text-gray-600">Payment Completed</span>
+                  <span className="text-xs text-gray-400">({showCompleted ? `${rows.length} paid` : `${rows.length} pending`})</span>
+                </label>
               </div>}
             </div>
           )}
@@ -347,20 +409,47 @@ export default function VillageBulkPostingPage() {
           {/* Customer Rows */}
           {!loading && rows.length > 0 && (
             <>
-              <div className="text-sm text-gray-500 mb-3 flex items-center justify-between">
-                <span>{rows.length} active loan{rows.length > 1 ? 's' : ''} in {villageName}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRows(prev => prev.map(r => ({
-                      ...r,
-                      amountStr: String(r.installmentAmount / 100),
-                    })))
-                  }}
-                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
-                >
-                  Fill All Installments
-                </button>
+              <div className="text-sm text-gray-500 mb-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>Showing {bulkPage * BULK_PAGE_SIZE + 1}–{Math.min((bulkPage + 1) * BULK_PAGE_SIZE, filteredRows.length)} of {filteredRows.length} in {villageName}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAllRows(prev => prev.map(r => ({
+                        ...r,
+                        amountStr: String(r.installmentAmount / 100),
+                      })))
+                    }}
+                    className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Fill All
+                  </button>
+                </div>
+                {totalBulkPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setBulkPage(p => Math.max(0, p - 1))}
+                      disabled={bulkPage === 0}
+                      className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Prev 10
+                    </button>
+                    <span className="text-xs text-gray-500">Page {bulkPage + 1} of {totalBulkPages}</span>
+                    <button
+                      onClick={() => setBulkPage(p => Math.min(totalBulkPages - 1, p + 1))}
+                      disabled={bulkPage >= totalBulkPages - 1}
+                      className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Next 10
+                    </button>
+                    <button
+                      onClick={() => loadVillageData(selectedVillage)}
+                      className="px-2 py-1 text-xs rounded border border-primary-200 text-primary-600 hover:bg-primary-50"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 mb-4">
@@ -427,19 +516,22 @@ export default function VillageBulkPostingPage() {
                     Total: {formatPaiseShort(totalEnteredPaise)}
                   </span>
                 </div>
-                <button
-                  onClick={handleSubmit}
-                  disabled={posting || filledRows.length === 0}
-                  className="btn-primary w-full btn-lg disabled:opacity-50"
-                >
-                  {posting ? 'Posting...' : (() => {
-                    const updateCount = filledRows.filter(r => r.existingPaymentId).length
-                    const newCount = filledRows.length - updateCount
-                    if (updateCount > 0 && newCount > 0) return `Update ${updateCount} & Submit ${newCount} Payment${newCount !== 1 ? 's' : ''}`
-                    if (updateCount > 0) return `Update ${updateCount} Payment${updateCount !== 1 ? 's' : ''}`
-                    return `Submit ${filledRows.length} Payment${filledRows.length !== 1 ? 's' : ''}`
-                  })()}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={posting || filledRows.length === 0}
+                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                  >
+                    {posting ? 'Posting...' : `Submit ${filledRows.length}`}
+                  </button>
+                  <button
+                    onClick={handleSubmitAndNext}
+                    disabled={posting || filledRows.length === 0}
+                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
+                  >
+                    {posting ? '...' : 'Submit & Next'}
+                  </button>
+                </div>
               </div>
             </>
           )}
