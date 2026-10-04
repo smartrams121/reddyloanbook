@@ -96,18 +96,42 @@ All use password: `Test@123`
 - Nginx reverse proxy
 - Automated daily DB backups, session cleanup, SSL renewal via cron
 
-## Recent Features
+## Recent Features (Session 2026-10-03)
 
-- **Business Import**: Upload exported XLSX to recreate a business with all data (villages, customers, loans, payments, employees). Test → Import flow with sample template download.
-- **CSV Bulk Upload**: Loans and Payments pages support CSV bulk import (same pattern as customer CSV upload). Hidden on mobile.
-- **Configurable Repayment Multiplier**: Per-business setting in Collection section (replaces hardcoded 1.20/1.40).
-- **Grace Period in Overdue Logic**: Loan stays ACTIVE for grace period after expected end date before becoming OVERDUE.
-- **Dashboard Filters**: Custom date range with village and employee multi-select filters for collection metrics.
-- **Multi-select Status Filters**: Customers and Loans pages support selecting multiple status filters simultaneously.
-- **Android Download Fix**: All file downloads and WhatsApp shares use DOM-attached anchors with delayed blob URL revocation for Android browser compatibility.
-- **Danger Zone Confirmation**: Business delete requires typing "DELETE" in a modal.
+- **Business Import**: Upload exported XLSX to recreate a business with all data. Test → Import flow with sample template.
+- **CSV Bulk Upload**: Loans and Payments CSV bulk import. Hidden on mobile.
+- **Configurable Repayment Multiplier**: Per-business setting (replaces hardcoded 1.20/1.40).
+- **Grace Period in Overdue Logic**: Wired into all 18 deriveLoanStatus call sites.
+- **Employee Management**: Global create/edit/suspend/delete + business-scoped assignment with village multi-select.
+- **View Payments Page**: Dedicated page with date/village/employee filters, sortable table, PDF/XLSX download.
+- **Agent Access Control**: Agents only see their own loans, assigned village customers, and their payments. Employees page blocked.
+- **Agent Dashboard**: Redirects to activity page with collections/disbursements stats.
+- **Record Payment**: Date filter, Payment Completed checkbox, eligible customer filter by loan start date, default installment amount, payment mode (Cash/UPI).
+- **Bulk Posting**: All Locations default, 10 per page, Submit & Next, payment mode, Payment Completed filter.
+- **Table UI**: Plain table layout for Customers/Loans/Payments with pagination (15 default, 10 mobile), sortable columns, multi-select status filters.
+- **Header Navigation**: Desktop has all icons (Customers, Locations, Loans, Payments, New Payment, Bulk Payments, Employees, Reports, Dashboard). Mobile shows Customers, Loans, Payments only.
+- **Collapsible Sections**: Settings (Basic Info, Other), New Loan (Loan Details), New Customer (Additional Details), New Business (Import), Record Payment (Loan Summary), Bulk Posting (Details).
+- **Android Download Fix**: DOM-attached anchors with delayed blob URL revocation.
+- **Zero-Downtime Deploy**: Script tags image as both names, uses --no-build flag.
+
+## Session Memory
+
+- Full session log: `Memory/session_2026_10_03.md`
+- CI/CD scripts reference: `Memory/cicd_scripts.md`
+- Document to generate: `output/01_Functional_Technical_Specification.md` (23 sections, pending)
+
+## Deployment
+
+- SSH: `ssh -i ssh_Keys/ssh-key-2026-10-01.key opc@80.225.201.199`
+- Always copy PostgreSQL schema before build: `cp deploy/prisma.schema.postgresql prisma/schema.prisma`
+- Tag image as BOTH `dailyfinance_app:latest` AND `deploy-app:latest`
+- Use `--no-build` with docker compose
+- Do NOT deploy without user confirmation
 
 ## Conventions
 
 - Output files go in `output/` directory
 - Do not auto-commit without asking
+- Do not deploy to OCI without asking
+- ssh_Keys/ is in .gitignore — never stage it
+- Local dev: kill node, rm -rf .next + node_modules/.cache, then npm run dev
