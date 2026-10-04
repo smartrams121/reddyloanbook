@@ -200,7 +200,7 @@ export default function VillageBulkPostingPage() {
 
   const filledRows = rows.filter(r => {
     const amt = parseFloat(r.amountStr)
-    return amt > 0
+    return !isNaN(amt) && amt >= 0 && r.amountStr.trim() !== ''
   })
   const totalEnteredPaise = filledRows.reduce((s, r) => s + Math.round(parseFloat(r.amountStr) * 100), 0)
 

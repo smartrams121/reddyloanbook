@@ -13,7 +13,7 @@ interface Props {
 const bulkPaymentSchema = z.object({
   payments: z.array(z.object({
     loanId: z.string().min(1),
-    amount: z.number().int().positive(),
+    amount: z.number().int().min(0),
     existingPaymentId: z.string().min(1).optional(),
   })).min(1).max(200)
     .refine(
