@@ -24,7 +24,7 @@ export async function POST(
 
     const resetRequest = await prisma.passwordResetRequest.findUnique({
       where: { id: params.requestId },
-      include: { user: { select: { id: true, role: true, fullName: true } } },
+      include: { user: { select: { id: true, role: true, fullName: true, username: true } } },
     })
 
     if (!resetRequest || !([Role.BUSINESS_ADMIN, Role.AGENT] as string[]).includes(resetRequest.user.role)) {
@@ -52,7 +52,8 @@ export async function POST(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const passwordHash = await hashPassword(parsed.data.newPassword)
+    const newPassword = parsed.data.newPassword || resetRequest.user.username
+    const passwordHash = await hashPassword(newPassword)
 
     await prisma.$transaction([
       prisma.user.update({

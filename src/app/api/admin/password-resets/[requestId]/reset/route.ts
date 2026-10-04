@@ -35,7 +35,8 @@ export async function POST(
       return NextResponse.json({ error: 'This request has already been processed' }, { status: 400 })
     }
 
-    const passwordHash = await hashPassword(parsed.data.newPassword)
+    const newPassword = parsed.data.newPassword || resetRequest.user.username
+    const passwordHash = await hashPassword(newPassword)
 
     await prisma.$transaction([
       prisma.user.update({

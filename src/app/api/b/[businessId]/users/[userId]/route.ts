@@ -97,7 +97,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (resetPassword !== undefined) {
     assertPermission(user, 'reset_user_password')
-    updateData.passwordHash = await hashPassword(resetPassword)
+    const newPwd = resetPassword || targetUser.username
+    updateData.passwordHash = await hashPassword(newPwd)
     updateData.mustChangePassword = true
   }
 
