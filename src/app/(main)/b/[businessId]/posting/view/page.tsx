@@ -140,7 +140,7 @@ export default function ViewPaymentsPage() {
 
   // Get unique loan numbers for the selected customer
   const customerLoanNumbers = selectedCustomer
-    ? [...new Set(payments.map(p => p.loan.loanNumber))].sort()
+    ? Array.from(new Set(payments.map(p => p.loan.loanNumber))).sort()
     : []
 
   useEffect(() => { setPage(1) }, [fromDate, toDate, villageId, collectorId])
