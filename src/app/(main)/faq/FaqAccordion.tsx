@@ -8,10 +8,36 @@ interface Props {
 
 export default function FaqAccordion({ faqs }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
+
+  const filtered = search.trim()
+    ? faqs.filter(f =>
+        f.question.toLowerCase().includes(search.toLowerCase()) ||
+        f.answer.toLowerCase().includes(search.toLowerCase())
+      )
+    : faqs
 
   return (
+    <div>
+      <div className="relative mb-4">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input
+          type="text"
+          className="input pl-9 text-sm"
+          placeholder="Search FAQ..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setOpenIndex(null) }}
+        />
+      </div>
+      {filtered.length === 0 && (
+        <div className="card p-6 text-center">
+          <p className="text-sm text-gray-400">No matching FAQs found.</p>
+        </div>
+      )}
     <div className="space-y-2">
-      {faqs.map((faq, i) => (
+      {filtered.map((faq, i) => (
         <div key={i} className="card overflow-hidden">
           <button
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
@@ -35,6 +61,7 @@ export default function FaqAccordion({ faqs }: Props) {
           )}
         </div>
       ))}
+    </div>
     </div>
   )
 }

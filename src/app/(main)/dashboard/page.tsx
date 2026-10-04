@@ -146,9 +146,6 @@ export default async function DashboardPage() {
                 <div className="text-xs text-success-600">+{formatPaiseShort(todayCollection)} today</div>
               </div>
             </Link>
-            <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
-              <BusinessActions businessId={business.id} businessName={business.name} />
-            </div>
           </div>
         ))}
 

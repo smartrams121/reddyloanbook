@@ -94,6 +94,21 @@ export async function POST(request: Request) {
           businessId: biz.id,
         })),
       })
+
+      // Assign all villages to each selected employee
+      const createdVillages = await tx.village.findMany({
+        where: { businessId: biz.id },
+        select: { id: true },
+      })
+      const villageAssignments: { userId: string; villageId: string }[] = []
+      for (const agentId of agentIds) {
+        for (const v of createdVillages) {
+          villageAssignments.push({ userId: agentId, villageId: v.id })
+        }
+      }
+      if (villageAssignments.length > 0) {
+        await tx.userVillageAssignment.createMany({ data: villageAssignments })
+      }
     }
 
     return biz

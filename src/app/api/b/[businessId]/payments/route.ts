@@ -13,7 +13,7 @@ interface Props {
 
 const createPaymentSchema = z.object({
   loanId: z.string().min(1),
-  amount: z.number().int().positive(),
+  amount: z.number().int().min(0),
   paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   collectorId: z.string().min(1).optional(),
   note: z.string().optional(),

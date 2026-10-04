@@ -169,7 +169,6 @@ export default function RecordPaymentPage() {
       } else {
         setExistingPaymentId(null)
         setExistingAmountPaise(0)
-        setAmountStr('')
       }
     } catch {
       setExistingPaymentId(null)
@@ -226,13 +225,13 @@ export default function RecordPaymentPage() {
     }
   }
 
-  async function handlePostPayment(e: React.FormEvent, goNext = false) {
+  async function handlePostPayment(e: React.FormEvent, mode: 'receipt' | 'next' | 'nextDay' = 'receipt') {
     e.preventDefault()
     if (!selectedLoan) return
     setError('')
 
     const amount = parseFloat(amountStr)
-    if (!amount || amount <= 0) { setError('Enter a valid amount'); return }
+    if (isNaN(amount) || amount < 0) { setError('Enter a valid amount'); return }
 
     const amountPaise = Math.round(amount * 100)
     const rawOutstanding = selectedLoan.totalRepayable - (loanPaidMap[selectedLoan.id] || 0)
@@ -261,19 +260,62 @@ export default function RecordPaymentPage() {
         setError(data.error || 'Failed to post payment')
         return
       }
-      if (goNext) {
-        setStep('search')
-        setSelectedCustomer(null)
-        setSelectedLoan(null)
-        setCustomerLoans([])
-        setLoanPaidMap({})
-        setAmountStr('')
-        setCollectorId('')
-        setNote('')
-        setSearchQuery('')
-        setError('')
+      if (mode === 'next') {
+        // Mark current customer as paid and find next unpaid customer
+        const currentId = selectedCustomer?.id
+        setPaidCustomerIds(prev => {
+          const next = new Set(prev)
+          if (currentId) next.add(currentId)
+          return next
+        })
+
+        // Find next unpaid customer from filtered list
+        const pendingList = customers.filter(c =>
+          c.status === 'ACTIVE' && (c._count?.loans || 0) > 0 &&
+          !paidCustomerIds.has(c.id) && c.id !== currentId &&
+          (!eligibleCustomerIds || eligibleCustomerIds.has(c.id))
+        )
+
+        if (pendingList.length > 0) {
+          // Auto-select next customer
+          const nextCust = pendingList[0]
+          setSelectedCustomer(null)
+          setSelectedLoan(null)
+          setCustomerLoans([])
+          setLoanPaidMap({})
+          setAmountStr('')
+          setCollectorId('')
+          setNote('Cash')
+          setError('')
+          setExistingPaymentId(null)
+          setExistingAmountPaise(0)
+          // Trigger customer selection
+          setTimeout(() => handleSelectCustomer(nextCust), 100)
+        } else {
+          // No more pending — go back to search
+          setStep('search')
+          setSelectedCustomer(null)
+          setSelectedLoan(null)
+          setCustomerLoans([])
+          setLoanPaidMap({})
+          setAmountStr('')
+          setCollectorId('')
+          setNote('Cash')
+          setSearchQuery('')
+          setError('')
+          setExistingPaymentId(null)
+          setExistingAmountPaise(0)
+        }
+      } else if (mode === 'nextDay') {
+        // Advance posting date by 1 day, stay on same customer + loan
+        const d = new Date(postingDate + 'T00:00:00')
+        d.setDate(d.getDate() + 1)
+        const nextDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        setPostingDate(nextDate)
+        setAmountStr(String(selectedLoan.installmentAmount / 100))
         setExistingPaymentId(null)
         setExistingAmountPaise(0)
+        setError('')
       } else {
         setReceipt({ receiptNumber: data.receiptNumber, amount: data.amount, createdAt: data.createdAt, updatedAt: data.updatedAt })
         setStep('success')
@@ -474,10 +516,13 @@ export default function RecordPaymentPage() {
               <button type="button" onClick={handleNewPayment} className="text-xs text-gray-500">Change</button>
             </div>
             <div className="border-t border-gray-200 pt-2 flex items-center justify-between text-sm">
-              <div>
+              <div className="flex items-center gap-2">
                 <p className="font-semibold text-gray-900">{selectedLoan.loanNumber}</p>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[selectedLoan.status] || 'bg-gray-100 text-gray-600'}`}>
                   {selectedLoan.status.replace(/_/g, ' ')}
+                </span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${existingPaymentId ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {existingPaymentId ? 'Completed' : 'In Progress'}
                 </span>
               </div>
               {customerLoans.length > 1 && (
@@ -589,7 +634,7 @@ export default function RecordPaymentPage() {
               const outstandingRupees = outstanding / 100
               return (
                 <div className="flex gap-2 flex-wrap">
-                  {[100, 200, 500, 1000].filter(a => a * 100 <= outstanding).map(a => (
+                  {[0, 100, 200, 500, 1000].filter(a => a * 100 <= outstanding).map(a => (
                     <button
                       key={a}
                       type="button"
@@ -634,19 +679,24 @@ export default function RecordPaymentPage() {
           </div>
 
           <div className="flex gap-2">
-            <button type="submit" disabled={posting} className="btn-primary flex-1 btn-lg">
-              {posting ? 'Posting...' : existingPaymentId ? 'Update Payment' : 'Post Payment'}
+            <button type="submit" disabled={posting} className="btn-primary flex-1 text-sm font-medium rounded-lg px-3 py-2.5">
+              {posting ? '...' : existingPaymentId ? 'Update' : 'Post'}
             </button>
             <button
               type="button"
               disabled={posting}
-              onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, true)}
-              className="flex-1 btn-lg text-sm font-medium rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
+              onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, 'next')}
+              className="flex-1 text-sm font-medium rounded-lg px-3 py-2.5 bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
             >
-              {posting ? '...' : existingPaymentId ? 'Update & Next' : 'Post & Next'}
+              {posting ? '...' : 'Post & New'}
             </button>
-            <button type="button" onClick={handleNewPayment} className="btn-secondary px-4">
-              Cancel
+            <button
+              type="button"
+              disabled={posting}
+              onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, 'nextDay')}
+              className="flex-1 text-sm font-medium rounded-lg px-3 py-2.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+            >
+              {posting ? '...' : 'Post & Next Day'}
             </button>
           </div>
         </form>

@@ -121,10 +121,10 @@ export default function NewBusinessPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch('/api/owner/agents')
+    fetch('/api/owner/employees')
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setAgents(data)
+        if (Array.isArray(data)) setAgents(data.map((e: { id: string; fullName: string; phone: string | null }) => ({ id: e.id, fullName: e.fullName, phone: e.phone })))
       })
       .catch(() => {})
   }, [])
@@ -216,8 +216,8 @@ export default function NewBusinessPage() {
       <h1 className="text-xl font-bold text-gray-900 mb-1">New Business</h1>
       <p className="text-sm text-gray-500 mb-6">Create a new business or import from an existing export</p>
 
-      {/* Import Existing Business (collapsed by default) */}
-      <div className="card mb-6">
+      {/* Import Existing Business (hidden on mobile, collapsed by default) */}
+      <div className="hidden md:block card mb-6">
         <button
           type="button"
           onClick={() => setImportOpen(!importOpen)}
@@ -357,7 +357,7 @@ export default function NewBusinessPage() {
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="hidden md:flex items-center gap-3 mb-6">
         <div className="flex-1 border-t border-gray-200" />
         <span className="text-xs text-gray-400 uppercase font-medium">or create manually</span>
         <div className="flex-1 border-t border-gray-200" />
@@ -374,7 +374,7 @@ export default function NewBusinessPage() {
 
           <div>
             <label className="label">Business Name *</label>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sai Finance" required />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Gajuwaka Daily Evening Collection" required />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -511,6 +511,34 @@ export default function NewBusinessPage() {
           <p className="text-[10px] text-gray-400">At least one location is required. You can add more later.</p>
         </div>
 
+        {/* Assign Employees */}
+        {agents.length > 0 && (
+          <div className="card p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Assign Employees</h2>
+            <p className="text-[10px] text-gray-400">Selected employees will have access to all locations of this business.</p>
+            <div className="space-y-2">
+              {agents.map((agent) => (
+                <label key={agent.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedAgentIds.includes(agent.id)}
+                    onChange={() => toggleAgent(agent.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold">
+                      {agent.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{agent.fullName}</p>
+                      {agent.phone && <p className="text-xs text-gray-500">{agent.phone}</p>}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Submit */}
         <div className="flex gap-3 pt-2">
