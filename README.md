@@ -236,4 +236,6 @@ tests/                   Unit + integration tests
 
 ## Documentation
 
-Full technical specification available in [`documents/`](documents/00_Index.md) — 23 sections covering requirements, architecture, data model, RBAC, API reference, security, compliance, CI/CD, and more.
+Full technical specification (23 sections): **[View Online](https://smartrams121.github.io/reddyloanbook/documents/Daily_Finance_Specification.html)**
+
+Covers: requirements, architecture, data model, RBAC, API reference, sequence diagrams, security, SOX compliance, CI/CD, maintenance, tech stack, and more. Source files in [`documents/`](documents/00_Index.md).

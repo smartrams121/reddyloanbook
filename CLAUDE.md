@@ -114,11 +114,15 @@ All use password: `Test@123`
 - **Android Download Fix**: DOM-attached anchors with delayed blob URL revocation.
 - **Zero-Downtime Deploy**: Script tags image as both names, uses --no-build flag.
 
+## Documentation
+
+- **Spec Document (online)**: https://smartrams121.github.io/reddyloanbook/documents/Daily_Finance_Specification.html
+- Source files: `documents/` (7 markdown files + 1 HTML)
+
 ## Session Memory
 
 - Full session log: `Memory/session_2026_10_03.md`
 - CI/CD scripts reference: `Memory/cicd_scripts.md`
-- Document to generate: `output/01_Functional_Technical_Specification.md` (23 sections, pending)
 
 ## Deployment
 
