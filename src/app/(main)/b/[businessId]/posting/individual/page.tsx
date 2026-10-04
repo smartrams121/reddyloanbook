@@ -727,6 +727,9 @@ export default function RecordPaymentPage() {
             <button onClick={handleNewPayment} className="btn-primary flex-1">
               Record Another Payment
             </button>
+            <Link href={`/b/${businessId}/posting/view`} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-teal-200 text-teal-600 hover:bg-teal-50 transition-colors text-center">
+              View Payments
+            </Link>
           </div>
         </div>
       )}

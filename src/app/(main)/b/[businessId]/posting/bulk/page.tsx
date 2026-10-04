@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 interface Agent { id: string; fullName: string; role: string }
 interface Village { id: string; name: string; _count: { customers: number } }
@@ -48,6 +49,7 @@ export default function VillageBulkPostingPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [paymentMode, setPaymentMode] = useState('Cash')
   const [showCompleted, setShowCompleted] = useState(false)
+  const [isHoliday, setIsHoliday] = useState(false)
   const [allRows, setAllRows] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -132,7 +134,7 @@ export default function VillageBulkPostingPage() {
               loanNumber: l.loanNumber,
               installmentAmount: l.installmentAmount,
               outstanding: effectiveOutstanding,
-              amountStr: existing ? String(existing.amount / 100) : String(l.installmentAmount / 100),
+              amountStr: existing ? String(existing.amount / 100) : isHoliday ? '0' : String(l.installmentAmount / 100),
               existingPaymentId: existing?.id,
               existingAmountPaise: existing?.amount,
             })
@@ -310,6 +312,9 @@ export default function VillageBulkPostingPage() {
             <button onClick={handleReset} className="btn-secondary flex-1">
               Different Location
             </button>
+            <Link href={`/b/${businessId}/posting/view`} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-teal-200 text-teal-600 hover:bg-teal-50 transition-colors text-center">
+              View Payments
+            </Link>
           </div>
         </div>
       )}
@@ -391,11 +396,27 @@ export default function VillageBulkPostingPage() {
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                  <span className="text-xs text-gray-600">Payment Completed</span>
-                  <span className="text-xs text-gray-400">({showCompleted ? `${rows.length} paid` : `${rows.length} pending`})</span>
-                </label>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                    <span className="text-xs text-gray-600">Payment Completed</span>
+                    <span className="text-xs text-gray-400">({showCompleted ? `${rows.length} paid` : `${rows.length} pending`})</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isHoliday} onChange={(e) => {
+                      const checked = e.target.checked
+                      setIsHoliday(checked)
+                      if (checked) {
+                        setPaymentMode('Holiday')
+                        setAllRows(prev => prev.map(r => ({ ...r, amountStr: '0' })))
+                      } else {
+                        setPaymentMode('Cash')
+                        setAllRows(prev => prev.map(r => ({ ...r, amountStr: String(r.installmentAmount / 100) })))
+                      }
+                    }} className="w-4 h-4 rounded border-gray-300 text-red-600" />
+                    <span className="text-xs text-red-600 font-medium">Holiday</span>
+                  </label>
+                </div>
               </div>}
             </div>
           )}

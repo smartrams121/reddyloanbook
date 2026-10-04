@@ -48,15 +48,31 @@ export default function ViewPaymentsPage() {
   const [sortField, setSortField] = useState('paymentDate')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
+  // Customer search
+  const [customers, setCustomers] = useState<{ id: string; fullName: string; phone: string; customerId: string; village: { name: string } }[]>([])
+  const [customerQuery, setCustomerQuery] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; fullName: string; customerId: string } | null>(null)
+  const [selectedLoanNumber, setSelectedLoanNumber] = useState('')
+
   useEffect(() => {
     Promise.all([
       fetch(`/api/b/${businessId}/villages`).then(r => r.json()),
       fetch(`/api/b/${businessId}/users`).then(r => r.json()),
-    ]).then(([vils, users]) => {
+      fetch(`/api/b/${businessId}/customers`).then(r => r.json()),
+    ]).then(([vils, users, custs]) => {
       if (Array.isArray(vils)) setVillages(vils)
       if (Array.isArray(users)) setEmployees(users)
+      if (Array.isArray(custs)) setCustomers(custs)
     }).catch(() => {})
   }, [businessId])
+
+  const filteredCusts = customerQuery.trim()
+    ? customers.filter(c =>
+        c.fullName.toLowerCase().includes(customerQuery.toLowerCase()) ||
+        c.phone?.includes(customerQuery) ||
+        c.customerId.toLowerCase().includes(customerQuery.toLowerCase())
+      ).slice(0, 10)
+    : []
 
   useEffect(() => {
     setLoading(true)
@@ -65,13 +81,14 @@ export default function ViewPaymentsPage() {
     params.set('to', toDate)
     if (villageId) params.set('villageId', villageId)
     if (collectorId) params.set('collectorId', collectorId)
+    if (selectedCustomer) params.set('customerId', selectedCustomer.id)
 
     fetch(`/api/b/${businessId}/payments?${params}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setPayments(data) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [businessId, fromDate, toDate, villageId, collectorId])
+  }, [businessId, fromDate, toDate, villageId, collectorId, selectedCustomer])
 
   function daysAgo(n: number) {
     const d = new Date(); d.setDate(d.getDate() - n)
@@ -100,6 +117,7 @@ export default function ViewPaymentsPage() {
     switch (sortField) {
       case 'paymentDate': va = a.paymentDate; vb = b.paymentDate; break
       case 'customer': va = a.loan.customer.fullName; vb = b.loan.customer.fullName; break
+      case 'loanNumber': va = a.loan.loanNumber; vb = b.loan.loanNumber; break
       case 'village': va = a.loan.customer.village.name; vb = b.loan.customer.village.name; break
       case 'amount': va = a.amount; vb = b.amount; break
       case 'collector': va = a.collector.fullName; vb = b.collector.fullName; break
@@ -110,11 +128,20 @@ export default function ViewPaymentsPage() {
     return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
   })
 
+  const loanFiltered = selectedLoanNumber
+    ? sorted.filter(p => p.loan.loanNumber === selectedLoanNumber)
+    : sorted
+
   const PAGE_SIZES = [10, 25, 50, 100, 0] as const
   const showAll = pageSize === 0
-  const totalPages = showAll ? 1 : Math.ceil(sorted.length / pageSize)
-  const pagedPayments = showAll ? sorted : sorted.slice((page - 1) * pageSize, page * pageSize)
-  const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0)
+  const totalPages = showAll ? 1 : Math.ceil(loanFiltered.length / pageSize)
+  const pagedPayments = showAll ? loanFiltered : loanFiltered.slice((page - 1) * pageSize, page * pageSize)
+  const totalAmount = loanFiltered.reduce((sum, p) => sum + p.amount, 0)
+
+  // Get unique loan numbers for the selected customer
+  const customerLoanNumbers = selectedCustomer
+    ? [...new Set(payments.map(p => p.loan.loanNumber))].sort()
+    : []
 
   useEffect(() => { setPage(1) }, [fromDate, toDate, villageId, collectorId])
 
@@ -185,7 +212,7 @@ export default function ViewPaymentsPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">View Payments</h1>
-          <p className="text-sm text-gray-500">{payments.length} payments · {formatPaiseShort(totalAmount)}</p>
+          <p className="text-sm text-gray-500">{loanFiltered.length} payments · {formatPaiseShort(totalAmount)}</p>
         </div>
         <Link href={`/b/${businessId}/posting`} className="text-sm text-primary-600 hover:underline">
           ← Back
@@ -256,6 +283,50 @@ export default function ViewPaymentsPage() {
             )}
           </div>
         )}
+        {/* Customer Search */}
+        <div>
+          {selectedCustomer ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500">Customer:</span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-primary-100 text-primary-700">
+                {selectedCustomer.fullName} ({selectedCustomer.customerId})
+                <button onClick={() => { setSelectedCustomer(null); setSelectedLoanNumber('') }} className="hover:text-primary-900">×</button>
+              </span>
+              {customerLoanNumbers.length > 1 && (
+                <>
+                  <span className="text-xs text-gray-500">Loan:</span>
+                  <select value={selectedLoanNumber} onChange={(e) => { setSelectedLoanNumber(e.target.value); setPage(1) }} className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600">
+                    <option value="">All Loans ({customerLoanNumbers.length})</option>
+                    {customerLoanNumbers.map(ln => <option key={ln} value={ln}>{ln}</option>)}
+                  </select>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                type="text"
+                className="input text-xs py-1.5 pl-8"
+                placeholder="Search customer by name, phone, or ID..."
+                value={customerQuery}
+                onChange={(e) => setCustomerQuery(e.target.value)}
+              />
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              {filteredCusts.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
+                  {filteredCusts.map(c => (
+                    <button key={c.id} onClick={() => { setSelectedCustomer({ id: c.id, fullName: c.fullName, customerId: c.customerId }); setCustomerQuery(''); setPage(1) }} className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                      <span className="text-xs font-medium text-gray-900">{c.fullName}</span>
+                      <span className="text-[10px] text-gray-500 ml-2">{c.customerId} · {c.phone} · {c.village?.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Payments Table */}
@@ -274,6 +345,7 @@ export default function ViewPaymentsPage() {
               <tr className="border-b text-left text-gray-500 bg-gray-50">
                 <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('paymentDate')}>Date{sortIcon('paymentDate')}</th>
                 <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
+                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
                 <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Village{sortIcon('village')}</th>
                 <th className="py-2 px-3 text-right cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('amount')}>Amount{sortIcon('amount')}</th>
                 <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('collector')}>Collector{sortIcon('collector')}</th>
@@ -287,8 +359,9 @@ export default function ViewPaymentsPage() {
                   <td className="py-2 px-3 text-gray-500">{formatDateDisplay(p.paymentDate)}</td>
                   <td className="py-2 px-3">
                     <Link href={`/b/${businessId}/customers/${p.loan.customer.id}`} className="font-medium text-primary-600 hover:underline">{p.loan.customer.fullName}</Link>
-                    <span className="block text-[10px] text-gray-400 md:hidden">{p.loan.customer.village.name} · {p.collector.fullName}</span>
+                    <span className="block text-[10px] text-gray-400 md:hidden">{p.loan.loanNumber} · {p.loan.customer.village.name} · {p.collector.fullName}</span>
                   </td>
+                  <td className="py-2 px-3 text-gray-500 font-mono hidden md:table-cell">{p.loan.loanNumber}</td>
                   <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
                   <td className="py-2 px-3 text-right font-semibold text-green-700">{formatPaiseShort(p.amount)}</td>
                   <td className="py-2 px-3 hidden md:table-cell"><Link href={`/b/${businessId}/users/${p.collector.id}`} className="text-primary-600 hover:underline">{p.collector.fullName}</Link></td>
@@ -299,7 +372,7 @@ export default function ViewPaymentsPage() {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-gray-200 bg-gray-50">
-                <td className="py-2 px-3 font-semibold text-gray-700" colSpan={3}>Total ({payments.length})</td>
+                <td className="py-2 px-3 font-semibold text-gray-700" colSpan={4}>Total ({loanFiltered.length})</td>
                 <td className="py-2 px-3 text-right font-bold text-green-700">{formatPaiseShort(totalAmount)}</td>
                 <td className="hidden md:table-cell" colSpan={3}></td>
               </tr>
