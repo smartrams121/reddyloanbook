@@ -23,6 +23,10 @@ interface BusinessSettings {
   repaymentMultiplierMonthly: number
   whatsappTemplate: string
   autoLogoutMinutes: number
+  customerSeq: number; loanSeq: number; receiptSeq: number
+  customerIdFormat: string; customerIdPrefix: string; customerIdPadding: number; customerIdStart: number; customerIdMax: number
+  loanIdFormat: string; loanIdPrefix: string; loanIdPadding: number; loanIdStart: number; loanIdMax: number
+  receiptIdFormat: string; receiptIdPrefix: string; receiptIdPadding: number; receiptIdStart: number; receiptIdMax: number
 }
 
 export default function SettingsPage() {
@@ -37,6 +41,7 @@ export default function SettingsPage() {
   const [exporting, setExporting] = useState(false)
   const [basicInfoOpen, setBasicInfoOpen] = useState(false)
   const [otherOpen, setOtherOpen] = useState(false)
+  const [seqOpen, setSeqOpen] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -81,6 +86,21 @@ export default function SettingsPage() {
           ratingAverageMaxPct: settings.ratingAverageMaxPct,
           whatsappTemplate: settings.whatsappTemplate,
           autoLogoutMinutes: settings.autoLogoutMinutes,
+          customerIdFormat: settings.customerIdFormat,
+          customerIdPrefix: settings.customerIdPrefix,
+          customerIdPadding: settings.customerIdPadding,
+          customerIdStart: settings.customerIdStart,
+          customerIdMax: settings.customerIdMax,
+          loanIdFormat: settings.loanIdFormat,
+          loanIdPrefix: settings.loanIdPrefix,
+          loanIdPadding: settings.loanIdPadding,
+          loanIdStart: settings.loanIdStart,
+          loanIdMax: settings.loanIdMax,
+          receiptIdFormat: settings.receiptIdFormat,
+          receiptIdPrefix: settings.receiptIdPrefix,
+          receiptIdPadding: settings.receiptIdPadding,
+          receiptIdStart: settings.receiptIdStart,
+          receiptIdMax: settings.receiptIdMax,
         }),
       })
 
@@ -347,6 +367,67 @@ export default function SettingsPage() {
             />
           </div>
         </div>}
+        </div>
+
+        {/* Business Sequence */}
+        <div className="card">
+          <button type="button" onClick={() => setSeqOpen(!seqOpen)} className="w-full p-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Business Sequence</h2>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${seqOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {seqOpen && <div className="px-4 pb-4 space-y-6">
+            {/* Customer ID Config */}
+            {(['customer', 'loan', 'receipt'] as const).map(type => {
+              const labels = { customer: 'Customer ID', loan: 'Loan ID', receipt: 'Receipt ID' }
+              const fmtKey = `${type}IdFormat` as keyof BusinessSettings
+              const prefixKey = `${type}IdPrefix` as keyof BusinessSettings
+              const padKey = `${type}IdPadding` as keyof BusinessSettings
+              const startKey = `${type}IdStart` as keyof BusinessSettings
+              const maxKey = `${type}IdMax` as keyof BusinessSettings
+              const seqKey = `${type}Seq` as keyof BusinessSettings
+              return (
+                <div key={type} className="space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{labels[type]}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label text-xs">Format</label>
+                      <select className="input text-xs" value={settings[fmtKey] as string} onChange={(e) => {
+                        const oldVal = settings[fmtKey]
+                        if (oldVal !== e.target.value && (settings[seqKey] as number) > 0) {
+                          if (!confirm(`Changing ${labels[type]} format. Existing IDs will keep their old format. New IDs will use the new format. Continue?`)) return
+                        }
+                        update(fmtKey, e.target.value)
+                      }}>
+                        <option value="NUMERIC">Numeric (1, 2, 3)</option>
+                        <option value="STRING">String (0001, 0002)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Prefix</label>
+                      <input className="input text-xs" value={settings[prefixKey] as string} onChange={(e) => update(prefixKey, e.target.value)} placeholder="e.g. CUS, VF" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {settings[fmtKey] === 'STRING' && (
+                      <div>
+                        <label className="label text-xs">Padding</label>
+                        <input type="number" className="input text-xs" min={1} max={10} value={settings[padKey] as number} onChange={(e) => update(padKey, parseInt(e.target.value) || 4)} />
+                      </div>
+                    )}
+                    <div>
+                      <label className="label text-xs">Start</label>
+                      <input type="number" className="input text-xs" min={1} value={settings[startKey] as number} onChange={(e) => update(startKey, parseInt(e.target.value) || 1)} />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Max</label>
+                      <input type="number" className="input text-xs" min={1} value={settings[maxKey] as number} onChange={(e) => update(maxKey, parseInt(e.target.value) || 100000)} />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-400">Current: {settings[seqKey] as number} · Next: {(settings[seqKey] as number) + 1}</p>
+                </div>
+              )
+            })}
+          </div>}
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full btn-lg">

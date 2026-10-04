@@ -63,6 +63,7 @@ export const createBusinessSchema = z.object({
 })
 
 export const createCustomerSchema = z.object({
+  customerId: z.string().optional(),
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   age: z.number().int().min(18).max(100).optional(),
   phone: phoneSchema.optional().or(z.literal('')),
@@ -79,6 +80,7 @@ export const createCustomerSchema = z.object({
 
 export const createLoanSchema = z.object({
   customerId: z.string().min(1),
+  loanNumber: z.string().optional(),
   loanAmount: z.number().int().positive('Loan amount must be positive'),
   interestAmount: z.number().int().min(0, 'Interest cannot be negative'),
   interestModel: z.enum(['ADDON', 'UPFRONT']).default('ADDON'),

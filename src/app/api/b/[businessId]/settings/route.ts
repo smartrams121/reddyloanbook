@@ -22,6 +22,22 @@ const updateSettingsSchema = z.object({
   repaymentMultiplierMonthly: z.number().min(1).max(5).optional(),
   whatsappTemplate: z.string().max(500).optional(),
   autoLogoutMinutes: z.number().int().min(5).max(480).optional(),
+  // Sequence configs
+  customerIdFormat: z.enum(['NUMERIC', 'STRING']).optional(),
+  customerIdPrefix: z.string().max(10).optional(),
+  customerIdPadding: z.number().int().min(1).max(10).optional(),
+  customerIdStart: z.number().int().min(1).optional(),
+  customerIdMax: z.number().int().min(1).optional(),
+  loanIdFormat: z.enum(['NUMERIC', 'STRING']).optional(),
+  loanIdPrefix: z.string().max(10).optional(),
+  loanIdPadding: z.number().int().min(1).max(10).optional(),
+  loanIdStart: z.number().int().min(1).optional(),
+  loanIdMax: z.number().int().min(1).optional(),
+  receiptIdFormat: z.enum(['NUMERIC', 'STRING']).optional(),
+  receiptIdPrefix: z.string().max(10).optional(),
+  receiptIdPadding: z.number().int().min(1).max(10).optional(),
+  receiptIdStart: z.number().int().min(1).optional(),
+  receiptIdMax: z.number().int().min(1).optional(),
 })
 
 interface RouteParams {
@@ -49,6 +65,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
       repaymentMultiplierDailyWeekly: true, repaymentMultiplierMonthly: true,
       ratingGoodMaxPct: true, ratingAverageMaxPct: true,
       whatsappTemplate: true, autoLogoutMinutes: true,
+      customerSeq: true, loanSeq: true, receiptSeq: true,
+      customerIdFormat: true, customerIdPrefix: true, customerIdPadding: true, customerIdStart: true, customerIdMax: true,
+      loanIdFormat: true, loanIdPrefix: true, loanIdPadding: true, loanIdStart: true, loanIdMax: true,
+      receiptIdFormat: true, receiptIdPrefix: true, receiptIdPadding: true, receiptIdStart: true, receiptIdMax: true,
       isActive: true,
     },
   })

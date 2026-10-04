@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface Village { id: string; name: string }
-interface Agent { id: string; fullName: string; role: string }
+interface Agent { id: string; fullName: string; role: string; villageAssignments?: { village: { id: string } }[] }
 interface CustomerResult { id: string; customerId: string; fullName: string; phone: string; village: { id: string; name: string }; status: string }
 interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; collectionDays: string; repaymentMultiplierDailyWeekly: number; repaymentMultiplierMonthly: number }
 interface ActiveLoan { id: string; loanNumber: string; loanAmount: number; totalRepayable: number; status: string; startDate: string }
@@ -76,6 +76,9 @@ export default function NewLoanPage() {
 
   // Loan step — redesigned
   const [agentId, setAgentId] = useState('')
+  const [loanNumber, setLoanNumber] = useState('')
+  const [loanIdStatus, setLoanIdStatus] = useState<'loading' | 'available' | 'taken' | ''>('')
+  const [loanIdSuggestion, setLoanIdSuggestion] = useState('')
   const [loanDetailsOpen, setLoanDetailsOpen] = useState(false)
   const [startDate, setStartDate] = useState(todayISO)
   const [principalStr, setPrincipalStr] = useState('')
@@ -94,6 +97,14 @@ export default function NewLoanPage() {
 
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+
+  // Filter agents by selected customer's village
+  const filteredAgents = selectedCustomer
+    ? agents.filter(a =>
+        !a.villageAssignments || a.villageAssignments.length === 0 ||
+        a.villageAssignments.some(va => va.village.id === selectedCustomer.village.id)
+      )
+    : agents
 
   // Computed loan values
   const collectionType = settings?.collectionType || 'DAILY'
@@ -145,6 +156,11 @@ export default function NewLoanPage() {
   }, [startDate, numInstallments, settings])
 
   useEffect(() => {
+    fetch(`/api/b/${businessId}/loans/next-id`)
+      .then(r => r.json())
+      .then(data => { if (data.nextId) setLoanNumber(data.nextId) })
+      .catch(() => {})
+
     Promise.all([
       fetch(`/api/b/${businessId}/settings`).then(r => r.json()),
       fetch(`/api/b/${businessId}/villages`).then(r => r.json()),
@@ -175,6 +191,13 @@ export default function NewLoanPage() {
 
   async function selectCustomer(customer: CustomerResult) {
     setSelectedCustomer(customer)
+    // Auto-select first agent matching customer's village
+    const matching = agents.filter(a =>
+      !a.villageAssignments || a.villageAssignments.length === 0 ||
+      a.villageAssignments.some(va => va.village.id === customer.village.id)
+    )
+    if (matching.length > 0) setAgentId(matching[0].id)
+    else setAgentId('')
     setCheckingLoans(true)
     try {
       const res = await fetch(`/api/b/${businessId}/loans?customerId=${customer.id}`)
@@ -215,6 +238,22 @@ export default function NewLoanPage() {
         setTotalRepaymentStr('')
       }
     }
+  }
+
+  async function checkLoanId(id: string) {
+    if (!id.trim()) return
+    setLoanIdStatus('loading')
+    try {
+      const res = await fetch(`/api/b/${businessId}/loans/check-id?id=${encodeURIComponent(id)}`)
+      const data = await res.json()
+      if (data.available) {
+        setLoanIdStatus('available')
+        setLoanIdSuggestion('')
+      } else {
+        setLoanIdStatus('taken')
+        setLoanIdSuggestion(data.nextAvailable || '')
+      }
+    } catch { setLoanIdStatus('') }
   }
 
   function handleInterestModelChange(model: string) {
@@ -357,6 +396,7 @@ export default function NewLoanPage() {
       const ct = settings?.collectionType || 'DAILY'
       const body: Record<string, unknown> = {
         customerId: selectedCustomer.id,
+        loanNumber: loanNumber || undefined,
         loanAmount: principal * 100,
         interestAmount: interest * 100,
         interestModel,
@@ -780,15 +820,35 @@ export default function NewLoanPage() {
             </button>
             {loanDetailsOpen && <div className="px-4 pb-4 space-y-4">
 
+            {/* Loan ID */}
+            <div>
+              <label className="label">Loan ID</label>
+              <input
+                className="input"
+                value={loanNumber}
+                onChange={(e) => setLoanNumber(e.target.value)}
+                onBlur={() => checkLoanId(loanNumber)}
+              />
+              {loanIdStatus === 'available' && <p className="text-[10px] text-green-600 mt-1">✓ Available</p>}
+              {loanIdStatus === 'taken' && (
+                <p className="text-[10px] text-red-600 mt-1">
+                  ID already assigned.{loanIdSuggestion && (
+                    <> Next available: <button type="button" onClick={() => { setLoanNumber(loanIdSuggestion); setLoanIdStatus('available') }} className="text-primary-600 underline">{loanIdSuggestion}</button></>
+                  )}
+                </p>
+              )}
+              {loanIdStatus === 'loading' && <p className="text-[10px] text-gray-400 mt-1">Checking...</p>}
+            </div>
+
             {/* Agent */}
             <div>
               <label className="label">Agent *</label>
-              {agents.length > 0 ? (
+              {filteredAgents.length > 0 ? (
                 <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                  {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                  {filteredAgents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
                 </select>
               ) : (
-                <p className="text-sm text-gray-400 py-2">No agents assigned. Add agents from the Team page.</p>
+                <p className="text-sm text-gray-400 py-2">{agents.length > 0 ? 'No agents assigned to this location.' : 'No agents assigned. Add agents from the Team page.'}</p>
               )}
             </div>
 

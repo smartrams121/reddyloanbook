@@ -74,6 +74,7 @@ export async function POST(request: Request, { params }: Props) {
   const {
     customerId, loanAmount, interestAmount, interestModel, collectionType, collectionDay,
     installmentAmount, numberOfInstallments, startDate, agentId, notes, renewFromLoanId,
+    loanNumber: requestedLoanNumber,
     documents,
   } = parsed.data
 
@@ -86,7 +87,7 @@ export async function POST(request: Request, { params }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { id: true, collectionDays: true, loanSeq: true, receiptPrefix: true },
+    select: { id: true, collectionDays: true, loanSeq: true, receiptPrefix: true, loanIdFormat: true, loanIdPrefix: true, loanIdPadding: true, loanIdStart: true, loanIdMax: true },
   })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
@@ -140,9 +141,20 @@ export async function POST(request: Request, { params }: Props) {
 
   const expectedEndDate = schedule[schedule.length - 1].dueDate
 
-  const seq = business.loanSeq + 1
-  const prefix = business.receiptPrefix || 'L'
-  const loanNumber = `${prefix}${String(seq).padStart(5, '0')}`
+  const { generateId: genId, getLoanIdConfig } = require('@/lib/id-generator')
+  const loanConfig = getLoanIdConfig(business)
+  let seq = Math.max(business.loanSeq + 1, loanConfig.start)
+  let loanNumber: string
+
+  if (requestedLoanNumber) {
+    loanNumber = requestedLoanNumber
+    const exists = await prisma.loan.findFirst({ where: { businessId, loanNumber } })
+    if (exists) return NextResponse.json({ error: `Loan number "${loanNumber}" already exists` }, { status: 409 })
+    const numPart = parseInt(loanNumber.replace(/\D/g, ''))
+    if (!isNaN(numPart) && numPart >= seq) seq = numPart
+  } else {
+    loanNumber = genId(loanConfig, seq)
+  }
 
   let loan
   try {

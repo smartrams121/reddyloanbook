@@ -111,6 +111,25 @@ model Business {
   loanSeq              Int     @default(0)
   customerSeq          Int     @default(0)
 
+  // Configurable ID formats
+  customerIdFormat     String  @default("NUMERIC")
+  customerIdPrefix     String  @default("")
+  customerIdPadding    Int     @default(4)
+  customerIdStart      Int     @default(1)
+  customerIdMax        Int     @default(100000)
+
+  loanIdFormat         String  @default("NUMERIC")
+  loanIdPrefix         String  @default("")
+  loanIdPadding        Int     @default(5)
+  loanIdStart          Int     @default(1)
+  loanIdMax            Int     @default(100000)
+
+  receiptIdFormat      String  @default("NUMERIC")
+  receiptIdPrefix      String  @default("")
+  receiptIdPadding     Int     @default(5)
+  receiptIdStart       Int     @default(1)
+  receiptIdMax         Int     @default(100000)
+
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

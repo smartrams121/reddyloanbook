@@ -16,6 +16,9 @@ export default function NewCustomerPage() {
   const businessId = params.businessId as string
 
   const [villages, setVillages] = useState<Village[]>([])
+  const [customerId, setCustomerId] = useState('')
+  const [customerIdStatus, setCustomerIdStatus] = useState<'loading' | 'available' | 'taken' | ''>('')
+  const [customerIdSuggestion, setCustomerIdSuggestion] = useState('')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [altPhone, setAltPhone] = useState('')
@@ -45,12 +48,35 @@ export default function NewCustomerPage() {
   const [showNewJobType, setShowNewJobType] = useState(false)
   const [additionalOpen, setAdditionalOpen] = useState(false)
 
+  async function checkCustomerId(id: string) {
+    if (!id.trim()) return
+    setCustomerIdStatus('loading')
+    try {
+      const res = await fetch(`/api/b/${businessId}/customers/check-id?id=${encodeURIComponent(id)}`)
+      const data = await res.json()
+      if (data.available) {
+        setCustomerIdStatus('available')
+        setCustomerIdSuggestion('')
+      } else {
+        setCustomerIdStatus('taken')
+        setCustomerIdSuggestion(data.nextAvailable || '')
+      }
+    } catch {
+      setCustomerIdStatus('')
+    }
+  }
+
   useEffect(() => {
     fetch(`/api/b/${businessId}/villages`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setVillages(data)
       })
+      .catch(() => {})
+
+    fetch(`/api/b/${businessId}/customers/next-id`)
+      .then(r => r.json())
+      .then(data => { if (data.nextId) setCustomerId(data.nextId) })
       .catch(() => {})
 
     fetch(`/api/b/${businessId}/customers`)
@@ -172,6 +198,7 @@ export default function NewCustomerPage() {
         fullName,
         phone,
         villageId,
+        customerId: customerId || undefined,
       }
       if (altPhone) body.altPhone = altPhone
       if (age) body.age = parseInt(age, 10)
@@ -227,6 +254,30 @@ export default function NewCustomerPage() {
         {error && (
           <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg">{error}</div>
         )}
+
+        <div>
+          <label className="label">Customer ID *</label>
+          <div className="flex gap-2 items-start">
+            <div className="flex-1">
+              <input
+                className="input"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                onBlur={() => checkCustomerId(customerId)}
+                required
+              />
+              {customerIdStatus === 'available' && <p className="text-[10px] text-green-600 mt-1">✓ Available</p>}
+              {customerIdStatus === 'taken' && (
+                <p className="text-[10px] text-red-600 mt-1">
+                  ID already assigned.{customerIdSuggestion && (
+                    <> Next available: <button type="button" onClick={() => { setCustomerId(customerIdSuggestion); setCustomerIdStatus('available') }} className="text-primary-600 underline">{customerIdSuggestion}</button></>
+                  )}
+                </p>
+              )}
+              {customerIdStatus === 'loading' && <p className="text-[10px] text-gray-400 mt-1">Checking...</p>}
+            </div>
+          </div>
+        </div>
 
         <div>
           <label className="label">Full Name *</label>

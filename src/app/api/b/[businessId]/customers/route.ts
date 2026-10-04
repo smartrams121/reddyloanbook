@@ -94,9 +94,24 @@ export async function POST(request: Request, { params }: Props) {
   const business = await prisma.business.findUnique({ where: { id: businessId } })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
-  const seq = business.customerSeq + 1
-  const prefix = business.receiptPrefix || 'C'
-  const customerId = `${prefix}${String(seq).padStart(4, '0')}`
+  let customerId: string
+  let seq = business.customerSeq + 1
+
+  if (parsed.data.customerId) {
+    // Use provided custom ID
+    customerId = parsed.data.customerId
+    const exists = await prisma.customer.findFirst({ where: { businessId, customerId } })
+    if (exists) return NextResponse.json({ error: `Customer ID "${customerId}" already exists` }, { status: 409 })
+    // Update seq to max if numeric part is higher
+    const numPart = parseInt(customerId.replace(/\D/g, ''))
+    if (!isNaN(numPart) && numPart >= seq) seq = numPart
+  } else {
+    // Auto-generate using configurable format
+    const { generateId, getCustomerIdConfig } = require('@/lib/id-generator')
+    const config = getCustomerIdConfig(business)
+    seq = Math.max(business.customerSeq + 1, config.start)
+    customerId = generateId(config, seq)
+  }
 
   let aadhaarHash: string | undefined
   let aadhaarLast4: string | undefined
