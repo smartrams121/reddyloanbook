@@ -343,36 +343,35 @@ export default function ViewPaymentsPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b text-left text-gray-500 bg-gray-50">
-                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('paymentDate')}>Date{sortIcon('paymentDate')}</th>
-                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Village{sortIcon('village')}</th>
-                <th className="py-2 px-3 text-right cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('amount')}>Amount{sortIcon('amount')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('collector')}>Collector{sortIcon('collector')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>Mode{sortIcon('mode')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>Receipt{sortIcon('receipt')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>Receipt{sortIcon('receipt')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs">CID</th>
+                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('amount')}>Amount{sortIcon('amount')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('paymentDate')}>Date{sortIcon('paymentDate')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Village{sortIcon('village')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('collector')}>Agent{sortIcon('collector')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>Mode{sortIcon('mode')}</th>
               </tr>
             </thead>
             <tbody>
               {pagedPayments.map(p => (
                 <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="py-2 px-3 text-gray-500">{formatDateDisplay(p.paymentDate)}</td>
-                  <td className="py-2 px-3">
-                    <Link href={`/b/${businessId}/customers/${p.loan.customer.id}`} className="font-medium text-primary-600 hover:underline">{p.loan.customer.fullName}</Link>
-                    <span className="block text-[10px] text-gray-400 md:hidden">{p.loan.loanNumber} · {p.loan.customer.village.name} · {p.collector.fullName}</span>
-                  </td>
-                  <td className="py-2 px-3 text-gray-500 font-mono hidden md:table-cell">{p.loan.loanNumber}</td>
-                  <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
-                  <td className="py-2 px-3 text-right font-semibold text-green-700">{formatPaiseShort(p.amount)}</td>
-                  <td className="py-2 px-3 hidden md:table-cell"><Link href={`/b/${businessId}/users/${p.collector.id}`} className="text-primary-600 hover:underline">{p.collector.fullName}</Link></td>
-                  <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{p.note || '-'}</td>
-                  <td className="py-2 px-3 text-gray-400 font-mono hidden md:table-cell">{p.receiptNumber}</td>
+                  <td className="py-2 px-2 text-gray-400 font-mono text-[10px] hidden md:table-cell">{p.receiptNumber}</td>
+                  <td className="py-2 px-2 text-gray-500 font-mono text-[10px] md:text-xs">{p.loan.loanNumber}</td>
+                  <td className="py-2 px-2"><Link href={`/b/${businessId}/customers/${p.loan.customer.id}`} className="font-medium text-primary-600 hover:underline text-[11px] md:text-xs">{p.loan.customer.fullName}</Link></td>
+                  <td className="py-2 px-2 text-gray-500 font-mono text-[10px]">{p.loan.customer.customerId}</td>
+                  <td className="py-2 px-2 text-right font-semibold text-green-700 text-[10px] md:text-xs">{formatPaiseShort(p.amount)}</td>
+                  <td className="py-2 px-2 text-gray-500 text-[10px] md:text-xs">{formatDateDisplay(p.paymentDate)}</td>
+                  <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
+                  <td className="py-2 px-2 text-[10px] md:text-xs"><Link href={`/b/${businessId}/users/${p.collector.id}`} className="text-primary-600 hover:underline">{p.collector.fullName}</Link></td>
+                  <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.note || '-'}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-gray-200 bg-gray-50">
-                <td className="py-2 px-3 font-semibold text-gray-700" colSpan={4}>Total ({loanFiltered.length})</td>
+                <td className="py-2 px-2 font-semibold text-gray-700" colSpan={4}>Total ({loanFiltered.length})</td>
                 <td className="py-2 px-3 text-right font-bold text-green-700">{formatPaiseShort(totalAmount)}</td>
                 <td className="hidden md:table-cell" colSpan={3}></td>
               </tr>

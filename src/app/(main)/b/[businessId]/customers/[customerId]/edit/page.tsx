@@ -30,6 +30,9 @@ export default function EditCustomerPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
+  const [originalCustId, setOriginalCustId] = useState('')
+  const [custIdStatus, setCustIdStatus] = useState<'available' | 'taken' | ''>('')
+  const [custIdSuggestion, setCustIdSuggestion] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -40,6 +43,7 @@ export default function EditCustomerPage() {
         if (Array.isArray(villageData)) setVillages(villageData)
         if (cust && cust.id) {
           setCustId(cust.customerId)
+          setOriginalCustId(cust.customerId)
           setFullName(cust.fullName)
           setPhone(cust.phone || '')
           setAltPhone(cust.altPhone || '')
@@ -86,6 +90,16 @@ export default function EditCustomerPage() {
     }
   }
 
+  async function checkCustId(id: string) {
+    if (!id.trim() || id === originalCustId) { setCustIdStatus(''); return }
+    try {
+      const res = await fetch(`/api/b/${businessId}/customers/check-id?id=${encodeURIComponent(id)}`)
+      const data = await res.json()
+      if (data.available) { setCustIdStatus('available'); setCustIdSuggestion('') }
+      else { setCustIdStatus('taken'); setCustIdSuggestion(data.nextAvailable || '') }
+    } catch { setCustIdStatus('') }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -95,6 +109,7 @@ export default function EditCustomerPage() {
       const body: Record<string, unknown> = {
         fullName,
         phone,
+        ...(custId !== originalCustId && { customerId: custId }),
         altPhone,
         villageId,
         address,
@@ -145,12 +160,30 @@ export default function EditCustomerPage() {
         ← Back
       </Link>
       <h1 className="text-xl font-bold text-gray-900 mt-2 mb-1">Edit Customer</h1>
-      <p className="text-sm text-gray-500 mb-6">{custId}</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg">{error}</div>
         )}
+
+        {/* Customer ID */}
+        <div>
+          <label className="label">Customer ID</label>
+          <input
+            className="input"
+            value={custId}
+            onChange={(e) => { setCustId(e.target.value); setCustIdStatus('') }}
+            onBlur={() => checkCustId(custId)}
+          />
+          {custIdStatus === 'available' && <p className="text-[10px] text-green-600 mt-1">✓ Available</p>}
+          {custIdStatus === 'taken' && (
+            <p className="text-[10px] text-red-600 mt-1">
+              ID already assigned.{custIdSuggestion && (
+                <> Next available: <button type="button" onClick={() => { setCustId(custIdSuggestion); setCustIdStatus('available') }} className="text-primary-600 underline">{custIdSuggestion}</button></>
+              )}
+            </p>
+          )}
+        </div>
 
         {/* Photo */}
         <div>

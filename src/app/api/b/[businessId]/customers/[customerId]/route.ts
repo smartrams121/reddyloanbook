@@ -12,6 +12,7 @@ interface Props {
 }
 
 const updateCustomerSchema = z.object({
+  customerId: z.string().optional(),
   fullName: z.string().min(2).optional(),
   age: z.number().int().min(18).max(100).optional(),
   phone: phoneSchema.optional(),
@@ -138,6 +139,16 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   const data: Record<string, unknown> = {}
+  if (parsed.data.customerId) {
+    // Check uniqueness of new customer ID
+    const existing = await prisma.customer.findFirst({
+      where: { businessId, customerId: parsed.data.customerId, NOT: { id: customerId } },
+    })
+    if (existing) {
+      return NextResponse.json({ error: `Customer ID "${parsed.data.customerId}" already exists` }, { status: 409 })
+    }
+    data.customerId = parsed.data.customerId
+  }
   if (parsed.data.fullName) data.fullName = parsed.data.fullName
   if (parsed.data.age !== undefined) data.age = parsed.data.age
   if (parsed.data.phone) {

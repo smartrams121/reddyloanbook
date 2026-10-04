@@ -220,7 +220,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(totalLoanAmount)}</div>
-          <div className="stat-label">Loans ({activeLoans.length})</div>
+          <div className="stat-label">Total Loan Amount ({activeLoans.length})</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(totalRepayable)}</div>

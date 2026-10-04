@@ -94,7 +94,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
       `Status: ${s.customerStatus}`,
       ``,
       `*Financial Summary*`,
-      `Total Lent: ${p(s.totalLent)}`,
+      `Total Loans: ${p(s.totalLent)}`,
       `Total Repayable: ${p(s.totalRepayable)}`,
       `Total Paid: ${p(s.totalPaid)}`,
       `Outstanding: ${p(s.totalOutstanding)}`,
@@ -142,7 +142,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
         {/* Summary */}
         <div className="px-4 py-3 bg-gray-50 grid grid-cols-2 gap-2">
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Total Lent</p>
+            <p className="text-[10px] text-gray-500 uppercase">Total Loans</p>
             <p className="text-sm font-bold text-gray-900">{formatPaiseShort(s.totalLent)}</p>
           </div>
           <div className="text-center">
@@ -253,6 +253,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
   const sorted = [...customers].sort((a, b) => {
     let va: string | number = '', vb: string | number = ''
     switch (sortField) {
+      case 'customerId': va = a.customerId; vb = b.customerId; break
       case 'fullName': va = a.fullName; vb = b.fullName; break
       case 'phone': va = a.phone || ''; vb = b.phone || ''; break
       case 'village': va = a.village.name; vb = b.village.name; break
@@ -350,11 +351,12 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
                 )}
-                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('fullName')}>Customer{sortIcon('fullName')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('phone')}>Phone{sortIcon('phone')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Location{sortIcon('village')}</th>
-                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
-                <th className="py-2 px-3 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loans')}>Loans{sortIcon('loans')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customerId')}>CID{sortIcon('customerId')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('fullName')}>Customer{sortIcon('fullName')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('phone')}>Phone{sortIcon('phone')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('village')}>Location{sortIcon('village')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
+                <th className="py-2 px-2 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loans')}>Loans{sortIcon('loans')}</th>
               </tr>
             </thead>
             <tbody>
@@ -370,12 +372,12 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                       />
                     </td>
                   )}
-                  <td className="py-2 px-3">
-                    <Link href={`/b/${businessId}/customers/${c.id}`} className="font-medium text-primary-600 hover:underline">{c.fullName}</Link>
-                    <span className="block text-[10px] text-gray-400 md:hidden">{c.customerId} · {c.phone} · {c.village.name}</span>
+                  <td className="py-2 px-2 text-gray-500 font-mono text-[10px] md:text-[11px]">{c.customerId}</td>
+                  <td className="py-2 px-2">
+                    <Link href={`/b/${businessId}/customers/${c.id}`} className="font-medium text-primary-600 hover:underline text-[11px] md:text-xs">{c.fullName}</Link>
                   </td>
-                  <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{c.phone || '-'}</td>
-                  <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{c.village.name}</td>
+                  <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{c.phone || '-'}</td>
+                  <td className="py-2 px-2 text-gray-500 text-[10px] md:text-xs">{c.village.name}</td>
                   <td className="py-2 px-3">
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                       c.status === 'ACTIVE' ? 'bg-success-50 text-success-700' :

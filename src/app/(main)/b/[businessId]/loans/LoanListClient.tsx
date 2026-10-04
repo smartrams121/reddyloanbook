@@ -428,13 +428,13 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
                 )}
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
-                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('startDate')}>Date{sortIcon('startDate')}</th>
-                <th className="py-2 px-3 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('lent')}>Loan{sortIcon('lent')}</th>
-                <th className="py-2 px-3 text-right cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('due')}>Due{sortIcon('due')}</th>
-                <th className="py-2 px-3 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('agent')}>Agent{sortIcon('agent')}</th>
-                <th className="py-2 px-3 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('startDate')}>Date{sortIcon('startDate')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs text-right" onClick={() => toggleSort('lent')}>Loan{sortIcon('lent')}</th>
+                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('due')}>Due{sortIcon('due')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('agent')}>Agent{sortIcon('agent')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -447,15 +447,14 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                         <input type="checkbox" checked={selected.has(loan.id)} onChange={() => toggleOne(loan.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                       </td>
                     )}
-                    <td className="py-2 px-3 text-gray-500 font-mono hidden md:table-cell">{loan.loanNumber}</td>
-                    <td className="py-2 px-3">
-                      <Link href={`/b/${businessId}/customers/${loan.customer.id}`} className="font-medium text-primary-600 hover:underline">{loan.customer.fullName}</Link>
-                      <span className="block text-[10px] text-gray-400 md:hidden">{loan.loanNumber} · {formatDateDisplay(loan.startDate)} · {formatPaiseShort(loan.amountGiven)}{loan.agent ? ` · ${loan.agent.fullName}` : ''}</span>
+                    <td className="py-2 px-2 text-gray-500 font-mono text-[10px] md:text-xs">{loan.loanNumber}</td>
+                    <td className="py-2 px-2">
+                      <Link href={`/b/${businessId}/customers/${loan.customer.id}`} className="font-medium text-primary-600 hover:underline text-[11px] md:text-xs">{loan.customer.fullName}</Link>
                     </td>
-                    <td className="py-2 px-3 text-gray-500 hidden md:table-cell">{formatDateDisplay(loan.startDate)}</td>
-                    <td className="py-2 px-3 text-right text-gray-700 hidden md:table-cell">{formatPaiseShort(loan.amountGiven)}</td>
-                    <td className="py-2 px-3 text-right font-semibold text-gray-900">{formatPaiseShort(outstanding)}</td>
-                    <td className="py-2 px-3 hidden md:table-cell">{loan.agent ? <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline">{loan.agent.fullName}</Link> : '-'}</td>
+                    <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{formatDateDisplay(loan.startDate)}</td>
+                    <td className="py-2 px-2 text-right text-gray-700 text-[10px] md:text-xs">{formatPaiseShort(loan.amountGiven)}</td>
+                    <td className="py-2 px-2 text-right font-semibold text-gray-900 text-[10px] md:text-xs">{formatPaiseShort(outstanding)}</td>
+                    <td className="py-2 px-2 text-[10px] md:text-xs">{loan.agent ? <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline">{loan.agent.fullName}</Link> : '-'}</td>
                     <td className="py-2 px-3">
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadgeClass(loan.status)}`}>
                         {loan.status.replace(/_/g, ' ')}

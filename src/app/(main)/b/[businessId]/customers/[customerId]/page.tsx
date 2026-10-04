@@ -188,7 +188,7 @@ export default function CustomerDetailPage() {
           <p className="text-[10px] text-gray-400">{s.activeLoans} active &middot; {s.completedLoans} closed</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-xs text-gray-500">Total Lent</p>
+          <p className="text-xs text-gray-500">Total Loan Amount</p>
           <p className="text-lg font-bold text-gray-900">{formatPaiseShort(s.totalLent)}</p>
         </div>
         <div className="card p-3 text-center">
