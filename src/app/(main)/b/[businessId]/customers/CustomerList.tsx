@@ -482,6 +482,12 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                     {viewLoading ? '...' : t('common.view')}
                   </button>
                   <button
+                    onClick={() => router.push(`/b/${businessId}/posting/individual?customerId=${selectedId}`)}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                  >
+                    {t('payments.new_payment')}
+                  </button>
+                  <button
                     onClick={() => router.push(`/b/${businessId}/customers/${selectedId}/edit`)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                   >

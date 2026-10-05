@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
@@ -56,12 +56,13 @@ interface LoanDetail {
 
 interface PaymentRecord {
   id: string
-  receiptNumber: string
+  receiptNumber?: string
   amount: number
   paymentDate: string
-  note: string | null
-  collector: { id: string; fullName: string }
-  createdAt: string
+  note?: string | null
+  collector?: { id: string; fullName: string }
+  collectorName?: string
+  createdAt?: string
 }
 
 interface Props {
@@ -96,6 +97,23 @@ function statusLabel(status: string, t: (key: string) => string): string {
 
 function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; businessId: string; onClose: () => void }) {
   const { t } = useTranslation()
+  const [payments, setPayments] = useState<PaymentRecord[]>([])
+  const [paymentsLoading, setPaymentsLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/b/${businessId}/payments?loanId=${loan.id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setPayments(data.map((p: { id: string; paymentDate: string; amount: number; collector?: { fullName: string }; note?: string }) => ({
+            id: p.id, paymentDate: p.paymentDate, amount: p.amount,
+            collectorName: p.collector?.fullName || '-', note: p.note || '',
+          })))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPaymentsLoading(false))
+  }, [businessId, loan.id])
 
   function handleSharePdf() {
     const a = document.createElement('a')
@@ -181,31 +199,41 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
           ))}
         </div>
 
-        {loan.schedule && loan.schedule.length > 0 && (
-          <div className="px-4 pb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('loans.repayment_schedule')} ({loan.schedule.length})</h3>
+        <div className="px-4 pb-4">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            {t('payments.payments')} {!paymentsLoading && `(${payments.length})`}
+          </h3>
+          {paymentsLoading ? (
+            <p className="text-xs text-gray-400 py-2">{t('common.loading')}</p>
+          ) : payments.length === 0 ? (
+            <p className="text-xs text-gray-400 py-2">{t('payments.no_payments')}</p>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-gray-500 border-b">
                     <th className="py-1.5 pr-2">#</th>
-                    <th className="py-1.5 pr-2">{t('loans.due_date')}</th>
-                    <th className="py-1.5 text-right">{t('common.amount')}</th>
+                    <th className="py-1.5 pr-2">{t('common.date')}</th>
+                    <th className="py-1.5 text-right pr-2">{t('common.amount')}</th>
+                    <th className="py-1.5 pr-2">{t('payments.collected_by')}</th>
+                    <th className="py-1.5">{t('common.mode')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {loan.schedule.map((s) => (
-                    <tr key={s.installmentNumber} className="border-b border-gray-50">
-                      <td className="py-1.5 pr-2 text-gray-400">{s.installmentNumber}</td>
-                      <td className="py-1.5 pr-2 date-display">{formatDateDisplay(s.dueDate)}</td>
-                      <td className="py-1.5 text-right font-medium">{formatPaiseShort(s.amount)}</td>
+                  {payments.map((p, i) => (
+                    <tr key={p.id || i} className="border-b border-gray-50">
+                      <td className="py-1.5 pr-2 text-gray-400">{i + 1}</td>
+                      <td className="py-1.5 pr-2 date-display">{formatDateDisplay(p.paymentDate)}</td>
+                      <td className="py-1.5 text-right pr-2 font-medium">{formatPaiseShort(p.amount)}</td>
+                      <td className="py-1.5 pr-2">{p.collectorName || p.collector?.fullName || '-'}</td>
+                      <td className="py-1.5 text-gray-500">{p.note || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Share buttons */}
         <div className="sticky bottom-0 bg-white border-t px-4 py-3 flex gap-2">
@@ -282,7 +310,7 @@ function PaymentHistoryModal({ payments, loanNumber, totalRepayable, onClose }: 
                   <tr key={p.id} className="border-b border-gray-50">
                     <td className="py-2 pr-2 text-gray-500 font-mono">{p.receiptNumber}</td>
                     <td className="py-2 pr-2">{formatDateDisplay(p.paymentDate)}</td>
-                    <td className="py-2 pr-2 text-gray-700">{p.collector.fullName}</td>
+                    <td className="py-2 pr-2 text-gray-700">{p.collector?.fullName || '-'}</td>
                     <td className="py-2 text-right font-medium text-green-700">{formatPaiseShort(p.amount)}</td>
                   </tr>
                 ))}
@@ -533,11 +561,13 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     {viewLoading ? '...' : t('common.view')}
                   </button>
                   <button
-                    onClick={() => openPaymentHistory(selectedLoanId!)}
-                    disabled={paymentsLoading}
-                    className="px-3 py-2 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                    onClick={() => {
+                      const loan = loans.find(l => l.id === selectedLoanId)
+                      if (loan) router.push(`/b/${businessId}/posting/individual?customerId=${loan.customer.id}&loanId=${loan.id}`)
+                    }}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
                   >
-                    {paymentsLoading ? '...' : t('payments.payments')}
+                    {t('payments.new_payment')}
                   </button>
                   <button
                     onClick={() => router.push(`/b/${businessId}/loans/${selectedLoanId}/edit`)}

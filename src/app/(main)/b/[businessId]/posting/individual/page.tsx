@@ -58,11 +58,13 @@ export default function RecordPaymentPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
   const [showCompleted, setShowCompleted] = useState(false)
-  const [paidCustomerIds, setPaidCustomerIds] = useState<Set<string>>(new Set())
+  const [paidLoanIds, setPaidLoanIds] = useState<Set<string>>(new Set())
+  const [customerLoanCounts, setCustomerLoanCounts] = useState<Map<string, { total: number; paid: number }>>(new Map())
   const [eligibleCustomerIds, setEligibleCustomerIds] = useState<Set<string> | null>(null)
 
   const [customerLoans, setCustomerLoans] = useState<LoanResult[]>([])
   const [loanPaidMap, setLoanPaidMap] = useState<Record<string, number>>({})
+  const [datePaidLoanIds, setDatePaidLoanIds] = useState<Set<string>>(new Set())
   const [selectedLoan, setSelectedLoan] = useState<LoanResult | null>(null)
   const [loadingLoans, setLoadingLoans] = useState(false)
 
@@ -108,11 +110,23 @@ export default function RecordPaymentPage() {
       fetch(`/api/b/${businessId}/payments?date=${filterDate}`).then(r => r.json()),
       fetch(`/api/b/${businessId}/loans?activeOnDate=${filterDate}`).then(r => r.json()),
     ]).then(([payments, loans]) => {
+      const paidLoans = new Set<string>()
       if (Array.isArray(payments)) {
-        setPaidCustomerIds(new Set(payments.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id)))
+        payments.forEach((p: { loanId: string }) => paidLoans.add(p.loanId))
       }
+      setPaidLoanIds(paidLoans)
+
       if (Array.isArray(loans)) {
         setEligibleCustomerIds(new Set(loans.map((l: { customer: { id: string } }) => l.customer.id)))
+        const counts = new Map<string, { total: number; paid: number }>()
+        loans.forEach((l: { id: string; customer: { id: string } }) => {
+          const cid = l.customer.id
+          const entry = counts.get(cid) || { total: 0, paid: 0 }
+          entry.total++
+          if (paidLoans.has(l.id)) entry.paid++
+          counts.set(cid, entry)
+        })
+        setCustomerLoanCounts(counts)
       }
     }).catch(() => {})
   }, [businessId, filterDate])
@@ -131,7 +145,7 @@ export default function RecordPaymentPage() {
   }, [customerLoans, preLoanId, step])
 
   const filteredCustomers = useMemo(() => {
-    let list = customers.filter(c => c.status === 'ACTIVE' && (c._count?.loans || 0) > 0)
+    let list = customers.filter(c => (c._count?.loans || 0) > 0)
 
     // Only show customers with loans that started on or before filterDate
     if (eligibleCustomerIds) {
@@ -139,9 +153,11 @@ export default function RecordPaymentPage() {
     }
 
     // Filter by payment status on filterDate
-    list = list.filter(c =>
-      showCompleted ? paidCustomerIds.has(c.id) : !paidCustomerIds.has(c.id)
-    )
+    list = list.filter(c => {
+      const counts = customerLoanCounts.get(c.id)
+      const allPaid = counts ? counts.paid >= counts.total : false
+      return showCompleted ? allPaid : !allPaid
+    })
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
@@ -153,7 +169,7 @@ export default function RecordPaymentPage() {
     }
 
     return list
-  }, [customers, searchQuery, showCompleted, paidCustomerIds, eligibleCustomerIds])
+  }, [customers, searchQuery, showCompleted, customerLoanCounts, eligibleCustomerIds])
 
   const checkExistingPayment = useCallback(async (loanId: string, date: string) => {
     try {
@@ -188,24 +204,39 @@ export default function RecordPaymentPage() {
     try {
       const res = await fetch(`/api/b/${businessId}/loans?customerId=${customer.id}`)
       const loans = await res.json()
-      const active = Array.isArray(loans)
+      const allLoans = Array.isArray(loans)
         ? loans.filter((l: LoanResult) => l.startDate <= postingDate)
         : []
-      setCustomerLoans(active)
 
-      // Fetch paid amounts for each loan
+      // Fetch paid amounts for each loan + check payments on posting date
       const paidMap: Record<string, number> = {}
-      await Promise.all(active.map(async (loan: LoanResult) => {
-        const pRes = await fetch(`/api/b/${businessId}/payments?loanId=${loan.id}`)
-        const payments = await pRes.json()
-        const total = Array.isArray(payments)
-          ? payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0)
+      const datePaid = new Set<string>()
+      await Promise.all(allLoans.map(async (loan: LoanResult) => {
+        const [allRes, dateRes] = await Promise.all([
+          fetch(`/api/b/${businessId}/payments?loanId=${loan.id}`),
+          fetch(`/api/b/${businessId}/payments?loanId=${loan.id}&date=${filterDate}`),
+        ])
+        const allPayments = await allRes.json()
+        const datePayments = await dateRes.json()
+        paidMap[loan.id] = Array.isArray(allPayments)
+          ? allPayments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0)
           : 0
-        paidMap[loan.id] = total
+        if (Array.isArray(datePayments) && datePayments.length > 0) datePaid.add(loan.id)
       }))
       setLoanPaidMap(paidMap)
+      setDatePaidLoanIds(datePaid)
 
-      if (active.length === 1) {
+      // Show all loans but auto-select only active ones
+      setCustomerLoans(allLoans)
+      const active = allLoans.filter((l: LoanResult) => l.totalRepayable - (paidMap[l.id] || 0) > 0)
+
+      const preLoan = preLoanId ? active.find((l: LoanResult) => l.id === preLoanId) : null
+      if (preLoan) {
+        setSelectedLoan(preLoan)
+        if (preLoan.agent) setCollectorId(preLoan.agent.id)
+        setAmountStr(String(preLoan.installmentAmount / 100))
+        setStep('payment')
+      } else if (active.length === 1) {
         setSelectedLoan(active[0])
         if (active[0].agent) setCollectorId(active[0].agent.id)
         setAmountStr(String(active[0].installmentAmount / 100))
@@ -261,18 +292,20 @@ export default function RecordPaymentPage() {
       if (mode === 'next') {
         // Mark current customer as paid and find next unpaid customer
         const currentId = selectedCustomer?.id
-        setPaidCustomerIds(prev => {
+        setPaidLoanIds(prev => {
           const next = new Set(prev)
-          if (currentId) next.add(currentId)
+          if (selectedLoan) next.add(selectedLoan.id)
           return next
         })
 
         // Find next unpaid customer from filtered list
-        const pendingList = customers.filter(c =>
-          c.status === 'ACTIVE' && (c._count?.loans || 0) > 0 &&
-          !paidCustomerIds.has(c.id) && c.id !== currentId &&
-          (!eligibleCustomerIds || eligibleCustomerIds.has(c.id))
-        )
+        const pendingList = customers.filter(c => {
+          if ((c._count?.loans || 0) === 0) return false
+          if (c.id === currentId) return false
+          if (eligibleCustomerIds && !eligibleCustomerIds.has(c.id)) return false
+          const counts = customerLoanCounts.get(c.id)
+          return counts ? counts.paid < counts.total : true
+        })
 
         if (pendingList.length > 0) {
           // Auto-select next customer
@@ -398,8 +431,21 @@ export default function RecordPaymentPage() {
                   fetch(`/api/b/${businessId}/payments?date=${filterDate}`).then(r => r.json()),
                   fetch(`/api/b/${businessId}/loans?activeOnDate=${filterDate}`).then(r => r.json()),
                 ]).then(([payments, loans]) => {
-                  if (Array.isArray(payments)) setPaidCustomerIds(new Set(payments.map((p: { loan: { customer: { id: string } } }) => p.loan.customer.id)))
-                  if (Array.isArray(loans)) setEligibleCustomerIds(new Set(loans.map((l: { customer: { id: string } }) => l.customer.id)))
+                  const paidLoans = new Set<string>()
+                  if (Array.isArray(payments)) payments.forEach((p: { loanId: string }) => paidLoans.add(p.loanId))
+                  setPaidLoanIds(paidLoans)
+                  if (Array.isArray(loans)) {
+                    setEligibleCustomerIds(new Set(loans.map((l: { customer: { id: string } }) => l.customer.id)))
+                    const counts = new Map<string, { total: number; paid: number }>()
+                    loans.forEach((l: { id: string; customer: { id: string } }) => {
+                      const cid = l.customer.id
+                      const entry = counts.get(cid) || { total: 0, paid: 0 }
+                      entry.total++
+                      if (paidLoans.has(l.id)) entry.paid++
+                      counts.set(cid, entry)
+                    })
+                    setCustomerLoanCounts(counts)
+                  }
                 }).catch(() => {})
               }}
               className="px-2 py-1 text-xs rounded border border-primary-200 text-primary-600 hover:bg-primary-50"
@@ -471,23 +517,32 @@ export default function RecordPaymentPage() {
             {customerLoans.map((loan) => {
               const paid = loanPaidMap[loan.id] || 0
               const outstanding = loan.totalRepayable - paid
+              const isCompleted = outstanding <= 0
               const parts = loan.startDate.split('-')
               const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : loan.startDate
               return (
                 <button
                   key={loan.id}
-                  onClick={() => { setSelectedLoan(loan); if (loan.agent) setCollectorId(loan.agent.id); setAmountStr(String(loan.installmentAmount / 100)); setStep('payment') }}
-                  className="w-full text-left card p-3 hover:border-primary-300 transition-colors"
+                  onClick={() => { if (isCompleted) return; setSelectedLoan(loan); if (loan.agent) setCollectorId(loan.agent.id); setAmountStr(String(loan.installmentAmount / 100)); setStep('payment') }}
+                  disabled={isCompleted}
+                  className={`w-full text-left card p-3 transition-colors ${isCompleted ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-300'}`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-semibold text-gray-900">{loan.loanNumber}</p>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[loan.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {loan.status.replace(/_/g, ' ')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-sm font-semibold ${isCompleted ? 'text-gray-400' : 'text-gray-900'}`}>{loan.loanNumber}</p>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isCompleted ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
+                        {isCompleted ? 'COMPLETED' : 'ACTIVE'}
+                      </span>
+                    </div>
+                    {!isCompleted && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${datePaidLoanIds.has(loan.id) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {datePaidLoanIds.has(loan.id) ? 'Paid' : 'Pending'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>Started {dateStr}</span>
-                    <span className="font-semibold text-gray-900">Outstanding: {formatPaiseShort(outstanding)}</span>
+                    <span className={`font-semibold ${isCompleted ? 'text-gray-400' : 'text-gray-900'}`}>Outstanding: {formatPaiseShort(outstanding)}</span>
                   </div>
                 </button>
               )
@@ -520,7 +575,7 @@ export default function RecordPaymentPage() {
                   {selectedLoan.status.replace(/_/g, ' ')}
                 </span>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${existingPaymentId ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {existingPaymentId ? 'Completed' : 'In Progress'}
+                  {existingPaymentId ? 'Paid' : 'Pending'}
                 </span>
               </div>
               {customerLoans.length > 1 && (
