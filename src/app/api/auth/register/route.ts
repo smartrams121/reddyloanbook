@@ -36,6 +36,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Username is already taken. Please choose another.' }, { status: 409 })
     }
 
+    const existingPhone = await prisma.user.findFirst({ where: { phone, isActive: true }, select: { id: true } })
+    if (existingPhone) {
+      return NextResponse.json({ error: 'This phone number is already registered. Please use a different number or contact support.' }, { status: 409 })
+    }
+
     const existingRequest = await prisma.registrationRequest.findUnique({ where: { username } })
     if (existingRequest && existingRequest.status === 'PENDING') {
       return NextResponse.json({ error: 'A registration with this username is already pending.' }, { status: 409 })

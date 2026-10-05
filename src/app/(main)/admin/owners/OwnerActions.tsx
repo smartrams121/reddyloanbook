@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ResetPasswordModal from '@/components/ResetPasswordModal'
 
 interface Props {
   ownerId: string
@@ -14,11 +13,12 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [showResetModal, setShowResetModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
 
   async function toggleStatus() {
     const action = isActive ? 'suspend' : 'activate'
-    if (!confirm(`Are you sure you want to ${action} ${ownerName}?`)) return
+    if (!confirm(`Are you sure you want to ${action} this organization (${ownerName})?`)) return
 
     setLoading(true)
     try {
@@ -27,30 +27,14 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !isActive }),
       })
-      if (res.ok) {
-        router.refresh()
-      }
+      if (res.ok) router.refresh()
     } finally {
       setLoading(false)
       setOpen(false)
     }
   }
 
-  async function handleResetPassword(password: string, note: string) {
-    const res = await fetch(`/api/admin/owners/${ownerId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resetPassword: password, resetNote: note }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed to reset password')
-    setShowResetModal(false)
-    router.refresh()
-  }
-
   async function deleteOwner() {
-    if (!confirm(`Are you sure you want to permanently delete ${ownerName}? This action cannot be undone.`)) return
-
     setLoading(true)
     try {
       const res = await fetch(`/api/admin/owners/${ownerId}`, { method: 'DELETE' })
@@ -58,10 +42,12 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
         router.refresh()
       } else {
         const data = await res.json().catch(() => ({}))
-        alert(data.error || 'Failed to delete owner')
+        alert(data.error || 'Failed to delete organization')
       }
     } finally {
       setLoading(false)
+      setShowDeleteModal(false)
+      setDeleteConfirm('')
       setOpen(false)
     }
   }
@@ -81,42 +67,58 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-            <button
-              onClick={() => { setOpen(false); router.push(`/admin/owners/${ownerId}/edit`) }}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
-            >
-              Edit Owner
-            </button>
+          <div className="absolute right-0 top-8 z-20 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
             <button
               onClick={toggleStatus}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
             >
-              {isActive ? 'Suspend Owner' : 'Activate Owner'}
-            </button>
-            <button
-              onClick={() => { setOpen(false); setShowResetModal(true) }}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
-            >
-              Reset Password
+              {isActive ? 'Suspend Organization' : 'Activate Organization'}
             </button>
             <div className="border-t border-gray-100 my-1" />
             <button
-              onClick={deleteOwner}
+              onClick={() => { setOpen(false); setShowDeleteModal(true); setDeleteConfirm('') }}
               className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50"
             >
-              Delete Owner
+              Delete Organization
             </button>
           </div>
         </>
       )}
 
-      {showResetModal && (
-        <ResetPasswordModal
-          userName={ownerName}
-          onConfirm={handleResetPassword}
-          onCancel={() => setShowResetModal(false)}
-        />
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-danger-700">Delete Organization</h3>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-700">
+                Permanently delete <span className="font-semibold">{ownerName}</span> and all associated data — collections, customers, loans, payments, and employees.
+              </p>
+              <p className="text-sm text-danger-600 font-medium">This action cannot be undone.</p>
+              <div>
+                <label className="label">Type DELETE to confirm</label>
+                <input
+                  className="input"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+              <button onClick={() => setShowDeleteModal(false)} className="btn-secondary px-4 py-2">Cancel</button>
+              <button
+                onClick={deleteOwner}
+                disabled={deleteConfirm !== 'DELETE' || loading}
+                className="bg-danger-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-danger-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Deleting...' : 'Delete Organization'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

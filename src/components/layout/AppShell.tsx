@@ -327,7 +327,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               {/* Platform Admin links */}
               {user.role === Role.PLATFORM_ADMIN && (
                 <NavSection title="Platform Admin">
-                  <NavLink href="/admin/owners" icon="👥" label="Manage Owners" active={pathname.startsWith('/admin/owners')} />
+                  <NavLink href="/admin/owners" icon="👥" label="Organizations" active={pathname.startsWith('/admin/owners')} />
                   <NavLink href="/admin/registration-requests" icon="📋" label="Registration Requests" active={pathname.startsWith('/admin/registration-requests')} badge={pendingRegCount} />
                   <NavLink href="/admin/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/admin/password-resets')} badge={pendingResetCount} />
                   <NavLink href="/admin/platform-settings" icon="⚙️" label="Platform Settings" active={pathname.startsWith('/admin/platform-settings')} />

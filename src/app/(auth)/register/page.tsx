@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [businessName, setBusinessName] = useState('')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -94,6 +95,7 @@ export default function RegisterPage() {
           businessName,
           fullName,
           phone,
+          city,
           email: email || undefined,
           username,
           password,
@@ -197,9 +199,14 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label className="label">{t('register.email')}</label>
-                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('register.email_placeholder')} />
+                <label className="label">{t('register.email')} *</label>
+                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('register.email_placeholder')} required />
               </div>
+            </div>
+
+            <div>
+              <label className="label">{t('common.city')} *</label>
+              <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Visakhapatnam" required />
             </div>
           </div>
 

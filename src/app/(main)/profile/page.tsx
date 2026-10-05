@@ -204,51 +204,10 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {!editingProfile ? (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{t('profile.phone')}</p>
-                <p className="text-sm text-gray-900">{profile.phone || 'Not set'}</p>
-              </div>
-              <button
-                onClick={() => setEditingProfile(true)}
-                className="text-sm text-primary-600 font-medium"
-              >
-                {t('common.edit')}
-              </button>
-            </div>
-            {profileMsg.text && (
-              <div className={`text-sm px-3 py-2 rounded-lg ${profileMsg.type === 'error' ? 'bg-danger-50 text-danger-700' : 'bg-green-50 text-green-700'}`}>
-                {profileMsg.text}
-              </div>
-            )}
-          </div>
-        ) : (
-          <form onSubmit={handleUpdateProfile} className="space-y-3">
-            {profileMsg.text && (
-              <div className={`text-sm px-3 py-2 rounded-lg ${profileMsg.type === 'error' ? 'bg-danger-50 text-danger-700' : 'bg-green-50 text-green-700'}`}>
-                {profileMsg.text}
-              </div>
-            )}
-            <div>
-              <label className="label">{t('profile.full_name')}</label>
-              <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} required />
-            </div>
-            <div>
-              <label className="label">{t('profile.phone')}</label>
-              <input className="input" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="e.g. 9876543210" />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={profileSaving} className="btn-primary flex-1">
-                {profileSaving ? t('common.saving') : t('common.save')}
-              </button>
-              <button type="button" onClick={() => { setEditingProfile(false); setEditName(profile.fullName); setEditPhone(profile.phone || '') }} className="btn-secondary flex-1">
-                {t('common.cancel')}
-              </button>
-            </div>
-          </form>
-        )}
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">{t('profile.phone')}</p>
+          <p className="text-sm text-gray-900">{profile.phone || 'Not set'}</p>
+        </div>
       </div>
 
       {/* Language */}
@@ -284,95 +243,6 @@ export default function ProfilePage() {
         </form>}
       </div>
 
-      {/* My Businesses (Owners only) */}
-      {isOwner && (
-        <div className="card">
-          <button type="button" onClick={() => setCollectionsOpen(!collectionsOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">{t('profile.my_collections')}</h2>
-            <svg className={`w-4 h-4 text-gray-400 transition-transform ${collectionsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-          </button>
-          {collectionsOpen && <div className="px-4 pb-4 space-y-3">
-            {profile.businesses.filter(b => b.isActive).map((biz) => (
-              <div key={biz.id} className="border border-gray-200 rounded-lg p-3">
-                {editingBiz === biz.id ? (
-                  <form onSubmit={handleUpdateBusiness} className="space-y-3">
-                    {bizMsg.text && (
-                      <div className={`text-sm px-3 py-2 rounded-lg ${bizMsg.type === 'error' ? 'bg-danger-50 text-danger-700' : 'bg-green-50 text-green-700'}`}>
-                        {bizMsg.text}
-                      </div>
-                    )}
-                    <div>
-                      <label className="label">{t('common.collection_name')}</label>
-                      <input className="input" value={bizName} onChange={(e) => setBizName(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="label">{t('common.city')}</label>
-                      <input className="input" value={bizCity} onChange={(e) => setBizCity(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="label">{t('common.phone')}</label>
-                      <input className="input" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="Optional" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="submit" disabled={bizSaving} className="btn-primary flex-1 text-sm">
-                        {bizSaving ? t('common.saving') : t('common.save')}
-                      </button>
-                      <button type="button" onClick={() => setEditingBiz(null)} className="btn-secondary flex-1 text-sm">
-                        {t('common.cancel')}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">{biz.name}</p>
-                      <p className="text-xs text-gray-500">{biz.city}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => startEditBiz(biz)} className="text-xs text-primary-600 font-medium px-2 py-1 hover:bg-primary-50 rounded">
-                        {t('common.edit')}
-                      </button>
-                      {archiveConfirm === biz.id ? (
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => handleArchiveBusiness(biz.id)} className="text-xs text-white bg-danger-600 px-2 py-1 rounded font-medium">
-                            Confirm
-                          </button>
-                          <button onClick={() => setArchiveConfirm(null)} className="text-xs text-gray-500 px-2 py-1">
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <button onClick={() => setArchiveConfirm(biz.id)} className="text-xs text-danger-600 font-medium px-2 py-1 hover:bg-danger-50 rounded">
-                          {t('profile.archive')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {profile.businesses.filter(b => b.isActive).length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-2">{t('common.no_active_businesses')}</p>
-            )}
-
-            {profile.businesses.filter(b => !b.isActive).length > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{t('common.archived')}</p>
-                {profile.businesses.filter(b => !b.isActive).map((biz) => (
-                  <div key={biz.id} className="flex items-center justify-between py-1.5">
-                    <div>
-                      <p className="text-sm text-gray-400">{biz.name}</p>
-                      <p className="text-xs text-gray-300">{biz.city}</p>
-                    </div>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{t('common.archived')}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>}
-        </div>
-      )}
 
       {/* Organization Details (Owner/BA only) */}
       {(isOwner || profile.role === 'BUSINESS_ADMIN') && (
@@ -384,42 +254,54 @@ export default function ProfilePage() {
 
 function OrganizationSection() {
   const { t } = useTranslation()
-  const [orgName, setOrgName] = useState('')
+  const [data, setData] = useState({ organizationName: '', fullName: '', phone: '', email: '', city: '' })
   const [editing, setEditing] = useState(false)
-  const [editValue, setEditValue] = useState('')
+  const [form, setForm] = useState({ organizationName: '', fullName: '', phone: '', email: '', city: '' })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState({ type: '', text: '' })
 
   useEffect(() => {
     fetch('/api/auth/profile')
       .then(r => r.json())
-      .then(data => { if (data.organizationName) setOrgName(data.organizationName) })
+      .then(d => {
+        const vals = {
+          organizationName: d.organizationName || '',
+          fullName: d.fullName || '',
+          phone: d.phone || '',
+          email: d.email || '',
+          city: d.businesses?.[0]?.city || '',
+        }
+        setData(vals)
+      })
       .catch(() => {})
   }, [])
 
   function startEdit() {
-    setEditValue(orgName)
+    setForm({ ...data })
     setEditing(true)
     setMsg({ type: '', text: '' })
   }
 
   async function handleSave() {
-    if (!editValue.trim()) return
+    if (!form.organizationName.trim() || !form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.city.trim()) {
+      setMsg({ type: 'error', text: 'All fields are required' })
+      return
+    }
     setSaving(true)
     setMsg({ type: '', text: '' })
     try {
       const res = await fetch('/api/profile/organization', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationName: editValue.trim() }),
+        body: JSON.stringify(form),
       })
       if (res.ok) {
-        setOrgName(editValue.trim())
+        setData({ ...form })
         setEditing(false)
         setMsg({ type: 'success', text: 'Updated — refresh to see in header' })
       } else {
-        const data = await res.json()
-        setMsg({ type: 'error', text: data.error || 'Failed' })
+        const d = await res.json()
+        setMsg({ type: 'error', text: d.error || 'Failed' })
       }
     } catch {
       setMsg({ type: 'error', text: 'Network error' })
@@ -428,43 +310,61 @@ function OrganizationSection() {
     }
   }
 
+  const fields = [
+    { key: 'organizationName', label: 'Organization Name' },
+    { key: 'fullName', label: 'Owner Name' },
+    { key: 'phone', label: 'Phone Number' },
+    { key: 'email', label: 'Email' },
+    { key: 'city', label: 'City' },
+  ] as const
+
   return (
     <div className="card p-4">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Organization Details</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Organization Details</h2>
+        {!editing && (
+          <button onClick={startEdit} className="text-xs text-primary-600 font-medium hover:text-primary-700">
+            {t('common.edit')}
+          </button>
+        )}
+      </div>
       {msg.text && (
         <div className={`text-sm px-3 py-2 rounded-lg mb-3 ${msg.type === 'error' ? 'bg-danger-50 text-danger-700' : 'bg-green-50 text-green-700'}`}>
           {msg.text}
         </div>
       )}
-      <div className="flex items-center justify-between">
-        {editing ? (
-          <div className="flex-1 flex items-center gap-2">
-            <input
-              className="input text-sm flex-1"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              placeholder="e.g. Daily PM line"
-              autoFocus
-            />
-            <button onClick={handleSave} disabled={saving} className="text-xs font-medium text-primary-600 hover:text-primary-700">
+      {editing ? (
+        <div className="space-y-3">
+          {fields.map(f => (
+            <div key={f.key}>
+              <label className="label">{f.label} *</label>
+              <input
+                className="input"
+                value={form[f.key]}
+                onChange={(e) => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                required
+              />
+            </div>
+          ))}
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
               {saving ? '...' : t('common.save')}
             </button>
-            <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:text-gray-700">
+            <button onClick={() => setEditing(false)} className="btn-secondary flex-1">
               {t('common.cancel')}
             </button>
           </div>
-        ) : (
-          <>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Organization Name</p>
-              <p className="text-sm font-medium text-gray-900 mt-1">{orgName || 'Not set'}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {fields.map(f => (
+            <div key={f.key} className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
+              <span className="text-xs text-gray-500">{f.label}</span>
+              <span className="text-sm font-medium text-gray-900">{data[f.key] || 'Not set'}</span>
             </div>
-            <button onClick={startEdit} className="text-xs text-primary-600 font-medium hover:text-primary-700">
-              {t('common.edit')}
-            </button>
-          </>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

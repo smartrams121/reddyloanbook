@@ -47,7 +47,7 @@ export default function NewBusinessPage() {
   }
 
   async function handleTest() {
-    if (!importFile || !importName || !importCity) return
+    if (!importFile || !importName) return
     setImportTesting(true)
     setImportError('')
     setTestResult(null)
@@ -55,8 +55,7 @@ export default function NewBusinessPage() {
       const fd = new FormData()
       fd.append('file', importFile)
       fd.append('name', importName)
-      fd.append('city', importCity)
-      if (importPrefix) fd.append('receiptPrefix', importPrefix)
+      fd.append('city', 'Default')
       fd.append('action', 'test')
 
       const res = await fetch('/api/businesses/import', { method: 'POST', body: fd })
@@ -74,15 +73,14 @@ export default function NewBusinessPage() {
   }
 
   async function handleImport() {
-    if (!importFile || !importName || !importCity || !testResult?.passed) return
+    if (!importFile || !importName || !testResult?.passed) return
     setImportImporting(true)
     setImportError('')
     try {
       const fd = new FormData()
       fd.append('file', importFile)
       fd.append('name', importName)
-      fd.append('city', importCity)
-      if (importPrefix) fd.append('receiptPrefix', importPrefix)
+      fd.append('city', 'Default')
       fd.append('action', 'import')
 
       const res = await fetch('/api/businesses/import', { method: 'POST', body: fd })
@@ -252,17 +250,6 @@ export default function NewBusinessPage() {
           <input className="input" value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="e.g. Sai Finance" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">City *</label>
-            <input className="input" value={importCity} onChange={(e) => setImportCity(e.target.value)} placeholder="e.g. Visakhapatnam" />
-          </div>
-          <div>
-            <label className="label">Receipt Prefix</label>
-            <input className="input" value={importPrefix} onChange={(e) => setImportPrefix(e.target.value.toUpperCase())} placeholder="e.g. SF" maxLength={5} />
-          </div>
-        </div>
-
         <div>
           <label className="label">Upload XLSX File *</label>
           <input
@@ -346,7 +333,7 @@ export default function NewBusinessPage() {
           <button
             type="button"
             onClick={handleTest}
-            disabled={!importFile || !importName || !importCity || importTesting}
+            disabled={!importFile || !importName || importTesting}
             className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {importTesting ? 'Testing...' : 'Test'}
@@ -375,41 +362,14 @@ export default function NewBusinessPage() {
           <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg">{error}</div>
         )}
 
-        {/* Basic Info */}
+        {/* Collection Settings */}
         <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Basic Info</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Collection Settings</h2>
 
           <div>
             <label className="label">Collection Name *</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Gajuwaka Daily Evening Collection" required />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">City *</label>
-              <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Visakhapatnam" required />
-            </div>
-            <div>
-              <label className="label">Phone</label>
-              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Address</label>
-            <textarea className="input" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Optional" />
-          </div>
-
-          <div>
-            <label className="label">Receipt Prefix</label>
-            <input className="input" value={receiptPrefix} onChange={(e) => setReceiptPrefix(e.target.value.toUpperCase())} placeholder="e.g. SF" maxLength={5} />
-            <p className="text-[10px] text-gray-400 mt-1">Uppercase letters only. Used for customer IDs (e.g. SF0001)</p>
-          </div>
-        </div>
-
-        {/* Collection Settings */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Collection Settings</h2>
 
           <div>
             <label className="label">Collection Type *</label>

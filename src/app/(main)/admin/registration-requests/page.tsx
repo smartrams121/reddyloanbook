@@ -248,14 +248,6 @@ export default function RegistrationRequestsPage() {
                       <p className="text-gray-400 text-xs">City</p>
                       <p className="text-gray-900">{req.city}</p>
                     </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Collection Type</p>
-                      <p className="text-gray-900">{req.collectionType}{req.defaultCollectionDay ? ` (${req.defaultCollectionDay})` : ''}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Locations</p>
-                      <p className="text-gray-900">{req.villages.join(', ')}</p>
-                    </div>
                   </div>
 
                   {req.rejectionReason && (
