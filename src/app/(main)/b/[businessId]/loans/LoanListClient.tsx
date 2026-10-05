@@ -176,7 +176,7 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
           {rows.map((r, i) => (
             <div key={i} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
               <span className="text-xs text-gray-500">{r.label}</span>
-              <span className="text-xs font-medium text-gray-900 text-right max-w-[60%]">{r.value}</span>
+              <span className="text-xs font-medium text-gray-900 text-right max-w-[60%] date-display">{r.value}</span>
             </div>
           ))}
         </div>
@@ -197,7 +197,7 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
                   {loan.schedule.map((s) => (
                     <tr key={s.installmentNumber} className="border-b border-gray-50">
                       <td className="py-1.5 pr-2 text-gray-400">{s.installmentNumber}</td>
-                      <td className="py-1.5 pr-2">{formatDateDisplay(s.dueDate)}</td>
+                      <td className="py-1.5 pr-2 date-display">{formatDateDisplay(s.dueDate)}</td>
                       <td className="py-1.5 text-right font-medium">{formatPaiseShort(s.amount)}</td>
                     </tr>
                   ))}

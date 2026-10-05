@@ -853,7 +853,7 @@ export default function NewLoanPage() {
               <label className="label">{t('loans.loan_creation_date')} *</label>
               <input
                 type="date"
-                className="input text-xs py-1.5"
+                className="input w-full min-w-0 text-xs py-1.5"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 max={todayISO()}

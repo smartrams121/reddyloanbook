@@ -286,7 +286,7 @@ export default function EditLoanForm() {
 
           <div>
             <label className="label">{t('loans.start_date')} *</label>
-            <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            <input type="date" className="input w-full min-w-0" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
           </div>
 
           <div>

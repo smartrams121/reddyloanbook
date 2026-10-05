@@ -249,14 +249,14 @@ export default function ViewPaymentsPage() {
         {/* Custom date + filters */}
         {preset === 'custom' && (
           <div className="space-y-3">
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-2">
+              <div>
                 <label className="label text-xs">{t('common.from')}</label>
-                <input type="date" className="input text-xs py-1.5" value={fromDate} onChange={e => { setFromDate(e.target.value) }} max={toDate} />
+                <input type="date" className="input w-full min-w-0 text-xs py-1.5" value={fromDate} onChange={e => { setFromDate(e.target.value) }} max={toDate} />
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="label text-xs">{t('common.to')}</label>
-                <input type="date" className="input text-xs py-1.5" value={toDate} onChange={e => { setToDate(e.target.value) }} min={fromDate} max={today} />
+                <input type="date" className="input w-full min-w-0 text-xs py-1.5" value={toDate} onChange={e => { setToDate(e.target.value) }} min={fromDate} max={today} />
               </div>
             </div>
 
@@ -364,7 +364,7 @@ export default function ViewPaymentsPage() {
                   <td className="py-2 px-2"><Link href={`/b/${businessId}/customers/${p.loan.customer.id}`} className="font-medium text-primary-600 hover:underline text-[11px] md:text-xs">{p.loan.customer.fullName}</Link></td>
                   <td className="py-2 px-2 text-gray-500 font-mono text-[10px]">{p.loan.customer.customerId}</td>
                   <td className="py-2 px-2 text-right font-semibold text-green-700 text-[10px] md:text-xs">{formatPaiseShort(p.amount)}</td>
-                  <td className="py-2 px-2 text-gray-500 text-[10px] md:text-xs">{formatDateDisplay(p.paymentDate)}</td>
+                  <td className="py-2 px-2 text-gray-500 text-[10px] md:text-xs date-display">{formatDateDisplay(p.paymentDate)}</td>
                   <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
                   <td className="py-2 px-2 text-[10px] md:text-xs"><Link href={`/b/${businessId}/users/${p.collector.id}`} className="text-primary-600 hover:underline">{p.collector.fullName}</Link></td>
                   <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.note || '-'}</td>

@@ -118,6 +118,23 @@
   }
 }
 
+@media (max-width: 767px) {
+  input[type="date"] {
+    width: 100%;
+    min-width: 0;
+    font-size: 14px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+
+  .date-display {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
+
 @media print {
   body {
     @apply bg-white text-black;

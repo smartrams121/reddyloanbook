@@ -351,12 +351,12 @@ export default function VillageBulkPostingPage() {
                 </div>
               </button>
               {detailsOpen && <div className="px-4 pb-4 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                   <div>
                     <label className="label text-xs">{t('payments.posting_date')} *</label>
                     <input
                       type="date"
-                      className="input text-xs py-1.5"
+                      className="input w-full min-w-0 text-xs py-1.5"
                       value={postingDate}
                       onChange={(e) => setPostingDate(e.target.value)}
                       min={minDateStr}
@@ -371,7 +371,7 @@ export default function VillageBulkPostingPage() {
                     <label className="label text-xs">{t('payments.submission_date')}</label>
                     <input
                       type="text"
-                      className="input text-xs py-1.5 bg-gray-50 cursor-not-allowed"
+                      className="input w-full min-w-0 text-xs py-1.5 bg-gray-50 cursor-not-allowed"
                       value={formatDisplayDate(todayStr)}
                       disabled
                     />

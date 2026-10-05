@@ -372,7 +372,7 @@ export default function RecordPaymentPage() {
               <label className="text-xs text-gray-500">Date:</label>
               <input
                 type="date"
-                className="input text-xs py-1.5 w-auto"
+                className="input min-w-0 text-xs py-1.5 w-auto"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
                 max={todayStr}
@@ -598,7 +598,7 @@ export default function RecordPaymentPage() {
               <label className="label">{t('payments.posting_date')} *</label>
               <input
                 type="date"
-                className="input text-xs py-1.5"
+                className="input w-full min-w-0 text-xs py-1.5"
                 value={postingDate}
                 onChange={(e) => setPostingDate(e.target.value)}
                 min={selectedLoan.startDate > minDateStr ? selectedLoan.startDate : minDateStr}

@@ -85,14 +85,14 @@ export default function DateFilter({ villages, employees }: { villages?: Village
       {activeRange === 'custom' && (
         <div className="space-y-3 mt-2">
           {/* Date Range */}
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto] md:items-end md:gap-2">
+            <div>
               <label className="text-xs text-gray-500 block mb-1">From</label>
-              <input type="date" className="input text-sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="input w-full min-w-0 text-sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
             </div>
-            <div className="flex-1">
+            <div>
               <label className="text-xs text-gray-500 block mb-1">To</label>
-              <input type="date" className="input text-sm" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <input type="date" className="input w-full min-w-0 text-sm" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
             <button onClick={applyFilters} disabled={!fromDate || !toDate} className="btn-primary text-sm px-4 py-2 disabled:opacity-50">
               Apply

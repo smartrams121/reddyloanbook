@@ -254,7 +254,7 @@ export default function ReportsPage() {
           {entity === 'payslips' ? (
             <>
               <label className="label">Collection Date</label>
-              <input type="date" className="input max-w-xs" value={payslipDate} onChange={(e) => setPayslipDate(e.target.value)} />
+              <input type="date" className="input min-w-0 max-w-xs" value={payslipDate} onChange={(e) => setPayslipDate(e.target.value)} />
             </>
           ) : (
             <>
@@ -277,14 +277,14 @@ export default function ReportsPage() {
               </div>
 
               {preset === 'custom' && (
-                <div className="flex gap-3 mt-3">
-                  <div className="flex-1">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3 mt-3">
+                  <div>
                     <label className="text-xs text-gray-500">From</label>
-                    <input type="date" className="input" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+                    <input type="date" className="input w-full min-w-0" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <label className="text-xs text-gray-500">To</label>
-                    <input type="date" className="input" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+                    <input type="date" className="input w-full min-w-0" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
                   </div>
                 </div>
               )}

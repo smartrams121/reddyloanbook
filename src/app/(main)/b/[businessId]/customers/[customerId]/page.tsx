@@ -403,7 +403,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between text-sm">
       <span className="text-gray-500">{label}</span>
-      <span className="text-gray-900 font-medium text-right max-w-[60%] break-words">{value}</span>
+      <span className="text-gray-900 font-medium text-right max-w-[60%] break-words date-display">{value}</span>
     </div>
   )
 }
@@ -455,7 +455,7 @@ function LoanCardWithPanel({
               <div>
                 <p className="text-sm font-semibold text-gray-900">{loan.loanNumber}</p>
                 <p className="text-xs text-gray-500">
-                  Started {formatDateDisplay(loan.startDate)}
+                  Started <span className="date-display">{formatDateDisplay(loan.startDate)}</span>
                   {loan.agent && <> · <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline" onClick={e => e.stopPropagation()}>{loan.agent.fullName}</Link></>}
                 </p>
               </div>
@@ -585,7 +585,7 @@ function PaymentPanel({ businessId, customerId, loan }: { businessId: string; cu
                     return (
                       <tr key={p.id} className={idx % 2 === 1 ? 'bg-gray-100/50' : ''}>
                         <td className="py-1.5 px-1.5 text-gray-400">{rowNum}</td>
-                        <td className="py-1.5 px-1.5">{formatDateDisplay(p.paymentDate)}</td>
+                        <td className="py-1.5 px-1.5 date-display">{formatDateDisplay(p.paymentDate)}</td>
                         <td className="py-1.5 px-1.5 text-right font-semibold text-success-700">{formatPaiseShort(p.amount)}</td>
                         <td className="py-1.5 px-1.5 text-gray-500">{p.collector ? <Link href={`/b/${businessId}/users/${p.collector.id}`} className="text-primary-600 hover:underline">{p.collector.fullName}</Link> : '-'}</td>
                         <td className="py-1.5 px-1.5 text-gray-400 hidden sm:table-cell truncate max-w-[100px]">{p.note || ''}</td>
@@ -722,7 +722,7 @@ function CombinedPaymentTable({ businessId, customerId, loans }: { businessId: s
                 {pagedPayments.map((p, idx) => (
                   <tr key={p.id} className={idx % 2 === 1 ? 'bg-gray-50/50' : ''}>
                     <td className="py-2 px-2 text-gray-400">{startIdx + idx + 1}</td>
-                    <td className="py-2 px-2">{formatDateDisplay(p.paymentDate)}</td>
+                    <td className="py-2 px-2 date-display">{formatDateDisplay(p.paymentDate)}</td>
                     {multiLoan && <td className="py-2 px-2 text-gray-600 font-medium">{p.loanNumber}</td>}
                     <td className="py-2 px-2 text-right font-semibold text-success-700">{formatPaiseShort(p.amount)}</td>
                     <td className="py-2 px-2 text-gray-400">{p.receiptNumber}</td>
