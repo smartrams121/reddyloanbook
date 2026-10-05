@@ -125,7 +125,7 @@ export async function getSession(): Promise<AuthUser | null> {
   let organizationName: string | null = null
   if (user.role === Role.OWNER) {
     ownerId = user.id
-    organizationName = user.ownedBusinesses[0]?.name || null
+    organizationName = user.organizationName || user.ownedBusinesses[0]?.name || null
   } else if (
     user.role === Role.BUSINESS_ADMIN ||
     user.role === Role.AGENT
@@ -133,10 +133,10 @@ export async function getSession(): Promise<AuthUser | null> {
     if (businessIds.length > 0) {
       const biz = await prisma.business.findFirst({
         where: { id: businessIds[0] },
-        select: { ownerId: true, name: true },
+        select: { ownerId: true, owner: { select: { organizationName: true } } },
       })
       ownerId = biz?.ownerId || null
-      organizationName = biz?.name || null
+      organizationName = biz?.owner?.organizationName || null
     }
   }
 

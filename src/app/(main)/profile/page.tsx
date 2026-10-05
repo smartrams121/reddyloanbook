@@ -373,6 +373,98 @@ export default function ProfilePage() {
           </div>}
         </div>
       )}
+
+      {/* Organization Details (Owner/BA only) */}
+      {(isOwner || profile.role === 'BUSINESS_ADMIN') && (
+        <OrganizationSection />
+      )}
+    </div>
+  )
+}
+
+function OrganizationSection() {
+  const { t } = useTranslation()
+  const [orgName, setOrgName] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState({ type: '', text: '' })
+
+  useEffect(() => {
+    fetch('/api/auth/profile')
+      .then(r => r.json())
+      .then(data => { if (data.organizationName) setOrgName(data.organizationName) })
+      .catch(() => {})
+  }, [])
+
+  function startEdit() {
+    setEditValue(orgName)
+    setEditing(true)
+    setMsg({ type: '', text: '' })
+  }
+
+  async function handleSave() {
+    if (!editValue.trim()) return
+    setSaving(true)
+    setMsg({ type: '', text: '' })
+    try {
+      const res = await fetch('/api/profile/organization', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationName: editValue.trim() }),
+      })
+      if (res.ok) {
+        setOrgName(editValue.trim())
+        setEditing(false)
+        setMsg({ type: 'success', text: 'Updated — refresh to see in header' })
+      } else {
+        const data = await res.json()
+        setMsg({ type: 'error', text: data.error || 'Failed' })
+      }
+    } catch {
+      setMsg({ type: 'error', text: 'Network error' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="card p-4">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Organization Details</h2>
+      {msg.text && (
+        <div className={`text-sm px-3 py-2 rounded-lg mb-3 ${msg.type === 'error' ? 'bg-danger-50 text-danger-700' : 'bg-green-50 text-green-700'}`}>
+          {msg.text}
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        {editing ? (
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              className="input text-sm flex-1"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              placeholder="e.g. Daily PM line"
+              autoFocus
+            />
+            <button onClick={handleSave} disabled={saving} className="text-xs font-medium text-primary-600 hover:text-primary-700">
+              {saving ? '...' : t('common.save')}
+            </button>
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:text-gray-700">
+              {t('common.cancel')}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Organization Name</p>
+              <p className="text-sm font-medium text-gray-900 mt-1">{orgName || 'Not set'}</p>
+            </div>
+            <button onClick={startEdit} className="text-xs text-primary-600 font-medium hover:text-primary-700">
+              {t('common.edit')}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }

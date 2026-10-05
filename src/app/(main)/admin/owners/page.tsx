@@ -14,7 +14,10 @@ export default async function OwnersPage() {
     where: { role: 'OWNER' },
     include: {
       ownedBusinesses: {
-        select: { id: true, name: true, city: true, isActive: true },
+        select: {
+          id: true, name: true, city: true, isActive: true,
+          _count: { select: { customers: true, loans: true } },
+        },
       },
     },
     orderBy: { createdAt: 'desc' },
@@ -52,19 +55,13 @@ export default async function OwnersPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-1 mt-2">
-              {owner.ownedBusinesses.length === 0 && (
-                <span className="text-xs text-gray-400">No businesses yet</span>
-              )}
-              {owner.ownedBusinesses.map((b) => (
-                <span
-                  key={b.id}
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    b.isActive ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {b.name} ({b.city})
-                </span>
-              ))}
+              <span className="text-xs text-gray-400">
+                {owner.ownedBusinesses.length} collection{owner.ownedBusinesses.length !== 1 ? 's' : ''}
+                {' | '}
+                {owner.ownedBusinesses.reduce((sum, b) => sum + b._count.customers, 0)} customers
+                {' | '}
+                {owner.ownedBusinesses.reduce((sum, b) => sum + b._count.loans, 0)} loans
+              </span>
             </div>
           </div>
         ))}
