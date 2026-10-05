@@ -69,6 +69,7 @@
   "employee": "Employee",
   "assigned": "Assigned",
   "available": "Available",
+  "manage_employees": "Manage Employees",
   "create_employee": "Create Employee",
   "new_employee": "New Employee",
   "create": "Create",

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { Role } from '@/lib/constants'
 import { formatPaiseShort } from '@/lib/money'
 import { todayIST } from '@/lib/date'
-import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
+import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 import BusinessActions from './BusinessActions'
 import { T } from '@/lib/i18n'
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
         prisma.customer.count({ where: { businessId: biz.id } }),
         prisma.loan.findMany({
           where: { businessId: biz.id },
-          select: { totalRepayable: true, id: true, expectedEndDate: true, collectionType: true },
+          select: { totalRepayable: true, id: true, expectedEndDate: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true },
         }),
         prisma.payment.aggregate({
           where: { businessId: biz.id, paymentDate: today, isDeleted: false },
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
       const paidMap = new Map(totalPaidPerLoan.map((p) => [p.loanId, p._sum.amount || 0]))
 
       const activeLoans = allLoans.filter((l) => {
-        const status = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(biz, l.collectionType), l.collectionType)
+        const status = resolveLoanStatus(l, paidMap.get(l.id) || 0, getGracePeriod(biz, l.collectionType), l.collectionType, biz.defaulterPeriodDays ?? 365)
         return status === 'ACTIVE' || status === 'OVERDUE'
       })
 

@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
-import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod, GracePeriodConfig } from '@/lib/loan-status'
+import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod, GracePeriodConfig } from '@/lib/loan-status'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -36,12 +36,13 @@ export async function GET(request: Request, { params }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
+    select: { gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true, defaulterPeriodDays: true },
   })
   const graceConfig: GracePeriodConfig = {
     gracePeriodDaily: business?.gracePeriodDaily ?? 30,
     gracePeriodWeekly: business?.gracePeriodWeekly ?? 4,
     gracePeriodMonthly: business?.gracePeriodMonthly ?? 1,
+    defaulterPeriodDays: business?.defaulterPeriodDays ?? 365,
   }
 
   switch (entity) {
@@ -71,7 +72,7 @@ async function getCustomersReport(businessId: string, from: string, to: string, 
     },
     include: {
       village: { select: { name: true } },
-      loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true } },
+      loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true } },
       _count: { select: { loans: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -89,7 +90,7 @@ async function getCustomersReport(businessId: string, from: string, to: string, 
 
   const rows = customers.map((c) => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
+      resolveLoanStatus(l, paidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
     )
     return {
       customerId: c.customerId,
@@ -113,7 +114,6 @@ async function getCustomersReport(businessId: string, from: string, to: string, 
       { key: 'fullName', label: 'Name' },
       { key: 'phone', label: 'Phone' },
       { key: 'village', label: 'Location' },
-      { key: 'age', label: 'Age' },
       { key: 'status', label: 'Status' },
       { key: 'totalLoans', label: 'Total Loans' },
       { key: 'createdAt', label: 'Registered On' },
@@ -154,7 +154,7 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
   const rows = loans
     .map((l) => {
       const totalPaid = paidMap.get(l.id) || 0
-      const status = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaid, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
+      const status = resolveLoanStatus(l, totalPaid, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
       return {
         loanNumber: l.loanNumber,
         customerId: l.customer.customerId,
@@ -184,21 +184,19 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
     count: rows.length,
     columns: [
       { key: 'loanNumber', label: 'Loan #' },
+      { key: 'customerId', label: 'CID' },
       { key: 'customerName', label: 'Customer' },
-      { key: 'phone', label: 'Phone' },
       { key: 'village', label: 'Location' },
       { key: 'loanAmount', label: 'Principal (₹)' },
-      { key: 'interestAmount', label: 'Interest (₹)' },
       { key: 'totalRepayable', label: 'Repayable (₹)' },
       { key: 'installmentAmount', label: 'Installment (₹)' },
       { key: 'numberOfInstallments', label: '# Installments' },
       { key: 'totalPaid', label: 'Paid (₹)' },
       { key: 'outstanding', label: 'Outstanding (₹)' },
-      { key: 'status', label: 'Status' },
-      { key: 'collectionType', label: 'Collection' },
-      { key: 'agent', label: 'Agent' },
       { key: 'startDate', label: 'Start Date' },
       { key: 'dueDate', label: 'Due Date' },
+      { key: 'status', label: 'Status' },
+      { key: 'agent', label: 'Agent' },
     ],
     rows,
   })
@@ -213,7 +211,7 @@ async function getVillagesReport(businessId: string, from: string, to: string, g
         select: {
           id: true,
           loans: {
-            select: { id: true, loanAmount: true, installmentAmount: true, totalRepayable: true, expectedEndDate: true, collectionType: true },
+            select: { id: true, loanAmount: true, installmentAmount: true, totalRepayable: true, expectedEndDate: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true },
           },
         },
       },
@@ -252,7 +250,7 @@ async function getVillagesReport(businessId: string, from: string, to: string, g
 
     v.customers.forEach((c) => {
       const loanStatuses = c.loans.map((l) =>
-        deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
+        resolveLoanStatus(l, totalPaidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
       )
       const custStatus = deriveCustomerStatus(loanStatuses)
       if (custStatus === 'ACTIVE' || custStatus === 'OVERDUE') activeCustomers++
@@ -318,6 +316,9 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
           totalRepayable: true,
           expectedEndDate: true,
           collectionType: true,
+          numberOfInstallments: true,
+          statusOverride: true,
+          statusOverrideDate: true,
           payments: {
             where: { isDeleted: false, paymentDate: { gte: from, lte: to } },
             select: { amount: true },
@@ -340,7 +341,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
 
   const rows = customers.map((c) => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, totalPaidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
+      resolveLoanStatus(l, totalPaidMap.get(l.id) || 0, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
     )
     const activeLoans = loanStatuses.filter((s) => s === 'ACTIVE' || s === 'OVERDUE').length
     const totalLent = c.loans.reduce((s, l) => s + l.loanAmount, 0)
@@ -400,7 +401,7 @@ async function getEmployeesReport(businessId: string, from: string, to: string, 
           },
           assignedLoans: {
             where: { businessId },
-            select: { id: true, loanAmount: true, totalRepayable: true, expectedEndDate: true, collectionType: true },
+            select: { id: true, loanAmount: true, totalRepayable: true, expectedEndDate: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true },
           },
           collectedPayments: {
             where: { businessId, isDeleted: false, paymentDate: { gte: from, lte: to } },
@@ -426,7 +427,7 @@ async function getEmployeesReport(businessId: string, from: string, to: string, 
     const totalCollected = u.collectedPayments.reduce((s, p) => s + p.amount, 0)
     const activeLoans = u.assignedLoans.filter((l) => {
       const paid = empPaidMap.get(l.id) || 0
-      const s = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
+      const s = resolveLoanStatus(l, paid, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
       return s === 'ACTIVE' || s === 'OVERDUE'
     })
     const totalLoanGiven = activeLoans.reduce((s, l) => s + l.loanAmount, 0)
@@ -509,7 +510,6 @@ async function getPaymentsReport(businessId: string, from: string, to: string) {
       { key: 'paymentDate', label: 'Date' },
       { key: 'customerName', label: 'Customer' },
       { key: 'customerId', label: 'Customer ID' },
-      { key: 'phone', label: 'Phone' },
       { key: 'village', label: 'Location' },
       { key: 'loanNumber', label: 'Loan #' },
       { key: 'amount', label: 'Amount (₹)' },

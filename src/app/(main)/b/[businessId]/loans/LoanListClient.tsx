@@ -450,6 +450,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>{t('loans.loan_number_short')}{sortIcon('loanNumber')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>{t('customers.customer_name')}{sortIcon('customer')}</th>
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('startDate')}>{t('common.date')}{sortIcon('startDate')}</th>
+                <th className="py-2 px-2 hidden md:table-cell">{t('loans.due_date')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs text-right" onClick={() => toggleSort('lent')}>{t('loans.loan_short')}{sortIcon('lent')}</th>
                 <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('due')}>{t('loans.outstanding')}{sortIcon('due')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('agent')}>{t('loans.agent')}{sortIcon('agent')}</th>
@@ -471,6 +472,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                       <Link href={`/b/${businessId}/customers/${loan.customer.id}`} className="font-medium text-primary-600 hover:underline text-[11px] md:text-xs">{loan.customer.fullName}</Link>
                     </td>
                     <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{formatDateDisplay(loan.startDate)}</td>
+                    <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{formatDateDisplay(loan.expectedEndDate)}</td>
                     <td className="py-2 px-2 text-right text-gray-700 text-[10px] md:text-xs">{formatPaiseShort(loan.amountGiven)}</td>
                     <td className="py-2 px-2 text-right font-semibold text-gray-900 text-[10px] md:text-xs">{formatPaiseShort(outstanding)}</td>
                     <td className="py-2 px-2 text-[10px] md:text-xs">{loan.agent ? <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline">{loan.agent.fullName}</Link> : '-'}</td>

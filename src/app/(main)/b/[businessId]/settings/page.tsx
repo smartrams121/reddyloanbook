@@ -18,6 +18,7 @@ interface BusinessSettings {
   gracePeriodDaily: number
   gracePeriodWeekly: number
   gracePeriodMonthly: number
+  defaulterPeriodDays: number
   ratingGoodMaxPct: number
   ratingAverageMaxPct: number
   repaymentMultiplierDailyWeekly: number
@@ -82,6 +83,7 @@ export default function SettingsPage() {
           gracePeriodDaily: settings.gracePeriodDaily,
           gracePeriodWeekly: settings.gracePeriodWeekly,
           gracePeriodMonthly: settings.gracePeriodMonthly,
+          defaulterPeriodDays: settings.defaulterPeriodDays,
           repaymentMultiplierDailyWeekly: settings.repaymentMultiplierDailyWeekly,
           repaymentMultiplierMonthly: settings.repaymentMultiplierMonthly,
           ratingGoodMaxPct: settings.ratingGoodMaxPct,
@@ -333,6 +335,18 @@ export default function SettingsPage() {
               }}
             />
             <p className="text-[10px] text-gray-400 mt-1">After the last due date + grace period, the loan becomes overdue.</p>
+          </div>
+
+          <div>
+            <label className="label">{t('settings.defaulter_period')}</label>
+            <input
+              type="number"
+              className="input"
+              min="1"
+              value={settings.defaulterPeriodDays}
+              onChange={(e) => update('defaulterPeriodDays', parseInt(e.target.value) || 365)}
+            />
+            <p className="text-[10px] text-gray-400 mt-1">After overdue + this many days, the loan becomes defaulter.</p>
           </div>
         </div>
 

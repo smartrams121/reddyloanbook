@@ -76,11 +76,6 @@ export async function POST(request: Request, { params }: Props) {
   if (payDate > todayDate) {
     return NextResponse.json({ error: 'Payment date cannot be in the future' }, { status: 400 })
   }
-  const minDate = addMonths(todayDate, -1)
-  if (payDate < minDate) {
-    return NextResponse.json({ error: 'Payment date cannot be more than 1 month in the past' }, { status: 400 })
-  }
-
   const newCount = entries.filter(e => !e.existingPaymentId).length
 
   const results = await prisma.$transaction(async (tx) => {

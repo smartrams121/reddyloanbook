@@ -37,6 +37,8 @@
   "next_due": "Next Due Date",
   "grace_period": "Grace Period",
   "loan_status": "Loan Status",
+  "status_auto": "Auto (system calculated)",
+  "status_override_note": "Manually changing status overrides automatic calculation. Setting to Active restarts the loan lifecycle from today.",
   "status_active": "Active",
   "status_overdue": "Overdue",
   "status_grace": "In Grace Period",

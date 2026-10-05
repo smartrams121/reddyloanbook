@@ -25,12 +25,6 @@ function todayISO(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
-function oneMonthAgoISO(): string {
-  const d = new Date()
-  d.setMonth(d.getMonth() - 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 export default function NewLoanPage() {
   const params = useParams()
   const router = useRouter()
@@ -862,7 +856,6 @@ export default function NewLoanPage() {
                 className="input text-xs py-1.5"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                min={oneMonthAgoISO()}
                 max={todayISO()}
                 required
               />

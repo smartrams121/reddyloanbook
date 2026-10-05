@@ -96,6 +96,7 @@ model Business {
   gracePeriodDaily     Int     @default(30)
   gracePeriodWeekly    Int     @default(4)
   gracePeriodMonthly   Int     @default(1)
+  defaulterPeriodDays  Int     @default(365)
 
   repaymentMultiplierDailyWeekly Float @default(1.20)
   repaymentMultiplierMonthly     Float @default(1.40)
@@ -257,6 +258,8 @@ model Loan {
   agent                 User?    @relation("AssignedAgent", fields: [agentId], references: [id])
 
   status                String   @default("ACTIVE")
+  statusOverride        String?
+  statusOverrideDate    String?
 
   renewedFromLoanId     String?  @unique
   renewedFromLoan       Loan?    @relation("LoanRenewal", fields: [renewedFromLoanId], references: [id])

@@ -82,11 +82,7 @@ export default function RecordPaymentPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })()
 
-  const minDateStr = (() => {
-    const d = new Date()
-    d.setMonth(d.getMonth() - 1)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  })()
+  const minDateStr = '2020-01-01'
 
   function formatDisplayDate(iso: string): string {
     const [y, m, d] = iso.split('-')

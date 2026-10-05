@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { formatPaiseShort } from '@/lib/money'
 import { todayIST, formatDateISO, formatDateDisplay, parseISODate, addDays } from '@/lib/date'
-import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
+import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import { Role } from '@/lib/constants'
 import Link from 'next/link'
 import DateFilter from './DateFilter'
@@ -83,7 +83,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   ] = await Promise.all([
     prisma.loan.findMany({
       where: { businessId },
-      select: { id: true, loanAmount: true, totalRepayable: true, installmentAmount: true, startDate: true, expectedEndDate: true, collectionType: true, customerId: true, customer: { select: { villageId: true } } },
+      select: { id: true, loanAmount: true, totalRepayable: true, installmentAmount: true, startDate: true, expectedEndDate: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true, customerId: true, customer: { select: { villageId: true } } },
     }),
     prisma.payment.aggregate({
       where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
@@ -119,7 +119,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   const loansWithStatus = allLoans.map((l) => ({
     ...l,
     paid: paidMap.get(l.id) || 0,
-    derivedStatus: deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType),
+    derivedStatus: resolveLoanStatus(l, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType, business!.defaulterPeriodDays),
   }))
 
   const activeLoans = loansWithStatus.filter((l) => l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE' || l.derivedStatus === 'DEFAULTER')

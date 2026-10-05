@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
+import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -28,6 +29,11 @@ export async function GET(request: Request, { params }: Props) {
 
   const date = searchParams.get('date')
 
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true, defaulterPeriodDays: true },
+  })
+
   const customers = await prisma.customer.findMany({
     where: {
       businessId,
@@ -38,6 +44,8 @@ export async function GET(request: Request, { params }: Props) {
         select: {
           id: true, loanNumber: true, installmentAmount: true,
           totalRepayable: true, status: true, startDate: true, createdAt: true,
+          expectedEndDate: true, numberOfInstallments: true, collectionType: true,
+          statusOverride: true, statusOverrideDate: true,
           agent: { select: { id: true, fullName: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -99,7 +107,7 @@ export async function GET(request: Request, { params }: Props) {
             totalRepayable: l.totalRepayable,
             totalPaid,
             outstanding,
-            status: l.status,
+            status: business ? resolveLoanStatus(l, totalPaid, getGracePeriod(business, l.collectionType), l.collectionType, business.defaulterPeriodDays) : l.status,
             agentId: l.agent?.id || null,
             agentName: l.agent?.fullName || null,
             existingPayment: existing,

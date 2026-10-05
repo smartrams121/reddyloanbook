@@ -23,6 +23,7 @@ const updateLoanSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   agentId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  statusOverride: z.enum(['ACTIVE', 'OVERDUE', 'DEFAULTER', 'COMPLETED']).optional().nullable(),
 })
 
 
@@ -91,6 +92,19 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   if (d.notes !== undefined) data.notes = d.notes || null
+
+  if (d.statusOverride !== undefined) {
+    if (d.statusOverride === null) {
+      data.statusOverride = null
+      data.statusOverrideDate = null
+    } else if (d.statusOverride === 'ACTIVE') {
+      data.statusOverride = 'ACTIVE'
+      data.statusOverrideDate = todayIST()
+    } else {
+      data.statusOverride = d.statusOverride
+      data.statusOverrideDate = null
+    }
+  }
 
   // Amount / schedule fields — recalculate if any changed
   const hasAmountChanges = d.loanAmount !== undefined || d.interestAmount !== undefined ||

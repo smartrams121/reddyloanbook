@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
-import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
+import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 
 import SearchBox from '../customers/SearchBox'
@@ -40,7 +40,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
+    select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true, defaulterPeriodDays: true },
   })
 
   const where: Record<string, unknown> = { businessId }
@@ -83,7 +83,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
 
   const loansWithDerived = loans.map((loan) => {
     const paid = paidMap.get(loan.id) || 0
-    const derivedStatus = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, paid, getGracePeriod(business!, loan.collectionType), loan.collectionType)
+    const derivedStatus = resolveLoanStatus(loan, paid, getGracePeriod(business!, loan.collectionType), loan.collectionType, business!.defaulterPeriodDays)
     return {
       ...loan,
       derivedStatus,

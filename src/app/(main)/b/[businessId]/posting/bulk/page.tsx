@@ -20,7 +20,7 @@ interface CustomerEntry {
 interface PaymentRow {
   customerId: string; customerName: string; phone: string
   loanId: string; loanNumber: string; installmentAmount: number
-  outstanding: number; amountStr: string
+  outstanding: number; amountStr: string; status: string
   existingPaymentId?: string; existingAmountPaise?: number
 }
 
@@ -51,6 +51,7 @@ export default function VillageBulkPostingPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [paymentMode, setPaymentMode] = useState('Cash')
   const [showCompleted, setShowCompleted] = useState(false)
+  const [showDefaulters, setShowDefaulters] = useState(false)
   const [isHoliday, setIsHoliday] = useState(false)
   const [allRows, setAllRows] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -67,11 +68,7 @@ export default function VillageBulkPostingPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })()
 
-  const minDateStr = (() => {
-    const d = new Date()
-    d.setMonth(d.getMonth() - 1)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  })()
+  const minDateStr = '2020-01-01'
 
   function formatDisplayDate(iso: string): string {
     const [y, m, d] = iso.split('-')
@@ -81,9 +78,12 @@ export default function VillageBulkPostingPage() {
   const [bulkPage, setBulkPage] = useState(0)
   const BULK_PAGE_SIZE = 10
 
+  const statusFilteredRows = showDefaulters
+    ? allRows.filter(r => r.status !== 'COMPLETED')
+    : allRows.filter(r => r.status !== 'COMPLETED' && r.status !== 'DEFAULTER')
   const filteredRows = showCompleted
-    ? allRows.filter(r => r.existingPaymentId)
-    : allRows.filter(r => !r.existingPaymentId)
+    ? statusFilteredRows.filter(r => r.existingPaymentId)
+    : statusFilteredRows.filter(r => !r.existingPaymentId)
 
   const totalBulkPages = Math.ceil(filteredRows.length / BULK_PAGE_SIZE)
   const rows = filteredRows.slice(bulkPage * BULK_PAGE_SIZE, (bulkPage + 1) * BULK_PAGE_SIZE)
@@ -137,6 +137,7 @@ export default function VillageBulkPostingPage() {
               installmentAmount: l.installmentAmount,
               outstanding: effectiveOutstanding,
               amountStr: existing ? String(existing.amount / 100) : isHoliday ? '0' : String(l.installmentAmount / 100),
+              status: l.status,
               existingPaymentId: existing?.id,
               existingAmountPaise: existing?.amount,
             })
@@ -403,6 +404,10 @@ export default function VillageBulkPostingPage() {
                     <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                     <span className="text-xs text-gray-600">{t('payments.payment_completed')}</span>
                     <span className="text-xs text-gray-400">({showCompleted ? `${rows.length} paid` : `${rows.length} pending`})</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={showDefaulters} onChange={(e) => { setShowDefaulters(e.target.checked); setBulkPage(0) }} className="w-4 h-4 rounded border-gray-300 text-red-600" />
+                    <span className="text-xs text-red-600 font-medium">{t('loans.status_defaulter')}</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={isHoliday} onChange={(e) => {

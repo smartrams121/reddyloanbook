@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { Role } from '@/lib/constants'
-import { deriveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
+import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 import SearchBox from './SearchBox'
 import CustomerList from './CustomerList'
@@ -28,7 +28,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true },
+    select: { name: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true, defaulterPeriodDays: true },
   })
 
   const where: Record<string, unknown> = { businessId }
@@ -66,7 +66,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       where,
       include: {
         village: { select: { id: true, name: true } },
-        loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true } },
+        loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true } },
         _count: { select: { loans: true } },
       },
       orderBy: { fullName: 'asc' },
@@ -92,7 +92,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
 
   const customersWithStatus = customersRaw.map(c => {
     const loanStatuses = c.loans.map((l) =>
-      deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType)
+      resolveLoanStatus(l, paidMap.get(l.id) || 0, getGracePeriod(business!, l.collectionType), l.collectionType, business!.defaulterPeriodDays)
     )
     return { ...c, derivedStatus: deriveCustomerStatus(loanStatuses) }
   })

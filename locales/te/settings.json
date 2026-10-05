@@ -1,5 +1,5 @@
 {
-  "collection_settings": "కలెక్షన్ సెట్టింగ్లు",
+  "collection_settings": "సెట్టింగ్లు",
   "collection_name": "కలెక్షన్ పేరు",
   "collection_id": "కలెక్షన్ ID",
   "city": "నగరం",
@@ -24,6 +24,7 @@
   "download_collection_data": "కలెక్షన్ డేటా డౌన్లోడ్ (.xlsx)",
   "delete_collection": "కలెక్షన్ తొలగించు",
   "grace_period": "గ్రేస్ పీరియడ్",
+  "defaulter_period": "డిఫాల్టర్ వ్యవధి (రోజులు)",
   "grace_period_daily": "గ్రేస్ పీరియడ్ (రోజులు)",
   "grace_period_weekly": "గ్రేస్ పీరియడ్ (వారాలు)",
   "grace_period_monthly": "గ్రేస్ పీరియడ్ (నెలలు)",

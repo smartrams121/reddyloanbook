@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ businessId: string; customerId: string }>
 }
 
-import { deriveLoanStatus, getGracePeriod, GracePeriodConfig } from '@/lib/loan-status'
+import { resolveLoanStatus, getGracePeriod, GracePeriodConfig } from '@/lib/loan-status'
 
 function fmtPaise(paise: number): string {
   const r = paise / 100
@@ -42,7 +42,7 @@ export async function GET(request: Request, { params }: Props) {
   const all = searchParams.get('all') === 'true'
 
   const [business, customer] = await Promise.all([
-    prisma.business.findUnique({ where: { id: businessId }, select: { name: true, receiptPrefix: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true } }),
+    prisma.business.findUnique({ where: { id: businessId }, select: { name: true, receiptPrefix: true, gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true, defaulterPeriodDays: true } }),
     prisma.customer.findFirst({
       where: { id: customerId, businessId },
       include: {
@@ -53,7 +53,7 @@ export async function GET(request: Request, { params }: Props) {
             id: true, loanNumber: true, loanAmount: true, amountGiven: true,
             totalRepayable: true, installmentAmount: true, collectionType: true,
             startDate: true, expectedEndDate: true, closedAt: true,
-            status: true, numberOfInstallments: true,
+            status: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true,
           },
         },
       },
@@ -100,6 +100,7 @@ export async function GET(request: Request, { params }: Props) {
     gracePeriodDaily: business?.gracePeriodDaily ?? 30,
     gracePeriodWeekly: business?.gracePeriodWeekly ?? 4,
     gracePeriodMonthly: business?.gracePeriodMonthly ?? 1,
+    defaulterPeriodDays: business?.defaulterPeriodDays ?? 365,
   }
 
   if (format === 'pdf') {
@@ -173,7 +174,7 @@ async function generateXLSX(
 
     loans.forEach((loan, idx) => {
       const paid = paidMap.get(loan.id) || 0
-      const derived = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, paid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType)
+      const derived = resolveLoanStatus(loan, paid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType, graceConfig.defaulterPeriodDays)
       const outstanding = derived !== 'COMPLETED' ? loan.totalRepayable - paid : 0
       const r = summaryWs.addRow([
         loan.loanNumber,
@@ -194,7 +195,7 @@ async function generateXLSX(
     const totalPaid = loans.reduce((s, l) => s + (paidMap.get(l.id) || 0), 0)
     const totalOut = loans.reduce((s, l) => {
       const paid = paidMap.get(l.id) || 0
-      const d = deriveLoanStatus(l.expectedEndDate, l.totalRepayable, paid, getGracePeriod(graceConfig, l.collectionType), l.collectionType)
+      const d = resolveLoanStatus(l, paid, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
       return s + (d !== 'COMPLETED' ? l.totalRepayable - paid : 0)
     }, 0)
     const totRow = summaryWs.addRow(['TOTAL', '', '', fmtPaise(totalPaid), fmtPaise(totalOut), ''])
@@ -285,7 +286,7 @@ function addLoanSheet(
     row.commit()
   })
 
-  const dStatus = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, totalPaid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType)
+  const dStatus = resolveLoanStatus(loan, totalPaid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType, graceConfig.defaulterPeriodDays)
   const outstanding = dStatus !== 'COMPLETED' ? loan.totalRepayable - totalPaid : 0
   const totRowIdx = startRow + 1 + payments.length + 1
   ws.getCell(totRowIdx, 1).value = ''
@@ -339,7 +340,7 @@ function generatePDF(
   const loanSections = loans.map((loan) => {
     const payments = paymentsByLoan.get(loan.id) || []
     const totalPaid = paidMap.get(loan.id) || 0
-    const loanDerived = deriveLoanStatus(loan.expectedEndDate, loan.totalRepayable, totalPaid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType)
+    const loanDerived = resolveLoanStatus(loan, totalPaid, getGracePeriod(graceConfig, loan.collectionType), loan.collectionType, graceConfig.defaulterPeriodDays)
     const outstanding = loanDerived !== 'COMPLETED' ? loan.totalRepayable - totalPaid : 0
 
     let balance = loan.totalRepayable

@@ -309,7 +309,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               {user.role === Role.OWNER && (
                 <NavSection title={t('profile.role_owner')}>
                   <NavLink href="/businesses/new" icon="➕" label={t('dashboard.new_collection')} active={pathname === '/businesses/new'} />
-                  <NavLink href="/employees" icon="👤" label={t('dashboard.employees')} active={pathname.startsWith('/employees')} />
+                  <NavLink href="/employees" icon="👤" label={t('common.manage_employees')} active={pathname.startsWith('/employees')} />
                   {activeBusinessId && (
                     <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label={t('settings.collection_settings')} active={pathname === `/b/${activeBusinessId}/settings`} />
                   )}

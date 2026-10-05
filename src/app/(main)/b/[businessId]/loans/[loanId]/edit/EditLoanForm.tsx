@@ -51,6 +51,8 @@ export default function EditLoanForm() {
   const [startDate, setStartDate] = useState('')
   const [agentId, setAgentId] = useState('')
   const [notes, setNotes] = useState('')
+  const [statusOverride, setStatusOverride] = useState<string | null>(null)
+  const [originalStatusOverride, setOriginalStatusOverride] = useState<string | null>(null)
 
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -76,6 +78,8 @@ export default function EditLoanForm() {
       setStartDate(loanData.startDate)
       setAgentId(loanData.agentId || '')
       setNotes(loanData.notes || '')
+      setStatusOverride(loanData.statusOverride || null)
+      setOriginalStatusOverride(loanData.statusOverride || null)
       setLoading(false)
     }).catch(() => { setError('Failed to load loan'); setLoading(false) })
   }, [businessId, loanId])
@@ -124,6 +128,9 @@ export default function EditLoanForm() {
         startDate,
         agentId: agentId || null,
         notes: notes || null,
+      }
+      if (statusOverride !== originalStatusOverride) {
+        body.statusOverride = statusOverride
       }
       if (collectionType === 'WEEKLY' && collectionDay) body.collectionDay = collectionDay
       else body.collectionDay = null
@@ -355,6 +362,18 @@ export default function EditLoanForm() {
           <div>
             <label className="label">{t('common.notes')}</label>
             <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="label">{t('loans.loan_status')}</label>
+            <select className="input" value={statusOverride || ''} onChange={(e) => setStatusOverride(e.target.value || null)}>
+              <option value="">{t('loans.status_auto')}</option>
+              <option value="ACTIVE">{t('loans.status_active')}</option>
+              <option value="OVERDUE">{t('loans.status_overdue')}</option>
+              <option value="DEFAULTER">{t('loans.status_defaulter')}</option>
+              <option value="COMPLETED">{t('loans.status_completed')}</option>
+            </select>
+            <p className="text-[10px] text-gray-400 mt-1">{t('loans.status_override_note')}</p>
           </div>
         </div>
 

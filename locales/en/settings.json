@@ -1,5 +1,5 @@
 {
-  "collection_settings": "Collection Settings",
+  "collection_settings": "Settings",
   "collection_name": "Collection Name",
   "collection_id": "Collection ID",
   "city": "City",
@@ -24,6 +24,7 @@
   "download_collection_data": "Download Collection Data (.xlsx)",
   "delete_collection": "Delete Collection",
   "grace_period": "Grace Period",
+  "defaulter_period": "Defaulter Period (Days)",
   "grace_period_daily": "Grace Period (days)",
   "grace_period_weekly": "Grace Period (weeks)",
   "grace_period_monthly": "Grace Period (months)",
