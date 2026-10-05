@@ -12,7 +12,8 @@
 | Session Tokens | JWT (jsonwebtoken) in httpOnly, sameSite cookie |
 | Session Expiry | Configurable per deployment (default 24h) |
 | Auto-Logout | Per-business configurable timer (default 30 min) |
-| First Login | `mustChangePassword` flag forces password change |
+| First Login | `mustChangePassword` flag forces password change (also set after password reset) |
+| Password Reset Flow | Forgot password accepts username OR phone (was phone only); Password is reset to username automatically (no custom password); Agent resets escalate to Owner; Owner resets escalate to Platform Admin |
 | 2FA | TOTP (Time-based One-Time Password) via otplib + qrcode |
 
 ### 13.2 Data Security
@@ -70,7 +71,7 @@
 | Accurate calculations | Money in paise (integers) — no floating-point rounding errors |
 | Atomic transactions | All financial writes in Prisma `$transaction` blocks |
 | Sequence integrity | `customerSeq`, `loanSeq`, `receiptSeq` auto-increment in transactions |
-| No backdating beyond limit | Payments restricted to max 1 month in past |
+| Backdating | No backdate limit on loans or payments (previously restricted to 30 days for loans, 1 month for payments) |
 | No future dating | Payments blocked for future dates |
 | Outstanding check | Payment amount cannot exceed loan outstanding balance |
 | Auto-completion | Loan auto-marked COMPLETED when fully paid |

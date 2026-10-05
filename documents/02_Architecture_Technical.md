@@ -40,7 +40,7 @@
 │  │  auth.ts │ permissions.ts │ scope.ts │ validators.ts       │  │
 │  │  loan-status.ts │ schedule.ts │ loan-calc.ts │ money.ts    │  │
 │  │  date.ts │ receipt.ts │ csv-parse.ts │ xlsx-import.ts      │  │
-│  │  rate-limit.ts │ whatsapp.ts │ constants.ts                │  │
+│  │  rate-limit.ts │ whatsapp.ts │ constants.ts │ i18n.ts      │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
           │
@@ -145,14 +145,18 @@ Browser Request
 | ADDON | totalRepayable = principal × multiplier | principal |
 | UPFRONT | totalRepayable = principal + interest | principal − interest |
 
-### 5.5 Loan Status (Derived)
+### 5.5 Loan Status (Resolved)
 
-| Derived Status | DB Status | Condition |
+Status is determined by `resolveLoanStatus()` (replaces `deriveLoanStatus()`), which checks for manual override first, then falls back to time-based derivation.
+
+| Resolved Status | DB Status | Condition |
 |---------------|-----------|-----------|
-| ACTIVE | ACTIVE | today ≤ expectedEndDate + gracePeriod |
-| OVERDUE | ACTIVE | today > expectedEndDate + gracePeriod, ≤ 1 year |
-| DEFAULTER | ACTIVE | today > 1 year past grace period end |
-| COMPLETED | COMPLETED | totalPaid ≥ totalRepayable |
+| ACTIVE | ACTIVE | today ≤ expectedEndDate + gracePeriod; OR `statusOverride = ACTIVE` (virtual restart from override date) |
+| OVERDUE | ACTIVE | today > expectedEndDate + gracePeriod, ≤ defaulterPeriodDays; OR `statusOverride = OVERDUE` |
+| DEFAULTER | ACTIVE | today > defaulterPeriodDays past grace period end; OR `statusOverride = DEFAULTER` |
+| COMPLETED | COMPLETED | totalPaid ≥ totalRepayable; OR `statusOverride = COMPLETED` |
+
+**Manual Override**: Owner/Admin can set `statusOverride` via Edit Loan. Setting to "Auto" clears the override and reverts to derived logic. Setting to ACTIVE performs a virtual restart (loan lifecycle restarts from `statusOverrideDate`).
 
 ### 5.6 ID Format (per business)
 
@@ -161,6 +165,49 @@ Browser Request
 | Customer | `{prefix}-C{seq.padStart(4,'0')}` | SF-C0001 |
 | Loan | `{prefix}-L{seq.padStart(5,'0')}` | SF-L00001 |
 | Receipt | `{prefix}-{seq.padStart(5,'0')}` | SF-00001 |
+
+### 5.7 Internationalization (i18n)
+
+**Architecture:**
+- Custom i18n provider (`src/lib/i18n.ts`) with React context
+- `useTranslation(namespace)` hook returns `t(key)` function
+- Translations loaded dynamically per locale/namespace
+- User preference stored in `User.preferredLanguage` field (default: `en`)
+
+**Supported Languages:**
+
+| Code | Language | Font |
+|------|----------|------|
+| `en` | English | System default (Arial/sans-serif) |
+| `te` | Telugu (తెలుగు) | Noto Sans Telugu (Google CDN) |
+
+**Translation File Structure:**
+```
+src/locales/
+├── en/                    English translations
+│   ├── common.json        Shared labels (buttons, nav, errors)
+│   ├── auth.json          Login, register, forgot password
+│   ├── customers.json     Customer management
+│   ├── loans.json         Loan management
+│   ├── payments.json      Payment posting
+│   ├── dashboard.json     Dashboard stats and labels
+│   ├── settings.json      Business settings
+│   ├── employees.json     Employee management
+│   ├── reports.json       Report labels
+│   └── villages.json      Village management
+└── te/                    Telugu translations (same 10 files)
+```
+
+**Language Switcher Locations:**
+- Login page (bottom)
+- Register page (bottom)
+- Profile page (language preference)
+- Header dropdown menu
+
+**Rules:**
+- Platform Admin always sees English regardless of preference
+- Language preference persisted via `PATCH /api/profile/language`
+- Fallback: if a translation key is missing in Telugu, English is used
 
 ---
 
@@ -207,6 +254,9 @@ src/
 │           ├── settings/    Read/update + export
 │           └── upload/      File upload handler
 ├── lib/                     Core utilities
+├── locales/                 Translation files
+│   ├── en/                  English (10 namespace JSON files)
+│   └── te/                  Telugu (10 namespace JSON files)
 └── components/              React components
     ├── layout/              AppShell (sidebar, header, navigation)
     └── ui/                  Reusable UI components
@@ -221,7 +271,7 @@ src/
 | `permissions.ts` | RBAC matrix — 36 permissions across 4 roles, `assertPermission()` |
 | `scope.ts` | `assertBusinessAccess()` — tenant isolation, `getAccessibleVillageIds()` — village scoping for agents |
 | `validators.ts` | Zod schemas: `createBusinessSchema`, `createCustomerSchema`, `createLoanSchema`, `createPaymentSchema`, `bulkPaymentSchema`, `createUserSchema` |
-| `loan-status.ts` | `deriveLoanStatus()` — computes ACTIVE/OVERDUE/DEFAULTER/COMPLETED from dates + grace period. `deriveCustomerStatus()`. `getGracePeriod()` helper. |
+| `loan-status.ts` | `resolveLoanStatus()` — checks for manual override, then derives ACTIVE/OVERDUE/DEFAULTER/COMPLETED from dates + grace period + configurable defaulter period. Replaces `deriveLoanStatus()`. `deriveCustomerStatus()`. `getGracePeriod()` helper. |
 | `loan-calc.ts` | `calculateLoan()` — totalRepayable, amountGiven, lastInstallmentAmount. `validateLoanAmounts()`. `calculateBalance()`. |
 | `schedule.ts` | `generateSchedule()` — creates LoanScheduleEntry array from startDate + installments + collectionType + collectionDays. Handles DAILY (skip non-collection days), WEEKLY, MONTHLY. |
 | `money.ts` | `formatPaiseShort()` — display ₹ with locale formatting. `rupeesToPaise()`. |
@@ -234,6 +284,7 @@ src/
 | `rate-limit.ts` | In-memory rate limiter for login/register endpoints. |
 | `whatsapp.ts` | `buildWhatsAppUrl()` — constructs `wa.me` URLs with template variables. |
 | `audit.ts` | Audit logging utility for sensitive operations. |
+| `i18n.ts` | Internationalization provider, `useTranslation()` hook, locale/namespace loader, language context. |
 
 ### 6.3 Middleware (`src/middleware.ts`)
 

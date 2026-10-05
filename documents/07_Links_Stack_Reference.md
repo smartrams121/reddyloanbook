@@ -98,7 +98,15 @@
 | Prisma ORM | https://www.prisma.io/docs |
 | Zod | https://zod.dev |
 
-### 22.2 Auth & Security
+### 22.2 Internationalization (i18n)
+
+| Technology | Documentation |
+|-----------|---------------|
+| Custom i18n (built-in) | `src/lib/i18n.ts` — React context provider + `useTranslation()` hook |
+| Noto Sans Telugu | https://fonts.google.com/noto/specimen/Noto+Sans+Telugu |
+| Google Fonts CDN | `https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;600;700` |
+
+### 22.3 Auth & Security
 
 | Technology | Documentation |
 |-----------|---------------|
@@ -106,7 +114,7 @@
 | jsonwebtoken | https://www.npmjs.com/package/jsonwebtoken |
 | otplib (TOTP) | https://github.com/yeojz/otplib |
 
-### 22.3 File Generation
+### 22.4 File Generation
 
 | Technology | Documentation |
 |-----------|---------------|
@@ -114,7 +122,7 @@
 | pdfkit | https://pdfkit.org |
 | @react-pdf/renderer | https://react-pdf.org |
 
-### 22.4 Infrastructure
+### 22.5 Infrastructure
 
 | Technology | Documentation |
 |-----------|---------------|
@@ -125,7 +133,7 @@
 | OCI Compute | https://docs.oracle.com/en-us/iaas/Content/Compute |
 | DuckDNS | https://www.duckdns.org/install.jsp |
 
-### 22.5 Testing
+### 22.6 Testing
 
 | Technology | Documentation |
 |-----------|---------------|
@@ -199,4 +207,4 @@
 
 **Document End**
 
-**Version:** 2.0 | **Date:** 03/10/2026 | **Confidential — Daily Finance**
+**Version:** 3.0 | **Date:** 05/10/2026 | **Confidential — Daily Finance**

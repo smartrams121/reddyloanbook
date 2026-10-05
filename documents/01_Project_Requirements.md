@@ -31,13 +31,16 @@
 1. Multi-owner, multi-business architecture with complete tenant isolation
 2. Four-tier role hierarchy with 36 granular permissions (RBAC)
 3. Loan lifecycle: Disbursement → Collection scheduling → Payment posting → Overdue/Defaulter → Settlement/Write-off/Renewal
-4. Configurable per-business: repayment multiplier, grace period, collection days, WhatsApp template
+4. Configurable per-business: repayment multiplier, grace period, defaulter period, collection days, WhatsApp template
 5. Bulk operations: CSV import for customers/loans/payments, bulk payment posting by village
 6. Financial reporting: Collections, loans, villages, employees — PDF and XLSX export
 7. Mobile-first responsive UI for field agents on Android phones
 8. Self-service registration with admin approval workflow
 9. Business data export/import for migration between accounts
 10. Zero-downtime deployment on OCI cloud
+11. Telugu (తెలుగు) language support with full i18n across all pages
+12. Manual loan status override for owner/admin control
+13. UI rebrand: "Business" terminology replaced with "Collection" across all labels
 
 ### 1.5 Data Hierarchy
 
@@ -64,8 +67,8 @@ Platform Admin
 | Feature | Description |
 |---------|-------------|
 | Login | Username + password, JWT stored in httpOnly cookie |
-| Registration | Self-service with admin approval workflow |
-| Forgot Password | Owner/Admin-initiated password reset with audit trail |
+| Registration | Self-service with admin approval workflow; Organization Name, Owner Name, Business Details / Login Details sections |
+| Forgot Password | Accepts username OR phone number; Agent resets go to Owner, Owner resets go to Platform Admin; Password reset to username automatically; `mustChangePassword` forced on first login after reset |
 | Change Password | Forced on first login (`mustChangePassword` flag) |
 | 2FA | TOTP-based (Google Authenticator) via otplib + qrcode |
 | Session | JWT with configurable expiry (default 24h), auto-logout timer per business |
@@ -90,17 +93,25 @@ Platform Admin
 | **Create** | Select customer → Loan Details (agent, date, interest model) → Loan Payment (principal, installments, total repayment) → Auto-calculate schedule |
 | **Active** | Installments due per schedule, agents collect payments |
 | **Overdue** | Past expected end date + grace period |
-| **Defaulter** | More than 1 year past grace period end |
+| **Defaulter** | More than configurable defaulter period (default 365 days) past grace period end |
 | **Completed** | Total paid ≥ total repayable (auto-completes on last payment) |
 | **Paused** | Manually paused by owner |
 | **Settled** | Settled for less than full amount (with reason) |
 | **Written Off** | Bad debt written off (with reason) |
 | **Renewal** | Create new loan from existing, old loan marked COMPLETED |
 
+**Manual Status Override:**
+- Owner/Admin can override derived loan status via Edit Loan → Loan Status dropdown
+- Options: Auto (default derived), Active, Overdue, Defaulter, Completed
+- Setting to Active restarts loan lifecycle from today (virtual restart)
+- Override tracked with `statusOverride` and `statusOverrideDate` fields
+
 **Loan Defaults:**
 - Repayment multiplier: 1.20 for Daily/Weekly, 1.40 for Monthly (configurable per business)
+- Defaulter period: configurable per business (default 365 days), replaces hardcoded 1-year logic
 - Agent auto-selected based on customer's village assignment
 - Schedule auto-generated from start date + collection type + business collection days
+- No backdate limit on loan creation date (previously 30 days)
 
 ### 2.4 Payment Posting
 
@@ -120,7 +131,9 @@ Platform Admin
 - Submit (shows result) + Submit & Next (auto-loads next batch)
 - Payment mode: Cash/UPI
 - Payment Completed checkbox filter
+- Defaulter checkbox (unchecked by default): shows Active + Overdue only; when checked, includes Defaulters
 - Details section collapsible (posting date, submission date, collector, payment mode)
+- No backdate limit on payment posting date (previously 1 month)
 
 #### View Payments
 - Date presets: Today, Yesterday, 7 Days, 15 Days, 30 Days, All, Custom
@@ -134,9 +147,9 @@ Platform Admin
 
 | Report | Contents | Export |
 |--------|----------|--------|
-| Customers | All customers with status, village, guarantor | PDF, XLSX |
-| Loans | All loans with amounts, status, agent, dates | PDF, XLSX |
-| Payments | Payment history with receipts | PDF, XLSX |
+| Customers | All customers with CID, status, village, guarantor (no Age column) | PDF, XLSX |
+| Loans | All loans with CID, amounts, status, agent, Start Date, Due Date (no Phone/Interest columns) | PDF, XLSX |
+| Payments | Payment history with receipts (no Phone column) | PDF, XLSX |
 | Villages | Per-village summary + per-village customer breakdown | PDF, XLSX |
 | Employees | Per-employee collections and disbursements | PDF, XLSX |
 
@@ -145,7 +158,7 @@ Platform Admin
 | Setting | Description |
 |---------|-------------|
 | Basic Info | Name, city, address, phone, receipt prefix (collapsible) |
-| Collection | Type (read-only), collection day/days, repayment multiplier, grace period |
+| Collection | Type (read-only), collection day/days, repayment multiplier, grace period, defaulter period |
 | Other | WhatsApp template, auto-logout minutes (collapsible) |
 | Export Data | Download full business data as XLSX |
 | Danger Zone | Delete business (requires typing "DELETE" in modal) |
@@ -153,6 +166,7 @@ Platform Admin
 ### 2.7 Employee Management
 
 #### Global (Owner Objects → Manage Employees)
+- Owner shown as first row (gold accent, "All Villages")
 - Create employees with username, password, role (Agent/Business Admin)
 - Edit, Reset Password (to username), Suspend/Activate, Delete
 - Shows assigned businesses per employee
@@ -178,12 +192,37 @@ Platform Admin
 - Sample template download available
 - Collapsible section on New Business page
 
-### 2.9 Dashboard
+### 2.9 UI Rebrand (Session 2026-10-05)
+
+- "Business" terminology replaced with "Collection" across all user-facing labels:
+  - My Businesses → My Collections
+  - New Business → New Collection
+  - Select Business → Select Collection
+  - Business Settings → Collection Settings
+  - Business Dashboard → Collection Dashboard
+- Header displays dynamic organization name (from owner's first business name) instead of static "Daily Finance"
+- Register page: Organization Name field added, Owner Name field, Business Details / Login Details sections
+- Sidebar labels: "Settings" (was "Business Settings"), "Manage Employees" shown for Owner
+- Settings page labels: Collection ID (was Business ID), UID Formatting
+- Owner pre-selected as default agent in New Collection form
+
+### 2.10 Telugu Language Support (i18n)
+
+- Full Telugu (తెలుగు) language support across all pages
+- 20 translation files: `locales/en/` and `locales/te/` with 10 namespaces each (common, auth, customers, loans, payments, dashboard, settings, employees, reports, villages)
+- Custom i18n provider with `useTranslation()` hook
+- Language switcher on: login page, register page, profile page, header dropdown
+- `preferredLanguage` field on User model, persisted via `PATCH /api/profile/language`
+- Noto Sans Telugu font loaded from Google CDN
+- Platform Admin always displays in English (not affected by language switch)
+- Collapsible sections on Profile page: Change Password, My Collections
+
+### 2.11 Dashboard
 
 #### Owner Dashboard
 - Today's stats: New Loans, Disbursed amount, Collection amount
-- My Businesses list with outstanding and today's collection
-- "+ New Business" button at top
+- My Collections list with outstanding and today's collection
+- "+ New Collection" button at top
 
 #### Business Dashboard
 - Top stats: Loans (amount + count), Repayable, Outstanding

@@ -122,7 +122,20 @@ Stage 3: runner   — minimal Node.js runtime, copy standalone + static
 | `zero-downtime-deploy.sh` | deploy/scripts/ | Zero-downtime deploy for 6GB+ servers |
 | `backup.sh` | deploy/scripts/ | PostgreSQL pg_dump backup |
 
-### 18.2 Database Management
+### 18.2 Production Migration Notes
+
+**Session 2026-10-05 — New columns requiring ALTER TABLE on production PostgreSQL:**
+
+| Table | Column | Type | Default | Purpose |
+|-------|--------|------|---------|---------|
+| User | preferredLanguage | String | "en" | Telugu i18n language preference |
+| Business | defaulterPeriodDays | Int | 365 | Configurable defaulter threshold |
+| Loan | statusOverride | String? | null | Manual loan status override |
+| Loan | statusOverrideDate | String? | null | Date when override was set |
+
+These columns are added via `prisma db push` (local dev) or `ALTER TABLE` statements on production. The `prisma db push --accept-data-loss` command on production (after copying the PostgreSQL schema) handles these automatically.
+
+### 18.3 Database Management
 
 | Task | Command |
 |------|---------|
@@ -140,7 +153,7 @@ DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/
   npx prisma db push --accept-data-loss
 ```
 
-### 18.3 Docker Commands
+### 18.4 Docker Commands
 
 | Task | Command |
 |------|---------|
@@ -153,7 +166,7 @@ DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/
 | Remove old images | `docker image prune -f` |
 | Check disk usage | `docker system df` |
 
-### 18.4 Server Management
+### 18.5 Server Management
 
 | Task | Command |
 |------|---------|
@@ -165,7 +178,7 @@ DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/
 | View Nginx logs | `sudo tail -f /var/log/nginx/access.log` |
 | Restart Nginx | `sudo systemctl restart nginx` |
 
-### 18.5 Local Development
+### 18.6 Local Development
 
 | Task | Command |
 |------|---------|
@@ -176,7 +189,7 @@ DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/
 | Seed local DB | `npm run db:seed` |
 | Full setup | `npm run setup` |
 
-### 18.6 Monitoring
+### 18.7 Monitoring
 
 | What | How |
 |------|-----|

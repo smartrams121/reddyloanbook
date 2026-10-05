@@ -114,6 +114,20 @@ All use password: `Test@123`
 - **Android Download Fix**: DOM-attached anchors with delayed blob URL revocation.
 - **Zero-Downtime Deploy**: Script tags image as both names, uses --no-build flag.
 
+## Recent Features (Session 2026-10-05)
+
+- **Telugu i18n**: Full Telugu language support. 20 translation files in locales/en/ and locales/te/. Custom i18n provider at src/lib/i18n.tsx. Language switcher on profile + header. PATCH /api/profile/language.
+- **UI Rebrand**: Business → Collection labels. Dynamic org name in header.
+- **Configurable Defaulter Period**: Business.defaulterPeriodDays (default 365). Settings page field.
+- **Manual Loan Status Override**: Loan.statusOverride + statusOverrideDate. Edit Loan dropdown. resolveLoanStatus() replaces deriveLoanStatus().
+- **Bulk Posting Defaulter Filter**: Checkbox to include/exclude defaulter loans.
+- **Password Reset Simplification**: Auto-set to username, forced change on first login.
+- **Backdate Limits Removed**: No limit on loan creation date or payment posting date.
+- **Owner in Employees**: First row with gold accent, pre-selected in new collection.
+- **Permissions Update**: Business Admin gained create_business, manage_employee_password_resets.
+- **Report Changes**: Loans report columns updated (-Phone/-Interest/+CID/+Dates), Customers -Age, Payments -Phone.
+- **Loans List**: Due Date column added.
+
 ## Documentation
 
 - **Spec Document (online)**: https://smartrams121.github.io/reddyloanbook/documents/Daily_Finance_Specification.html

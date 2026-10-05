@@ -52,11 +52,11 @@
 
 | Model | Key Fields | Relationships |
 |-------|-----------|---------------|
-| **User** | id, username (unique), passwordHash, fullName, phone, email, role, isActive, mustChangePassword | → ownedBusinesses, businessAssignments, villageAssignments, collectedPayments, assignedLoans |
-| **Business** | id, name, city, ownerId, collectionType, interestModel, collectionDays, gracePeriods, repaymentMultipliers, receiptPrefix, sequences (customerSeq, loanSeq, receiptSeq) | → owner(User), villages, customers, loans, payments |
+| **User** | id, username (unique), passwordHash, fullName, phone, email, role, isActive, mustChangePassword, preferredLanguage (default: "en") | → ownedBusinesses, businessAssignments, villageAssignments, collectedPayments, assignedLoans |
+| **Business** | id, name, city, ownerId, collectionType, interestModel, collectionDays, gracePeriods, repaymentMultipliers, defaulterPeriodDays (default: 365), receiptPrefix, sequences (customerSeq, loanSeq, receiptSeq) | → owner(User), villages, customers, loans, payments |
 | **Village** | id, name, businessId, isActive | → business, customers, agentAssignments. Unique: [businessId, name] |
 | **Customer** | id, customerId, fullName, phone, villageId, businessId, status, age, aadhaarHash, aadhaarLast4, photoPath, guarantorName | → village, business, loans. Unique: [businessId, customerId] |
-| **Loan** | id, loanNumber, customerId, businessId, loanAmount, interestAmount, totalRepayable, amountGiven, installmentAmount, numberOfInstallments, lastInstallmentAmount, interestModel, collectionType, startDate, expectedEndDate, agentId, status, closedAt | → customer, business, agent(User), schedule, payments. Unique: [businessId, loanNumber] |
+| **Loan** | id, loanNumber, customerId, businessId, loanAmount, interestAmount, totalRepayable, amountGiven, installmentAmount, numberOfInstallments, lastInstallmentAmount, interestModel, collectionType, startDate, expectedEndDate, agentId, status, statusOverride (nullable), statusOverrideDate (nullable), closedAt | → customer, business, agent(User), schedule, payments. Unique: [businessId, loanNumber] |
 | **LoanScheduleEntry** | id, loanId, installmentNumber, dueDate, amount | → loan (cascade delete). Unique: [loanId, dueDate] |
 | **Payment** | id, receiptNumber, loanId, businessId, amount, paymentDate, collectorId, note, isDeleted, latitude, longitude | → loan, business, collector(User). Unique: [businessId, receiptNumber] |
 | **UserBusinessAssignment** | id, userId, businessId | Links User ↔ Business. Unique: [userId, businessId] |
@@ -82,14 +82,14 @@
 |------|-------|-------------|
 | PLATFORM_ADMIN | Global | Manages owners, approves registrations, resets passwords, platform settings |
 | OWNER | Own businesses | Creates businesses, manages employees, full access to all owned businesses |
-| BUSINESS_ADMIN | Assigned business | Full business access except business creation/deletion |
+| BUSINESS_ADMIN | Assigned business | Full business access including business creation, except business deletion |
 | AGENT | Assigned villages | Records payments, views assigned customers/loans only |
 
 ### 8.2 Permission Matrix
 
 | Permission | Platform Admin | Owner | Business Admin | Agent |
 |-----------|:-:|:-:|:-:|:-:|
-| create_business | - | ✓ | - | - |
+| create_business | - | ✓ | ✓ | - |
 | edit_business_settings | - | ✓ | ✓ | - |
 | delete_business | - | ✓ | - | - |
 | view_customer | - | ✓ | ✓ | ✓ |
@@ -107,6 +107,7 @@
 | manage_users | - | ✓ | ✓ | - |
 | create_user | - | ✓ | ✓ | - |
 | manage_villages | - | ✓ | ✓ | - |
+| manage_employee_password_resets | - | ✓ | ✓ | - |
 | approve_registration | ✓ | - | - | - |
 | manage_owners | ✓ | - | - | - |
 | manage_platform_settings | ✓ | - | - | - |
@@ -138,6 +139,7 @@
 | GET | /api/auth/me | Auth | Get current user info |
 | GET | /api/auth/check-username | Public | Check username availability |
 | PATCH | /api/auth/profile | Auth | Update own profile |
+| PATCH | /api/profile/language | Auth | Update preferred language (en/te) |
 
 ### 9.2 Admin APIs
 
