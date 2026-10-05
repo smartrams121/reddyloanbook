@@ -4,7 +4,7 @@ import { forgotPasswordSchema } from '@/lib/validators'
 import { checkRateLimit, recordRateLimitHit } from '@/lib/rate-limit'
 import { createAuditLog } from '@/lib/audit'
 
-const GENERIC_MESSAGE = 'If an account is associated with this phone number, a password reset request has been submitted. An administrator will review it shortly.'
+const GENERIC_MESSAGE = 'If an account is found, a password reset request has been submitted. Your business owner will review it shortly.'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,10 +30,14 @@ export async function POST(request: NextRequest) {
 
     recordRateLimitHit('forgot-password', ip)
 
-    const { phone } = parsed.data
+    const { identifier } = parsed.data
+    const isPhone = /^[6-9]\d{9}$/.test(identifier)
 
     const user = await prisma.user.findFirst({
-      where: { phone, isActive: true },
+      where: {
+        isActive: true,
+        ...(isPhone ? { phone: identifier } : { username: identifier }),
+      },
       select: { id: true, fullName: true, role: true },
     })
 
@@ -60,7 +64,7 @@ export async function POST(request: NextRequest) {
       action: 'PASSWORD_RESET_REQUESTED',
       entityType: 'PasswordResetRequest',
       entityId: resetRequest.id,
-      newValues: { phone, userId: user.id, role: user.role },
+      newValues: { identifier, userId: user.id, role: user.role },
       userId: user.id,
     })
 

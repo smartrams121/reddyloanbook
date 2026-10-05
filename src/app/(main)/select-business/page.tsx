@@ -30,7 +30,7 @@ export default async function SelectBusinessPage() {
 
   return (
     <div className="px-4 py-6 max-w-md mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Select Business</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">Select Collection</h1>
       <p className="text-sm text-gray-500 mb-6">Choose a business to work in</p>
 
       <div className="space-y-3">

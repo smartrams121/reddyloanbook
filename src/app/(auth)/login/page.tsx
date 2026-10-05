@@ -103,9 +103,9 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-4">
-            Want to register as an Owner?{' '}
+            Don&apos;t have a business account?{' '}
             <Link href="/register" className="text-primary-600 font-medium">
-              Register Here
+              Sign up
             </Link>
           </p>
         </div>

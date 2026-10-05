@@ -114,6 +114,7 @@ export default function NewBusinessPage() {
   const [multiplierMonthly, setMultiplierMonthly] = useState(1.40)
 
   const [villageInputs, setVillageInputs] = useState([''])
+  const [ownerInfo, setOwnerInfo] = useState<AgentInfo | null>(null)
   const [agents, setAgents] = useState<AgentInfo[]>([])
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([])
 
@@ -124,7 +125,12 @@ export default function NewBusinessPage() {
     fetch('/api/owner/employees')
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setAgents(data.map((e: { id: string; fullName: string; phone: string | null }) => ({ id: e.id, fullName: e.fullName, phone: e.phone })))
+        if (data.owner) {
+          setOwnerInfo({ id: data.owner.id, fullName: data.owner.fullName, phone: data.owner.phone })
+          setSelectedAgentIds([data.owner.id])
+        }
+        const emps = data.employees || (Array.isArray(data) ? data : [])
+        setAgents(emps.map((e: { id: string; fullName: string; phone: string | null }) => ({ id: e.id, fullName: e.fullName, phone: e.phone })))
       })
       .catch(() => {})
   }, [])
@@ -181,7 +187,8 @@ export default function NewBusinessPage() {
       if (defaultCollectionDay) body.defaultCollectionDay = defaultCollectionDay
       body.repaymentMultiplierDailyWeekly = multiplierDailyWeekly
       body.repaymentMultiplierMonthly = multiplierMonthly
-      if (selectedAgentIds.length > 0) body.agentIds = selectedAgentIds
+      const agentOnlyIds = selectedAgentIds.filter(id => !ownerInfo || id !== ownerInfo.id)
+      if (agentOnlyIds.length > 0) body.agentIds = agentOnlyIds
 
       const res = await fetch('/api/businesses', {
         method: 'POST',
@@ -213,7 +220,7 @@ export default function NewBusinessPage() {
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">New Business</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">New Collection</h1>
       <p className="text-sm text-gray-500 mb-6">Create a new business or import from an existing export</p>
 
       {/* Import Existing Business (hidden on mobile, collapsed by default) */}
@@ -223,7 +230,7 @@ export default function NewBusinessPage() {
           onClick={() => setImportOpen(!importOpen)}
           className="w-full p-4 flex items-center justify-between"
         >
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Import Existing Business</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Import Existing Collection</h2>
           <svg className={`w-4 h-4 text-gray-400 transition-transform ${importOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
@@ -241,7 +248,7 @@ export default function NewBusinessPage() {
         </button>
 
         <div>
-          <label className="label">Business Name *</label>
+          <label className="label">Collection Name *</label>
           <input className="input" value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="e.g. Sai Finance" />
         </div>
 
@@ -373,7 +380,7 @@ export default function NewBusinessPage() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Basic Info</h2>
 
           <div>
-            <label className="label">Business Name *</label>
+            <label className="label">Collection Name *</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Gajuwaka Daily Evening Collection" required />
           </div>
 
@@ -512,11 +519,33 @@ export default function NewBusinessPage() {
         </div>
 
         {/* Assign Employees */}
-        {agents.length > 0 && (
+        {(ownerInfo || agents.length > 0) && (
           <div className="card p-4 space-y-3">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Assign Employees</h2>
-            <p className="text-[10px] text-gray-400">Selected employees will have access to all locations of this business.</p>
+            <p className="text-[10px] text-gray-400">Selected employees will have access to all locations of this collection.</p>
             <div className="space-y-2">
+              {ownerInfo && (
+                <label className="flex items-center gap-3 py-2 px-2 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedAgentIds.includes(ownerInfo.id)}
+                    onChange={() => toggleAgent(ownerInfo.id)}
+                    className="w-4 h-4 rounded border-amber-400 text-amber-600"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold">
+                      {ownerInfo.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{ownerInfo.fullName}</p>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Owner</span>
+                      </div>
+                      {ownerInfo.phone && <p className="text-xs text-gray-500">{ownerInfo.phone}</p>}
+                    </div>
+                  </div>
+                </label>
+              )}
               {agents.map((agent) => (
                 <label key={agent.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                   <input
@@ -543,7 +572,7 @@ export default function NewBusinessPage() {
         {/* Submit */}
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary flex-1">
-            {loading ? 'Creating...' : 'Create Business'}
+            {loading ? 'Creating...' : 'Create Collection'}
           </button>
           <button type="button" onClick={() => router.back()} className="btn-secondary flex-1">
             Cancel

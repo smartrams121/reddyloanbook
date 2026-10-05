@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function ForgotPasswordPage() {
-  const [phone, setPhone] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ identifier: identifier.trim() }),
       })
 
       const data = await res.json()
@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Request Submitted</h2>
             <p className="text-sm text-gray-600 mb-6">
-              If an account is associated with this phone number, a password reset request has been submitted. An administrator will review it shortly.
+              If an account is found, a password reset request has been submitted. Your business owner will review it shortly.
             </p>
             <Link href="/login" className="btn-primary inline-block px-6 py-2">
               Back to Login
@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Forgot Password</h1>
-          <p className="text-gray-500 mt-1 text-sm">Enter your registered phone number</p>
+          <p className="text-gray-500 mt-1 text-sm">Enter your username or registered phone number</p>
         </div>
 
         <div className="card p-6">
@@ -81,24 +81,21 @@ export default function ForgotPasswordPage() {
             )}
 
             <div>
-              <label htmlFor="phone" className="label">Phone Number</label>
+              <label htmlFor="identifier" className="label">Username or Phone Number</label>
               <input
-                id="phone"
-                type="tel"
+                id="identifier"
+                type="text"
                 className="input"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="10-digit mobile number"
-                pattern="[6-9][0-9]{9}"
-                maxLength={10}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="Enter username or phone number"
                 required
               />
-              <p className="text-xs text-gray-400 mt-1">The phone number linked to your account</p>
             </div>
 
             <button
               type="submit"
-              disabled={loading || phone.length !== 10}
+              disabled={loading || identifier.trim().length === 0}
               className="btn-primary w-full btn-lg"
             >
               {loading ? 'Submitting...' : 'Submit Request'}

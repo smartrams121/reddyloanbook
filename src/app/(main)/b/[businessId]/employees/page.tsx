@@ -5,6 +5,10 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface Village { id: string; name: string }
+interface Owner {
+  id: string; fullName: string; username: string; phone: string | null
+  role: string; isActive: boolean
+}
 interface Employee {
   id: string; fullName: string; username: string; phone: string | null
   role: string; isActive: boolean; assigned: boolean; villageIds: string[]
@@ -14,6 +18,7 @@ export default function EmployeesAssignmentPage() {
   const params = useParams()
   const businessId = params.businessId as string
 
+  const [owner, setOwner] = useState<Owner | null>(null)
   const [employees, setEmployees] = useState<Employee[]>([])
   const [villages, setVillages] = useState<Village[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,6 +29,7 @@ export default function EmployeesAssignmentPage() {
     fetch(`/api/b/${businessId}/employees`)
       .then(r => r.json())
       .then(data => {
+        if (data.owner) setOwner(data.owner)
         if (data.employees) setEmployees(data.employees)
         if (data.villages) setVillages(data.villages)
       })
@@ -107,12 +113,37 @@ export default function EmployeesAssignmentPage() {
       )}
 
       {/* Assigned Employees */}
-      {assignedEmployees.length > 0 && (
+      {(owner || assignedEmployees.length > 0) && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
             Assigned ({assignedEmployees.length})
           </h2>
           <div className="space-y-2">
+            {/* Owner Row */}
+            {owner && (
+              <div className="card bg-amber-50 border-l-4 border-amber-400">
+                <div className="p-4 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
+                    {owner.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{owner.fullName}</p>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Owner
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      @{owner.username}{owner.phone ? ` · ${owner.phone}` : ''} · All Villages
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 shrink-0">
+                    Active
+                  </span>
+                </div>
+              </div>
+            )}
+
             {assignedEmployees.map(emp => (
               <div key={emp.id} className="card">
                 <div className="p-4 flex items-center gap-3">

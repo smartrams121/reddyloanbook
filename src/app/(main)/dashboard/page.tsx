@@ -125,9 +125,9 @@ export default async function DashboardPage() {
 
       {/* Business List */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-900">My Businesses</h2>
+        <h2 className="text-lg font-semibold text-gray-900">My Collections</h2>
         <Link href="/businesses/new" className="text-xs font-medium px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors">
-          + New Business
+          + New Collection
         </Link>
       </div>
       <div className="space-y-2">
@@ -153,7 +153,7 @@ export default async function DashboardPage() {
           <div className="card p-8 text-center">
             <p className="text-gray-500 mb-4">No businesses registered yet.</p>
             <Link href="/businesses/new" className="btn-primary">
-              Register Your First Business
+              Register Your First Collection
             </Link>
           </div>
         )}

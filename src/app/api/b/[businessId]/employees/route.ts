@@ -26,7 +26,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { ownerId: true },
+    select: {
+      ownerId: true,
+      owner: { select: { id: true, fullName: true, username: true, phone: true, role: true, isActive: true } },
+    },
   })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
@@ -100,7 +103,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       villageIds: villageAssignmentMap[u.id] || [],
     }))
 
-  return NextResponse.json({ employees, villages })
+  return NextResponse.json({ owner: business.owner, employees, villages })
 }
 
 const toggleSchema = z.object({

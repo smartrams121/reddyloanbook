@@ -24,6 +24,7 @@ export interface AuthUser {
   businessIds: string[]
   villageIds: string[]
   ownerId: string | null
+  organizationName: string | null
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -91,7 +92,7 @@ export async function getSession(): Promise<AuthUser | null> {
         include: {
           businessAssignments: true,
           villageAssignments: true,
-          ownedBusinesses: { select: { id: true } },
+          ownedBusinesses: { select: { id: true, name: true } },
         },
       },
     },
@@ -120,8 +121,10 @@ export async function getSession(): Promise<AuthUser | null> {
       : user.businessAssignments.map((a) => a.businessId)
 
   let ownerId: string | null = null
+  let organizationName: string | null = null
   if (user.role === Role.OWNER) {
     ownerId = user.id
+    organizationName = user.ownedBusinesses[0]?.name || null
   } else if (
     user.role === Role.BUSINESS_ADMIN ||
     user.role === Role.AGENT
@@ -129,9 +132,10 @@ export async function getSession(): Promise<AuthUser | null> {
     if (businessIds.length > 0) {
       const biz = await prisma.business.findFirst({
         where: { id: businessIds[0] },
-        select: { ownerId: true },
+        select: { ownerId: true, name: true },
       })
       ownerId = biz?.ownerId || null
+      organizationName = biz?.name || null
     }
   }
 
@@ -146,6 +150,7 @@ export async function getSession(): Promise<AuthUser | null> {
     businessIds,
     villageIds: user.villageAssignments.map((a) => a.villageId),
     ownerId,
+    organizationName,
   }
 }
 

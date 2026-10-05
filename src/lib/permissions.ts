@@ -97,6 +97,7 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'manage_employee_password_resets',
   ],
   [Role.BUSINESS_ADMIN]: [
+    'create_business',
     'edit_business_settings',
     'create_agent',
     'assign_villages',
@@ -130,6 +131,7 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'delete_loan',
     'manage_loan_status',
     'manage_expense_categories',
+    'manage_employee_password_resets',
   ],
   [Role.AGENT]: [
     'view_village_list',

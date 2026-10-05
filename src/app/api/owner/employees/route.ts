@@ -63,7 +63,13 @@ export async function GET() {
   }
 
   const employees = Array.from(employeeMap.values()).sort((a, b) => a.fullName.localeCompare(b.fullName))
-  return NextResponse.json(employees)
+
+  const ownerUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, fullName: true, username: true, phone: true },
+  })
+
+  return NextResponse.json({ owner: ownerUser, employees })
 }
 
 const createEmployeeSchema = z.object({

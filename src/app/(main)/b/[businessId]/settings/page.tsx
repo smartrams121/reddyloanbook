@@ -191,7 +191,7 @@ export default function SettingsPage() {
         <Link href={`/b/${businessId}/more`} className="text-sm text-primary-600 hover:underline">
           ← Back to Menu
         </Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-2">Business Settings</h1>
+        <h1 className="text-xl font-bold text-gray-900 mt-2">Collection Settings</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -211,12 +211,12 @@ export default function SettingsPage() {
           {basicInfoOpen && <div className="px-4 pb-4 space-y-4">
 
           <div>
-            <label className="label">Business ID</label>
+            <label className="label">Collection ID</label>
             <input className="input bg-gray-100 text-gray-500 cursor-not-allowed" value={settings.id} disabled readOnly />
             <p className="text-[10px] text-gray-400 mt-1">System-generated, cannot be changed</p>
           </div>
           <div>
-            <label className="label">Business Name</label>
+            <label className="label">Collection Name</label>
             <input className="input" value={settings.name} onChange={(e) => update('name', e.target.value)} required />
           </div>
           <div>
@@ -372,7 +372,7 @@ export default function SettingsPage() {
         {/* Business Sequence */}
         <div className="card">
           <button type="button" onClick={() => setSeqOpen(!seqOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Business Sequence</h2>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">UID Formatting</h2>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${seqOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           {seqOpen && <div className="px-4 pb-4 space-y-6">
@@ -446,7 +446,7 @@ export default function SettingsPage() {
             disabled={exporting}
             className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
-            {exporting ? 'Preparing Export...' : 'Download Business Data (.xlsx)'}
+            {exporting ? 'Preparing Export...' : 'Download Collection Data (.xlsx)'}
           </button>
         </div>
 
@@ -461,7 +461,7 @@ export default function SettingsPage() {
             onClick={() => { setShowDeleteModal(true); setDeleteConfirmText('') }}
             className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
           >
-            Delete Business
+            Delete Collection
           </button>
         </div>
 

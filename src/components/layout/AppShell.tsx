@@ -102,7 +102,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
                 <span className="text-white text-sm font-bold">₹</span>
               </div>
-              <span className="font-semibold text-gray-900 hidden sm:block">Daily Finance</span>
+              <span className="font-semibold text-gray-900 hidden sm:block">{user.organizationName || 'Daily Finance'}</span>
             </Link>
           </div>
 
@@ -186,7 +186,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 value={activeBusinessId || ''}
                 onChange={(e) => handleBusinessSwitch(e.target.value)}
               >
-                <option value="">Select Business</option>
+                <option value="">Select Collection</option>
                 {businesses.map((biz) => (
                   <option key={biz.id} value={biz.id}>
                     {biz.name}
@@ -303,10 +303,10 @@ export default function AppShell({ user, children }: AppShellProps) {
               {/* Owner-level links */}
               {user.role === Role.OWNER && (
                 <NavSection title="Owner Objects">
-                  <NavLink href="/businesses/new" icon="➕" label="Register New Business" active={pathname === '/businesses/new'} />
+                  <NavLink href="/businesses/new" icon="➕" label="Register New Collection" active={pathname === '/businesses/new'} />
                   <NavLink href="/employees" icon="👤" label="Manage Employees" active={pathname.startsWith('/employees')} />
                   {activeBusinessId && (
-                    <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label="Business Settings" active={pathname === `/b/${activeBusinessId}/settings`} />
+                    <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label="Collection Settings" active={pathname === `/b/${activeBusinessId}/settings`} />
                   )}
                   <NavLink href="/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
                 </NavSection>

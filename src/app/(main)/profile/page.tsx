@@ -45,6 +45,8 @@ export default function ProfilePage() {
   const [bizPhone, setBizPhone] = useState('')
   const [bizMsg, setBizMsg] = useState({ type: '', text: '' })
   const [bizSaving, setBizSaving] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
+  const [collectionsOpen, setCollectionsOpen] = useState(false)
 
   const [archiveConfirm, setArchiveConfirm] = useState<string | null>(null)
 
@@ -248,9 +250,12 @@ export default function ProfilePage() {
       </div>
 
       {/* Change Password */}
-      <div className="card p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
-        <form onSubmit={handleChangePassword} className="space-y-3">
+      <div className="card">
+        <button type="button" onClick={() => setPwOpen(!pwOpen)} className="w-full p-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${pwOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+        {pwOpen && <form onSubmit={handleChangePassword} className="px-4 pb-4 space-y-3">
           {pwMsg.text && (
             <div className={`text-sm px-3 py-2 rounded-lg ${pwMsg.type === 'error' ? 'bg-danger-50 text-danger-700' : 'bg-green-50 text-green-700'}`}>
               {pwMsg.text}
@@ -271,14 +276,17 @@ export default function ProfilePage() {
           <button type="submit" disabled={pwLoading} className="btn-primary w-full">
             {pwLoading ? 'Changing...' : 'Change Password'}
           </button>
-        </form>
+        </form>}
       </div>
 
       {/* My Businesses (Owners only) */}
       {isOwner && (
-        <div className="card p-4">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">My Businesses</h2>
-          <div className="space-y-3">
+        <div className="card">
+          <button type="button" onClick={() => setCollectionsOpen(!collectionsOpen)} className="w-full p-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">My Collections</h2>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${collectionsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {collectionsOpen && <div className="px-4 pb-4 space-y-3">
             {profile.businesses.filter(b => b.isActive).map((biz) => (
               <div key={biz.id} className="border border-gray-200 rounded-lg p-3">
                 {editingBiz === biz.id ? (
@@ -289,7 +297,7 @@ export default function ProfilePage() {
                       </div>
                     )}
                     <div>
-                      <label className="label">Business Name</label>
+                      <label className="label">Collection Name</label>
                       <input className="input" value={bizName} onChange={(e) => setBizName(e.target.value)} required />
                     </div>
                     <div>
@@ -357,7 +365,7 @@ export default function ProfilePage() {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
         </div>
       )}
     </div>

@@ -40,7 +40,7 @@ export default function EmployeesPage() {
   function loadEmployees() {
     fetch('/api/owner/employees')
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setEmployees(data) })
+      .then(data => { if (data.employees) setEmployees(data.employees); else if (Array.isArray(data)) setEmployees(data) })
       .catch(() => {})
       .finally(() => setLoading(false))
   }

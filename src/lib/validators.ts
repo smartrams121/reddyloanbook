@@ -187,7 +187,7 @@ export const rejectRegistrationSchema = z.object({
 })
 
 export const forgotPasswordSchema = z.object({
-  phone: phoneSchema,
+  identifier: z.string().min(1, 'Username or phone number is required'),
 })
 
 export const resolvePasswordResetSchema = z.object({

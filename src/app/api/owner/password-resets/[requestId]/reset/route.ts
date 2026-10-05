@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession, hashPassword } from '@/lib/auth'
 import { assertPermission } from '@/lib/permissions'
-import { resolvePasswordResetSchema } from '@/lib/validators'
 import { createAuditLog } from '@/lib/audit'
 import { Role } from '@/lib/constants'
 
@@ -15,12 +14,6 @@ export async function POST(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     assertPermission(user, 'manage_employee_password_resets')
-
-    const body = await request.json()
-    const parsed = resolvePasswordResetSchema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
-    }
 
     const resetRequest = await prisma.passwordResetRequest.findUnique({
       where: { id: params.requestId },
@@ -52,7 +45,7 @@ export async function POST(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const newPassword = parsed.data.newPassword || resetRequest.user.username
+    const newPassword = resetRequest.user.username
     const passwordHash = await hashPassword(newPassword)
 
     await prisma.$transaction([
@@ -67,7 +60,6 @@ export async function POST(
         where: { id: params.requestId },
         data: {
           status: 'COMPLETED',
-          note: parsed.data.note,
           resolvedBy: user.id,
           resolvedAt: new Date(),
         },

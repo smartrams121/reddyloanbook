@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import ResetPasswordModal from '@/components/ResetPasswordModal'
 
 interface ResetRequest {
   id: string
@@ -64,17 +63,21 @@ export default function OwnerPasswordResetsPage() {
     return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
   }
 
-  async function handleReset(password: string, note: string) {
+  async function handleReset() {
     if (!resetTarget) return
     const res = await fetch(`/api/owner/password-resets/${resetTarget.id}/reset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newPassword: password, note }),
+      body: JSON.stringify({}),
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed')
+    if (!res.ok) {
+      const data = await res.json()
+      showToast(data.error || 'Failed to reset password')
+      setResetTarget(null)
+      return
+    }
+    showToast(`Password reset for ${resetTarget.user.fullName} — new password is their username`)
     setResetTarget(null)
-    showToast(`Password reset for ${resetTarget.user.fullName}`)
     fetchRequests()
   }
 
@@ -197,11 +200,28 @@ export default function OwnerPasswordResetsPage() {
       )}
 
       {resetTarget && (
-        <ResetPasswordModal
-          userName={resetTarget.user.fullName}
-          onConfirm={handleReset}
-          onCancel={() => setResetTarget(null)}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Reset Password</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-700">
+                Reset password for <span className="font-semibold">{resetTarget.user.fullName}</span>?
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                The new password will be set to their username: <span className="font-mono font-semibold text-gray-900">{resetTarget.user.username}</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                They will be required to change it on first login.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+              <button onClick={() => setResetTarget(null)} className="btn-secondary px-4 py-2">Cancel</button>
+              <button onClick={handleReset} className="btn-primary px-4 py-2">Reset Password</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {cancelTarget && (
