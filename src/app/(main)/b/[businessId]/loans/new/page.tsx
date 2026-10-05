@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Agent { id: string; fullName: string; role: string; villageAssignments?: { village: { id: string } }[] }
@@ -34,6 +35,7 @@ export default function NewLoanPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useTranslation()
   const businessId = params.businessId as string
   const preselectedCustomerId = searchParams.get('customerId')
   const renewFromLoanId = searchParams.get('renewFromLoanId')
@@ -446,7 +448,7 @@ export default function NewLoanPage() {
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">New Loan</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('loans.new_loan')}</h1>
 
       {/* Step Indicator */}
       <div className="flex items-center gap-2 mb-6">
@@ -462,7 +464,7 @@ export default function NewLoanPage() {
           className={`text-sm font-medium px-3 py-1 rounded-full ${step === 'loan' || step === 'warning' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'} ${!selectedCustomer ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={!selectedCustomer}
         >
-          2. Loan Details
+          2. {t('loans.loan_details')}
         </button>
       </div>
 
@@ -660,7 +662,7 @@ export default function NewLoanPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
               <div>
-                <h3 className="text-sm font-bold text-yellow-800">Active Loan Exists</h3>
+                <h3 className="text-sm font-bold text-yellow-800">{t('loans.active_loan_warning')}</h3>
                 <p className="text-sm text-yellow-700 mt-1">
                   <span className="font-semibold">{selectedCustomer.fullName}</span> already has {activeLoans.length} active loan{activeLoans.length > 1 ? 's' : ''}. Please choose how to proceed.
                 </p>
@@ -806,7 +808,7 @@ export default function NewLoanPage() {
           {/* Loan Details — collapsed by default */}
           <div className="card">
             <button type="button" onClick={() => setLoanDetailsOpen(!loanDetailsOpen)} className="w-full p-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Details</h2>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('loans.loan_details')}</h2>
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                   collectionType === 'DAILY' ? 'bg-blue-100 text-blue-700' :
@@ -822,7 +824,7 @@ export default function NewLoanPage() {
 
             {/* Loan ID */}
             <div>
-              <label className="label">Loan ID</label>
+              <label className="label">{t('loans.loan_id')}</label>
               <input
                 className="input"
                 value={loanNumber}
@@ -842,7 +844,7 @@ export default function NewLoanPage() {
 
             {/* Agent */}
             <div>
-              <label className="label">Agent *</label>
+              <label className="label">{t('loans.agent')} *</label>
               {filteredAgents.length > 0 ? (
                 <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
                   {filteredAgents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
@@ -854,7 +856,7 @@ export default function NewLoanPage() {
 
             {/* Loan Creation Date */}
             <div>
-              <label className="label">Loan Creation Date *</label>
+              <label className="label">{t('loans.loan_creation_date')} *</label>
               <input
                 type="date"
                 className="input text-xs py-1.5"
@@ -868,24 +870,24 @@ export default function NewLoanPage() {
 
             {/* Interest Model */}
             <div>
-              <label className="label">Interest Model *</label>
+              <label className="label">{t('loans.interest_model')} *</label>
               <select
                 className="input"
                 value={interestModel}
                 onChange={(e) => handleInterestModelChange(e.target.value)}
               >
-                <option value="ADDON">Add on (interest added to total)</option>
-                <option value="UPFRONT">Upfront (interest deducted from the given amount)</option>
+                <option value="ADDON">{t('loans.interest_model_added')}</option>
+                <option value="UPFRONT">{t('loans.interest_model_upfront')}</option>
               </select>
             </div>
 
             <div>
-              <label className="label">Notes</label>
-              <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional loan notes" />
+              <label className="label">{t('common.notes')}</label>
+              <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
 
             <div>
-              <label className="label">Attachments (ID proof, agreement, photos)</label>
+              <label className="label">{t('loans.attachments')}</label>
               <input
                 ref={docInputRef}
                 type="file"
@@ -946,11 +948,11 @@ export default function NewLoanPage() {
 
           {/* Loan Payment */}
           <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Payment</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('loans.loan_amount')}</h2>
 
             {/* Principal Amount */}
             <div>
-              <label className="label">Principal Amount (₹) *</label>
+              <label className="label">{t('loans.principal_amount_rs')} *</label>
               <input
                 type="number"
                 className="input text-lg font-semibold"
@@ -968,7 +970,7 @@ export default function NewLoanPage() {
             {/* Interest Amount — only for UPFRONT */}
             {interestModel === 'UPFRONT' && (
               <div>
-                <label className="label">Interest Amount (₹) *</label>
+                <label className="label">{t('loans.interest_amount_rs')} *</label>
                 <input
                   type="number"
                   className="input"
@@ -985,7 +987,7 @@ export default function NewLoanPage() {
             {/* WEEKLY: Installment Amount input / DAILY+MONTHLY: Number of Installments input */}
             {isWeekly ? (
               <div>
-                <label className="label">Installment Amount (₹) *</label>
+                <label className="label">{t('loans.installment_rs')} *</label>
                 <input
                   type="number"
                   className="input"
@@ -999,7 +1001,7 @@ export default function NewLoanPage() {
               </div>
             ) : (
               <div>
-                <label className="label">Number of Installments *</label>
+                <label className="label">{t('loans.num_installments')} *</label>
                 <input
                   type="number"
                   className="input"
@@ -1027,7 +1029,7 @@ export default function NewLoanPage() {
             {/* Total Repayment Amount — only for ADDON */}
             {interestModel === 'ADDON' && (
               <div>
-                <label className="label">Total Repayment Amount (₹) *</label>
+                <label className="label">{t('loans.total_repayment_amount_rs')} *</label>
                 <input
                   type="number"
                   className="input text-lg font-semibold"
@@ -1049,19 +1051,19 @@ export default function NewLoanPage() {
                 <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide mb-2">Auto-Calculated</p>
                 {interestModel === 'ADDON' && (
                   <div className="flex justify-between py-1.5 border-b border-green-200">
-                    <span className="text-sm text-green-700">Interest Amount</span>
+                    <span className="text-sm text-green-700">{t('loans.interest_amount')}</span>
                     <span className="text-sm font-bold text-green-800">₹{interest.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 {interestModel === 'UPFRONT' && (
                   <div className="flex justify-between py-1.5 border-b border-green-200">
-                    <span className="text-sm text-green-700">Total Repayment</span>
+                    <span className="text-sm text-green-700">{t('loans.total_repayment_amount')}</span>
                     <span className="text-sm font-bold text-green-800">₹{totalRepayment.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 {isWeekly ? (
                   <div className="flex justify-between py-1.5 border-b border-green-200">
-                    <span className="text-sm text-green-700">Number of Weeks</span>
+                    <span className="text-sm text-green-700">{t('loans.num_weeks')}</span>
                     <span className="text-sm font-bold text-green-800">
                       {numInstallments > 0 ? numInstallments : '—'}
                       {numInstallments > 0 && lastInstallment !== installmentAmount && lastInstallment > 0 && (
@@ -1071,7 +1073,7 @@ export default function NewLoanPage() {
                   </div>
                 ) : (
                   <div className="flex justify-between py-1.5 border-b border-green-200">
-                    <span className="text-sm text-green-700">Installment Amount</span>
+                    <span className="text-sm text-green-700">{t('loans.installment')}</span>
                     <span className="text-sm font-bold text-green-800">
                       {numInstallments > 0 ? `₹${installmentAmount.toLocaleString('en-IN')}` : '₹0'}
                       {numInstallments > 0 && lastInstallment !== installmentAmount && lastInstallment > 0 && (
@@ -1081,7 +1083,7 @@ export default function NewLoanPage() {
                   </div>
                 )}
                 <div className="flex justify-between py-1.5">
-                  <span className="text-sm text-green-700">Due Date</span>
+                  <span className="text-sm text-green-700">{t('loans.due_date')}</span>
                   <span className="text-sm font-bold text-green-800">{computedDueDate || '—'}</span>
                 </div>
               </div>
@@ -1091,10 +1093,10 @@ export default function NewLoanPage() {
           {/* Submit */}
           <div className="flex gap-3">
             <button type="submit" disabled={creating} className="btn-primary flex-1">
-              {creating ? 'Creating Loan...' : 'Create Loan'}
+              {creating ? `${t('common.loading')}` : t('loans.new_loan_btn')}
             </button>
             <button type="button" onClick={() => router.back()} className="btn-secondary flex-1">
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>

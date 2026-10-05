@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
 import { formatDateDisplay } from '@/lib/date'
+import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Employee { id: string; fullName: string }
@@ -29,6 +30,7 @@ function yesterdayStr() {
 }
 
 export default function ViewPaymentsPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const businessId = params.businessId as string
   const today = todayStr()
@@ -211,7 +213,7 @@ export default function ViewPaymentsPage() {
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">View Payments</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('payments.view_payments')}</h1>
           <p className="text-sm text-gray-500">{loanFiltered.length} payments · {formatPaiseShort(totalAmount)}</p>
         </div>
         <Link href={`/b/${businessId}/posting`} className="text-sm text-primary-600 hover:underline">
@@ -224,13 +226,13 @@ export default function ViewPaymentsPage() {
         {/* Date presets */}
         <div className="flex flex-wrap gap-2">
           {[
-            { key: 'today', label: 'Today' },
-            { key: 'yesterday', label: 'Yesterday' },
-            { key: '7d', label: '7 Days' },
-            { key: '15d', label: '15 Days' },
-            { key: '30d', label: '30 Days' },
-            { key: 'all', label: 'All' },
-            { key: 'custom', label: 'Custom' },
+            { key: 'today', label: t('common.today') },
+            { key: 'yesterday', label: t('common.yesterday') },
+            { key: '7d', label: `7 ${t('common.days')}` },
+            { key: '15d', label: `15 ${t('common.days')}` },
+            { key: '30d', label: `30 ${t('common.days')}` },
+            { key: 'all', label: t('common.all') },
+            { key: 'custom', label: t('common.custom') },
           ].map(p => (
             <button
               key={p.key}
@@ -249,18 +251,18 @@ export default function ViewPaymentsPage() {
           <div className="space-y-3">
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <label className="label text-xs">From</label>
+                <label className="label text-xs">{t('common.from')}</label>
                 <input type="date" className="input text-xs py-1.5" value={fromDate} onChange={e => { setFromDate(e.target.value) }} max={toDate} />
               </div>
               <div className="flex-1">
-                <label className="label text-xs">To</label>
+                <label className="label text-xs">{t('common.to')}</label>
                 <input type="date" className="input text-xs py-1.5" value={toDate} onChange={e => { setToDate(e.target.value) }} min={fromDate} max={today} />
               </div>
             </div>
 
             {villages.length > 0 && (
               <div>
-                <label className="label text-xs">Village</label>
+                <label className="label text-xs">{t('customers.village')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setVillageId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!villageId ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                   {villages.map(v => (
@@ -272,7 +274,7 @@ export default function ViewPaymentsPage() {
 
             {employees.length > 0 && (
               <div>
-                <label className="label text-xs">Employee</label>
+                <label className="label text-xs">{t('common.employee')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setCollectorId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!collectorId ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                   {employees.map(e => (
@@ -336,22 +338,22 @@ export default function ViewPaymentsPage() {
         </div>
       ) : payments.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-400 text-sm">No payments found for this period.</p>
+          <p className="text-gray-400 text-sm">{t('payments.no_payments_found')}</p>
         </div>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b text-left text-gray-500 bg-gray-50">
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>Receipt{sortIcon('receipt')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs">CID</th>
-                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('amount')}>Amount{sortIcon('amount')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('paymentDate')}>Date{sortIcon('paymentDate')}</th>
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>Village{sortIcon('village')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('collector')}>Agent{sortIcon('collector')}</th>
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>Mode{sortIcon('mode')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>{t('common.receipt')}{sortIcon('receipt')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>{t('loans.loan_number_short')}{sortIcon('loanNumber')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>{t('customers.customers')}{sortIcon('customer')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs">{t('customers.cid')}</th>
+                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('amount')}>{t('common.amount')}{sortIcon('amount')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('paymentDate')}>{t('common.date')}{sortIcon('paymentDate')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>{t('customers.village')}{sortIcon('village')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('collector')}>{t('loans.agent')}{sortIcon('collector')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>{t('common.mode')}{sortIcon('mode')}</th>
               </tr>
             </thead>
             <tbody>
@@ -411,18 +413,18 @@ export default function ViewPaymentsPage() {
         <>
           <div className="hidden md:flex gap-3 mt-4">
             <button onClick={() => handleDownload('pdf')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
-              Download PDF
+              {t('payments.download_pdf')}
             </button>
             <button onClick={() => handleDownload('xlsx')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">
-              Download XLSX
+              {t('payments.download_xlsx')}
             </button>
           </div>
           <div className="flex md:hidden gap-3 mt-4">
             <button onClick={() => handleWhatsAppShareFile('pdf')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
-              Share PDF
+              {t('payments.share_pdf')}
             </button>
             <button onClick={() => handleWhatsAppShareFile('xlsx')} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
-              Share XLSX
+              {t('payments.share_xlsx')}
             </button>
           </div>
         </>

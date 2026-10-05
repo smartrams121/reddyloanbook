@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface Agent { id: string; fullName: string; role: string }
 interface LoanData {
@@ -31,6 +32,7 @@ interface BusinessSettings { collectionDays: string }
 export default function EditLoanForm() {
   const params = useParams()
   const router = useRouter()
+  const { t } = useTranslation()
   const businessId = params.businessId as string
   const loanId = params.loanId as string
 
@@ -162,20 +164,20 @@ export default function EditLoanForm() {
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
       <Link href={`/b/${businessId}/customers/${loan.customerId}`} className="text-sm text-primary-600 hover:underline">
-        &larr; Back to Customer
+        &larr; {t('common.back')}
       </Link>
 
-      <h1 className="text-xl font-bold text-gray-900 mt-3 mb-1">Edit Loan</h1>
+      <h1 className="text-xl font-bold text-gray-900 mt-3 mb-1">{t('common.edit')} {t('loans.loan_short')}</h1>
 
       {/* Loan Number — read-only */}
       <div className="card p-3 bg-gray-50 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500">Loan Number</p>
+            <p className="text-xs text-gray-500">{t('loans.loan_number')}</p>
             <p className="text-sm font-bold text-gray-900 font-mono">{loan.loanNumber}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Customer</p>
+            <p className="text-xs text-gray-500">{t('customers.customer_name')}</p>
             <p className="text-sm font-semibold text-gray-900">{loan.customer.fullName}</p>
             <p className="text-[10px] text-gray-400">{loan.customer.customerId}</p>
           </div>
@@ -189,22 +191,22 @@ export default function EditLoanForm() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Amount Section */}
         <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Amount</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('loans.loan_amount')}</h2>
 
           <div>
-            <label className="label">Interest Model *</label>
+            <label className="label">{t('loans.interest_model')} *</label>
             <select
               className="input"
               value={interestModel}
               onChange={(e) => setInterestModel(e.target.value)}
             >
-              <option value="ADDON">Add on (interest added to total)</option>
-              <option value="UPFRONT">Upfront (interest deducted from the given amount)</option>
+              <option value="ADDON">{t('loans.interest_model_added')}</option>
+              <option value="UPFRONT">{t('loans.interest_model_upfront')}</option>
             </select>
           </div>
 
           <div>
-            <label className="label">Principal Amount (₹) *</label>
+            <label className="label">{t('loans.principal_amount_rs')} *</label>
             <input
               type="number"
               className="input text-lg font-semibold"
@@ -216,7 +218,7 @@ export default function EditLoanForm() {
           </div>
 
           <div>
-            <label className="label">Interest Amount (₹) *</label>
+            <label className="label">{t('loans.interest_amount_rs')} *</label>
             <input
               type="number"
               className="input"
@@ -230,11 +232,11 @@ export default function EditLoanForm() {
           {loanAmount > 0 && (
             <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Total Repayable</span>
+                <span className="text-gray-500">{t('loans.total_repayable')}</span>
                 <span className="font-bold text-gray-900">₹{totalRepayable.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Amount Given to Customer</span>
+                <span className="text-gray-500">{t('loans.amount_given')}</span>
                 <span className="font-semibold text-primary-700">₹{amountGiven.toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -243,10 +245,10 @@ export default function EditLoanForm() {
 
         {/* Repayment Schedule */}
         <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Repayment Schedule</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('loans.repayment_schedule')}</h2>
 
           <div>
-            <label className="label">Collection Type *</label>
+            <label className="label">{t('loans.collection_type')} *</label>
             <div className="grid grid-cols-3 gap-2">
               {['DAILY', 'WEEKLY', 'MONTHLY'].map((type) => (
                 <button
@@ -267,7 +269,7 @@ export default function EditLoanForm() {
 
           {collectionType === 'WEEKLY' && (
             <div>
-              <label className="label">Collection Day</label>
+              <label className="label">{t('loans.collection_day')}</label>
               <select className="input" value={collectionDay} onChange={(e) => setCollectionDay(e.target.value)}>
                 <option value="">Select day</option>
                 {days.map((d) => <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>)}
@@ -276,12 +278,12 @@ export default function EditLoanForm() {
           )}
 
           <div>
-            <label className="label">Start Date *</label>
+            <label className="label">{t('loans.start_date')} *</label>
             <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
           </div>
 
           <div>
-            <label className="label">Installment Amount (₹) *</label>
+            <label className="label">{t('loans.installment_rs')} *</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -298,7 +300,7 @@ export default function EditLoanForm() {
           </div>
 
           <div>
-            <label className="label">Number of Installments *</label>
+            <label className="label">{t('loans.num_installments')} *</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -317,17 +319,17 @@ export default function EditLoanForm() {
           {installmentAmount > 0 && numInstallments > 0 && totalRepayable > 0 && (
             <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Installment x Count</span>
+                <span className="text-gray-500">{t('loans.installment')} x {numInstallments}</span>
                 <span className="text-gray-900">₹{installmentAmount.toLocaleString('en-IN')} x {numInstallments}</span>
               </div>
               {lastInstallment !== installmentAmount && lastInstallment > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Last Installment</span>
+                  <span className="text-gray-500">{t('loans.last_installment')}</span>
                   <span className="text-gray-900">₹{lastInstallment.toLocaleString('en-IN')}</span>
                 </div>
               )}
               <div className="flex justify-between font-semibold">
-                <span className="text-gray-700">Schedule Total</span>
+                <span className="text-gray-700">{t('common.total')}</span>
                 <span className={installmentAmount * (numInstallments - 1) + lastInstallment === totalRepayable ? 'text-success-600' : 'text-danger-600'}>
                   ₹{(installmentAmount * (numInstallments - 1) + lastInstallment).toLocaleString('en-IN')}
                 </span>
@@ -338,11 +340,11 @@ export default function EditLoanForm() {
 
         {/* Agent & Notes */}
         <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('customers.additional_details')}</h2>
 
           {agents.length > 0 && (
             <div>
-              <label className="label">Assigned Agent</label>
+              <label className="label">{t('loans.assigned_agent')}</label>
               <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
                 <option value="">No agent (Owner collects)</option>
                 {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
@@ -351,18 +353,18 @@ export default function EditLoanForm() {
           )}
 
           <div>
-            <label className="label">Notes</label>
-            <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional loan notes" />
+            <label className="label">{t('common.notes')}</label>
+            <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
         </div>
 
         {/* Submit */}
         <div className="flex gap-3">
           <button type="submit" disabled={saving} className="btn-primary flex-1">
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? `${t('common.loading')}` : t('common.save')}
           </button>
           <button type="button" onClick={() => router.back()} className="btn-secondary flex-1">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>

@@ -25,6 +25,7 @@ export interface AuthUser {
   villageIds: string[]
   ownerId: string | null
   organizationName: string | null
+  preferredLanguage: string
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -151,6 +152,7 @@ export async function getSession(): Promise<AuthUser | null> {
     villageIds: user.villageAssignments.map((a) => a.villageId),
     ownerId,
     organizationName,
+    preferredLanguage: user.preferredLanguage || 'en',
   }
 }
 

@@ -8,6 +8,7 @@ import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import { Role } from '@/lib/constants'
 import Link from 'next/link'
 import DateFilter from './DateFilter'
+import { T } from '@/lib/i18n'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -220,29 +221,29 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(totalLoanAmount)}</div>
-          <div className="stat-label">Total Loan Amount ({activeLoans.length})</div>
+          <div className="stat-label"><T k="dashboard.total_loan_amount" /> ({activeLoans.length})</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(totalRepayable)}</div>
-          <div className="stat-label">Repayable</div>
+          <div className="stat-label"><T k="dashboard.repayable" /></div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(totalOutstanding)}</div>
-          <div className="stat-label">Outstanding</div>
+          <div className="stat-label"><T k="dashboard.outstanding" /></div>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3 mb-6">
         <Link href={`/b/${businessId}/customers?status=ACTIVE,OVERDUE,DEFAULTER`} className="stat-card hover:border-primary-300 transition-colors block">
           <div className="stat-value">{activeCustomerCount}</div>
-          <div className="stat-label">Customers</div>
+          <div className="stat-label"><T k="dashboard.customers" /></div>
         </Link>
         <Link href={`/b/${businessId}/loans?status=ACTIVE,OVERDUE,DEFAULTER`} className="stat-card hover:border-primary-300 transition-colors block">
           <div className="stat-value">{activeLoans.length}</div>
-          <div className="stat-label">Loans</div>
+          <div className="stat-label"><T k="dashboard.loans" /></div>
         </Link>
         <Link href={`/b/${businessId}/employees`} className="stat-card hover:border-primary-300 transition-colors block">
           <div className="stat-value">{employeeAssignments.length}</div>
-          <div className="stat-label">Employees</div>
+          <div className="stat-label"><T k="dashboard.employees" /></div>
         </Link>
       </div>
 
@@ -260,30 +261,30 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-lg font-bold text-gray-400">{formatPaiseShort(periodExpected)}</div>
-            <div className="text-xs text-gray-500">Expected{expectedLoanCount > 0 ? ` (${expectedLoanCount})` : ''}</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.expected" />{expectedLoanCount > 0 ? ` (${expectedLoanCount})` : ''}</div>
           </div>
           <div>
             <div className={`text-lg font-bold ${periodCollected >= periodExpected ? 'text-success-600' : 'text-warning-600'}`}>
               {formatPaiseShort(periodCollected)}
             </div>
-            <div className="text-xs text-gray-500">Collected{collectedCount > 0 ? ` (${collectedCount})` : ''}</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.collected" />{collectedCount > 0 ? ` (${collectedCount})` : ''}</div>
           </div>
           <div>
             <div className="text-lg font-bold text-primary-600">
               {formatPaiseShort(newLoanAmount)}
             </div>
-            <div className="text-xs text-gray-500">New Loans{newLoanCount > 0 ? ` (${newLoanCount})` : ''}</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.new_loans" />{newLoanCount > 0 ? ` (${newLoanCount})` : ''}</div>
           </div>
           <div>
             <div className={`text-lg font-bold ${periodInHand >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
               {formatPaiseShort(Math.abs(periodInHand))}
-              {periodInHand < 0 && <span className="text-xs font-normal text-danger-500 ml-1">deficit</span>}
+              {periodInHand < 0 && <span className="text-xs font-normal text-danger-500 ml-1"><T k="dashboard.deficit" /></span>}
             </div>
-            <div className="text-xs text-gray-500">In Hand</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.in_hand" /></div>
           </div>
           <div>
             <div className="text-lg font-bold text-success-700">{completedLoansCount}</div>
-            <div className="text-xs text-gray-500">Completed Loans</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.completed_loans" /></div>
           </div>
         </div>
         {periodExpected > 0 && (
@@ -303,7 +304,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
 
       {/* Loan Summary */}
       <div className="card p-4 mb-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Loans</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3"><T k="loans.loans" /></h2>
         <div className="flex items-center gap-3 text-sm flex-wrap">
           <Link href={`/b/${businessId}/loans?status=ACTIVE`} className="badge-success hover:opacity-80 transition-opacity">{loanStatusCounts.ACTIVE} Active</Link>
           <Link href={`/b/${businessId}/loans?status=OVERDUE`} className="bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.OVERDUE} Overdue</Link>
@@ -315,11 +316,11 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link href={`/b/${businessId}/posting`} className="btn-primary text-center">
-          Record Payment
+          <T k="dashboard.record_payment" />
         </Link>
         {(user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN) && (
           <Link href={`/b/${businessId}/customers/new`} className="btn-secondary text-center">
-            New Customer
+            <T k="dashboard.new_customer" />
           </Link>
         )}
       </div>

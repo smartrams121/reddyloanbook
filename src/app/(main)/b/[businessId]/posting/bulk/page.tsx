@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface Agent { id: string; fullName: string; role: string }
 interface Village { id: string; name: string; _count: { customers: number } }
@@ -37,6 +38,7 @@ const statusColors: Record<string, string> = {
 }
 
 export default function VillageBulkPostingPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const searchParams = useSearchParams()
   const businessId = params.businessId as string
@@ -280,12 +282,12 @@ export default function VillageBulkPostingPage() {
     }
   }
 
-  const villageName = selectedVillage === 'all' ? 'All Locations' : (villages.find(v => v.id === selectedVillage)?.name || '')
+  const villageName = selectedVillage === 'all' ? t('payments.all_locations') : (villages.find(v => v.id === selectedVillage)?.name || '')
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Bulk Posting</h1>
-      <p className="text-sm text-gray-500 mb-6">Collect payments for all customers in a location at once</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('payments.bulk_posting')}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t('payments.collect_payments_subtitle')}</p>
 
       {error && (
         <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>
@@ -300,7 +302,7 @@ export default function VillageBulkPostingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Bulk Payment Recorded</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('payments.bulk_payment_recorded')}</h2>
             <p className="text-sm text-gray-500 mb-2">Location: <span className="font-semibold text-gray-700">{villageName}</span></p>
             <p className="text-3xl font-bold text-success-600 mb-2">{formatPaiseShort(result.totalAmount)}</p>
             <p className="text-sm text-gray-500">{result.count} payment{result.count > 1 ? 's' : ''} posted</p>
@@ -310,10 +312,10 @@ export default function VillageBulkPostingPage() {
               Collect Again ({villageName})
             </button>
             <button onClick={handleReset} className="btn-secondary flex-1">
-              Different Location
+              {t('payments.select_location')}
             </button>
             <Link href={`/b/${businessId}/posting/view`} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-teal-200 text-teal-600 hover:bg-teal-50 transition-colors text-center">
-              View Payments
+              {t('payments.view_payments')}
             </Link>
           </div>
         </div>
@@ -324,13 +326,13 @@ export default function VillageBulkPostingPage() {
         <>
           {/* Village Dropdown */}
           <div className="mb-5">
-            <label className="label">Select Location *</label>
+            <label className="label">{t('payments.select_location')} *</label>
             <select
               className="input"
               value={selectedVillage}
               onChange={(e) => handleVillageChange(e.target.value)}
             >
-              <option value="all">All Locations</option>
+              <option value="all">{t('payments.all_locations')}</option>
               {villages.map(v => (
                 <option key={v.id} value={v.id}>{v.name} ({v._count.customers} customers)</option>
               ))}
@@ -341,7 +343,7 @@ export default function VillageBulkPostingPage() {
           {selectedVillage && (
             <div className="mb-5 card">
               <button type="button" onClick={() => setDetailsOpen(!detailsOpen)} className="w-full p-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Details</h2>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('common.details')}</h2>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">{formatDisplayDate(postingDate)}</span>
                   <svg className={`w-4 h-4 text-gray-400 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -350,7 +352,7 @@ export default function VillageBulkPostingPage() {
               {detailsOpen && <div className="px-4 pb-4 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="label text-xs">Posting Date *</label>
+                    <label className="label text-xs">{t('payments.posting_date')} *</label>
                     <input
                       type="date"
                       className="input text-xs py-1.5"
@@ -365,7 +367,7 @@ export default function VillageBulkPostingPage() {
                     )}
                   </div>
                   <div>
-                    <label className="label text-xs">Submission Date</label>
+                    <label className="label text-xs">{t('payments.submission_date')}</label>
                     <input
                       type="text"
                       className="input text-xs py-1.5 bg-gray-50 cursor-not-allowed"
@@ -376,7 +378,7 @@ export default function VillageBulkPostingPage() {
                 </div>
 
                 <div>
-                  <label className="label text-xs">Who collected this payment?</label>
+                  <label className="label text-xs">{t('payments.collected_by_question')}</label>
                   {agents.length > 0 ? (
                     <select className="input text-xs" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
                       <option value="">Myself (logged-in employee)</option>
@@ -388,7 +390,7 @@ export default function VillageBulkPostingPage() {
                 </div>
 
                 <div>
-                  <label className="label text-xs">Payment Mode</label>
+                  <label className="label text-xs">{t('payments.payment_mode')}</label>
                   <div className="flex gap-2">
                     {['Cash', 'UPI'].map((mode) => (
                       <button key={mode} type="button" onClick={() => setPaymentMode(mode)} className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${paymentMode === mode ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>{mode}</button>
@@ -399,7 +401,7 @@ export default function VillageBulkPostingPage() {
                 <div className="flex items-center gap-4 flex-wrap">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                    <span className="text-xs text-gray-600">Payment Completed</span>
+                    <span className="text-xs text-gray-600">{t('payments.payment_completed')}</span>
                     <span className="text-xs text-gray-400">({showCompleted ? `${rows.length} paid` : `${rows.length} pending`})</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -414,7 +416,7 @@ export default function VillageBulkPostingPage() {
                         setAllRows(prev => prev.map(r => ({ ...r, amountStr: String(r.installmentAmount / 100) })))
                       }
                     }} className="w-4 h-4 rounded border-gray-300 text-red-600" />
-                    <span className="text-xs text-red-600 font-medium">Holiday</span>
+                    <span className="text-xs text-red-600 font-medium">{t('payments.holiday')}</span>
                   </label>
                 </div>
               </div>}
@@ -443,7 +445,7 @@ export default function VillageBulkPostingPage() {
                     }}
                     className="text-xs font-medium text-primary-600 hover:text-primary-700"
                   >
-                    Fill All
+                    {t('common.fill_all')}
                   </button>
                 </div>
                 {totalBulkPages > 1 && (
@@ -467,7 +469,7 @@ export default function VillageBulkPostingPage() {
                       onClick={() => loadVillageData(selectedVillage)}
                       className="px-2 py-1 text-xs rounded border border-primary-200 text-primary-600 hover:bg-primary-50"
                     >
-                      Refresh
+                      {t('common.refresh')}
                     </button>
                   </div>
                 )}
@@ -550,7 +552,7 @@ export default function VillageBulkPostingPage() {
                     disabled={posting || filledRows.length === 0}
                     className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
                   >
-                    {posting ? '...' : 'Submit & Next'}
+                    {posting ? '...' : t('payments.submit_and_next')}
                   </button>
                 </div>
               </div>
@@ -559,7 +561,7 @@ export default function VillageBulkPostingPage() {
 
           {!loading && selectedVillage && rows.length === 0 && !error && (
             <div className="card p-8 text-center text-gray-400">
-              <p>No active loans with outstanding balance in this location</p>
+              <p>{t('payments.no_active_loans_location')}</p>
             </div>
           )}
         </>

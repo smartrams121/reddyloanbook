@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 
 export default function EditCustomerPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const router = useRouter()
   const businessId = params.businessId as string
@@ -149,7 +151,7 @@ export default function EditCustomerPage() {
   if (fetching) {
     return (
       <div className="px-4 py-6 max-w-lg mx-auto">
-        <div className="card p-8 text-center text-gray-400">Loading...</div>
+        <div className="card p-8 text-center text-gray-400">{t('common.loading')}</div>
       </div>
     )
   }
@@ -157,9 +159,9 @@ export default function EditCustomerPage() {
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
       <Link href={`/b/${businessId}/customers/${customerId}`} className="text-sm text-primary-600 hover:underline">
-        ← Back
+        {t('common.back')}
       </Link>
-      <h1 className="text-xl font-bold text-gray-900 mt-2 mb-1">Edit Customer</h1>
+      <h1 className="text-xl font-bold text-gray-900 mt-2 mb-1">{t('customers.edit_customer')}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -168,7 +170,7 @@ export default function EditCustomerPage() {
 
         {/* Customer ID */}
         <div>
-          <label className="label">Customer ID</label>
+          <label className="label">{t('customers.customer_id')}</label>
           <input
             className="input"
             value={custId}
@@ -187,7 +189,7 @@ export default function EditCustomerPage() {
 
         {/* Photo */}
         <div>
-          <label className="label">Photo</label>
+          <label className="label">{t('customers.photo')}</label>
           <div className="flex flex-col items-center gap-3">
             <div className="w-28 h-28 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
               {photoPreview ? (
@@ -237,17 +239,17 @@ export default function EditCustomerPage() {
         </div>
 
         <div>
-          <label className="label">Full Name *</label>
+          <label className="label">{t('customers.full_name')} *</label>
           <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         </div>
 
         <div>
-          <label className="label">Phone *</label>
+          <label className="label">{t('customers.phone')} *</label>
           <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} required />
         </div>
 
         <div>
-          <label className="label">Location *</label>
+          <label className="label">{t('customers.location')} *</label>
           <select className="input" value={villageId} onChange={(e) => setVillageId(e.target.value)} required>
             <option value="">Select location</option>
             {villages.map((v) => (
@@ -258,42 +260,42 @@ export default function EditCustomerPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Age</label>
+            <label className="label">{t('customers.age')}</label>
             <input type="number" className="input" value={age} onChange={(e) => setAge(e.target.value)} min={18} max={100} />
           </div>
           <div>
-            <label className="label">Alt Phone</label>
+            <label className="label">{t('customers.alt_phone')}</label>
             <input className="input" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} />
           </div>
         </div>
 
         <div>
-          <label className="label">Address</label>
+          <label className="label">{t('customers.address')}</label>
           <textarea className="input" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Guarantor Name</label>
+            <label className="label">{t('customers.guarantor')}</label>
             <input className="input" value={guarantorName} onChange={(e) => setGuarantorName(e.target.value)} />
           </div>
           <div>
-            <label className="label">Guarantor Phone</label>
+            <label className="label">{t('customers.guarantor_phone')}</label>
             <input className="input" value={guarantorPhone} onChange={(e) => setGuarantorPhone(e.target.value)} />
           </div>
         </div>
 
         <div>
-          <label className="label">Notes</label>
+          <label className="label">{t('customers.notes')}</label>
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary flex-1">
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? t('common.loading') : t('common.save')}
           </button>
           <Link href={`/b/${businessId}/customers/${customerId}`} className="btn-secondary flex-1 text-center">
-            Cancel
+            {t('common.cancel')}
           </Link>
         </div>
       </form>

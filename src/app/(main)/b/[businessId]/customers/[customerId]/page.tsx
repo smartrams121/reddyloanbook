@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
 import { formatDateDisplay } from '@/lib/date'
+import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Agent { id: string; fullName: string }
@@ -57,6 +58,7 @@ const borderColors: Record<string, string> = {
 }
 
 export default function CustomerDetailPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const router = useRouter()
   const businessId = params.businessId as string
@@ -144,7 +146,7 @@ export default function CustomerDetailPage() {
     <div className="px-4 py-6 max-w-2xl mx-auto">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 mb-4 flex items-center gap-1">
-        <Link href={`/b/${businessId}/customers`} className="text-primary-600 hover:underline">Customers</Link>
+        <Link href={`/b/${businessId}/customers`} className="text-primary-600 hover:underline">{t('customers.customers')}</Link>
         <span>&rsaquo;</span>
         <Link href={`/b/${businessId}/villages/${customer.village.id}`} className="text-primary-600 hover:underline">{customer.village.name}</Link>
         <span>&rsaquo;</span>
@@ -183,20 +185,20 @@ export default function CustomerDetailPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 gap-2 mb-2">
         <div className="card p-3 text-center">
-          <p className="text-xs text-gray-500">Total Loans</p>
+          <p className="text-xs text-gray-500">{t('customers.total_loans')}</p>
           <p className="text-lg font-bold text-gray-900">{s.totalLoans}</p>
           <p className="text-[10px] text-gray-400">{s.activeLoans} active &middot; {s.completedLoans} closed</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-xs text-gray-500">Total Loan Amount</p>
+          <p className="text-xs text-gray-500">{t('customers.total_loan_amount')}</p>
           <p className="text-lg font-bold text-gray-900">{formatPaiseShort(s.totalLent)}</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-xs text-gray-500">Total Paid</p>
+          <p className="text-xs text-gray-500">{t('customers.total_paid')}</p>
           <p className="text-lg font-bold text-success-600">{formatPaiseShort(s.totalPaid)}</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-xs text-gray-500">Outstanding</p>
+          <p className="text-xs text-gray-500">{t('customers.total_outstanding')}</p>
           <p className="text-lg font-bold text-gray-900">{formatPaiseShort(s.totalOutstanding)}</p>
         </div>
       </div>
@@ -227,7 +229,7 @@ export default function CustomerDetailPage() {
 
         {customer.loans.length === 0 && (
           <div className="card p-8 text-center text-gray-400">
-            <p>No loans yet</p>
+            <p>{t('customers.no_loans')}</p>
             {isAdminOrOwner && (
               <Link href={`/b/${businessId}/loans/new?customerId=${customer.id}`} className="btn-primary mt-4 inline-block">Create First Loan</Link>
             )}
@@ -366,6 +368,7 @@ export default function CustomerDetailPage() {
 
 /* ─── Contact Info Section ─── */
 function ContactSection({ customer }: { customer: Customer }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   return (
     <div className="card overflow-hidden">
@@ -380,16 +383,16 @@ function ContactSection({ customer }: { customer: Customer }) {
       </button>
       {open && (
         <div className="px-4 pb-4 space-y-1.5">
-          <InfoRow label="Phone" value={customer.phone} />
-          {customer.altPhone && <InfoRow label="Alt Phone" value={customer.altPhone} />}
-          {customer.age && <InfoRow label="Age" value={String(customer.age)} />}
-          {customer.address && <InfoRow label="Address" value={customer.address} />}
-          {customer.jobType && <InfoRow label="Job" value={customer.jobType} />}
-          {customer.aadhaarLast4 && <InfoRow label="Aadhaar" value={`XXXX XXXX ${customer.aadhaarLast4}`} />}
-          {customer.guarantorName && <InfoRow label="Guarantor" value={customer.guarantorName} />}
-          {customer.guarantorPhone && <InfoRow label="Guarantor Phone" value={customer.guarantorPhone} />}
-          {customer.notes && <InfoRow label="Notes" value={customer.notes} />}
-          <InfoRow label="Created" value={formatDateDisplay(customer.createdAt.slice(0, 10))} />
+          <InfoRow label={t('customers.phone')} value={customer.phone} />
+          {customer.altPhone && <InfoRow label={t('customers.alt_phone')} value={customer.altPhone} />}
+          {customer.age && <InfoRow label={t('customers.age')} value={String(customer.age)} />}
+          {customer.address && <InfoRow label={t('customers.address')} value={customer.address} />}
+          {customer.jobType && <InfoRow label={t('customers.occupation')} value={customer.jobType} />}
+          {customer.aadhaarLast4 && <InfoRow label={t('customers.aadhaar')} value={`XXXX XXXX ${customer.aadhaarLast4}`} />}
+          {customer.guarantorName && <InfoRow label={t('customers.guarantor')} value={customer.guarantorName} />}
+          {customer.guarantorPhone && <InfoRow label={t('customers.guarantor_phone')} value={customer.guarantorPhone} />}
+          {customer.notes && <InfoRow label={t('customers.notes')} value={customer.notes} />}
+          <InfoRow label={t('common.created')} value={formatDateDisplay(customer.createdAt.slice(0, 10))} />
         </div>
       )}
     </div>

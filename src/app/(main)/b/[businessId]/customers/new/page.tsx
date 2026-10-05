@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslation } from '@/lib/i18n'
 
 interface Village {
   id: string
@@ -11,6 +12,7 @@ interface Village {
 const DEFAULT_JOB_TYPES = ['Shop', 'Business', 'Farmer', 'Labour', 'Driver', 'Others']
 
 export default function NewCustomerPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const router = useRouter()
   const businessId = params.businessId as string
@@ -244,7 +246,7 @@ export default function NewCustomerPage() {
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">New Customer</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('customers.new_customer')}</h1>
       <p className="text-sm text-gray-500 mb-6">Register a new customer</p>
 
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit('back') }} className="space-y-4">
@@ -256,7 +258,7 @@ export default function NewCustomerPage() {
         )}
 
         <div>
-          <label className="label">Customer ID *</label>
+          <label className="label">{t('customers.customer_id')} *</label>
           <div className="flex gap-2 items-start">
             <div className="flex-1">
               <input
@@ -280,18 +282,18 @@ export default function NewCustomerPage() {
         </div>
 
         <div>
-          <label className="label">Full Name *</label>
+          <label className="label">{t('customers.full_name')} *</label>
           <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         </div>
 
         <div>
-          <label className="label">Phone</label>
+          <label className="label">{t('customers.phone')}</label>
           <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile" />
         </div>
 
         {/* Village with inline creation */}
         <div>
-          <label className="label">Location *</label>
+          <label className="label">{t('customers.location')} *</label>
           {!showNewVillage ? (
             <div className="flex gap-2">
               <select className="input flex-1" value={villageId} onChange={(e) => setVillageId(e.target.value)} required>
@@ -345,14 +347,14 @@ export default function NewCustomerPage() {
         {/* Additional Details — collapsed by default */}
         <div className="card">
           <button type="button" onClick={() => setAdditionalOpen(!additionalOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional Details</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('customers.additional_details')}</h2>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${additionalOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           {additionalOpen && <div className="px-4 pb-4 space-y-4">
 
           {/* Photo */}
           <div>
-            <label className="label">Photo</label>
+            <label className="label">{t('customers.photo')}</label>
             <div className="flex flex-col items-center gap-3">
               <div className="w-28 h-28 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
                 {photoPreview ? (
@@ -383,17 +385,17 @@ export default function NewCustomerPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Age</label>
+              <label className="label">{t('customers.age')}</label>
               <input type="number" className="input" value={age} onChange={(e) => setAge(e.target.value)} min={18} max={100} />
             </div>
             <div>
-              <label className="label">Alt Phone</label>
+              <label className="label">{t('customers.alt_phone')}</label>
               <input className="input" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <label className="label">Job Type</label>
+            <label className="label">{t('customers.job_type')}</label>
             {!showNewJobType ? (
               <select className="input" value={jobType} onChange={(e) => handleJobTypeChange(e.target.value)}>
                 <option value="">Select job type</option>
@@ -412,28 +414,28 @@ export default function NewCustomerPage() {
           </div>
 
           <div>
-            <label className="label">Address</label>
+            <label className="label">{t('customers.address')}</label>
             <textarea className="input" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
 
           <div>
-            <label className="label">Aadhaar Number</label>
+            <label className="label">{t('customers.aadhaar')}</label>
             <input className="input" value={aadhaar} onChange={(e) => setAadhaar(e.target.value)} placeholder="12 digits (stored securely)" maxLength={12} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Guarantor Name</label>
+              <label className="label">{t('customers.guarantor')}</label>
               <input className="input" value={guarantorName} onChange={(e) => setGuarantorName(e.target.value)} />
             </div>
             <div>
-              <label className="label">Guarantor Phone</label>
+              <label className="label">{t('customers.guarantor_phone')}</label>
               <input className="input" value={guarantorPhone} onChange={(e) => setGuarantorPhone(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <label className="label">Notes</label>
+            <label className="label">{t('customers.notes')}</label>
             <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
@@ -458,7 +460,7 @@ export default function NewCustomerPage() {
             {loading ? 'Creating...' : 'Create & New Loan'}
           </button>
           <button type="button" onClick={() => router.back()} className="btn-secondary w-full">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>

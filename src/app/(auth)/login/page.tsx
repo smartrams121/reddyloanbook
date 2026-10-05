@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { t, locale, setLocale } = useTranslation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -40,6 +42,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-primary-50 to-white px-4">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={() => setLocale(locale === 'en' ? 'te' : 'en')}
+          className="text-xs font-medium px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm transition-colors"
+        >
+          {locale === 'en' ? 'తెలుగు' : 'English'}
+        </button>
+      </div>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-600 mb-4">
@@ -47,8 +57,8 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Daily Finance</h1>
-          <p className="text-gray-500 mt-1 text-sm">Finance Collection Management</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('common.app_name')}</h1>
+          <p className="text-gray-500 mt-1 text-sm">{t('auth.finance_collection_management')}</p>
         </div>
 
         <div className="card p-6">
@@ -60,14 +70,14 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label htmlFor="username" className="label">Username</label>
+              <label htmlFor="username" className="label">{t('auth.username')}</label>
               <input
                 id="username"
                 type="text"
                 className="input"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
+                placeholder={t('auth.username')}
                 autoComplete="username"
                 autoCapitalize="none"
                 required
@@ -75,20 +85,20 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="label">Password</label>
+              <label htmlFor="password" className="label">{t('auth.password')}</label>
               <input
                 id="password"
                 type="password"
                 className="input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
+                placeholder={t('auth.password')}
                 autoComplete="current-password"
                 required
               />
               <div className="mt-1 text-right">
                 <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-700">
-                  Forgot Password?
+                  {t('auth.forgot_password')}
                 </Link>
               </div>
             </div>
@@ -98,14 +108,14 @@ export default function LoginPage() {
               disabled={loading}
               className="btn-primary w-full btn-lg"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('auth.submitting') : t('auth.sign_in')}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-4">
-            Don&apos;t have a business account?{' '}
+            {t('auth.dont_have_account')}{' '}
             <Link href="/register" className="text-primary-600 font-medium">
-              Sign up
+              {t('auth.sign_up')}
             </Link>
           </p>
         </div>

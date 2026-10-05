@@ -2,8 +2,10 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 export default function RegisterPage() {
+  const { t, locale, setLocale } = useTranslation()
   const [step, setStep] = useState<'form' | 'success'>('form')
 
   const [businessName, setBusinessName] = useState('')
@@ -64,17 +66,17 @@ export default function RegisterPage() {
     setError('')
 
     if (usernameStatus === 'taken') {
-      setError('Username is already taken')
+      setError(t('register.username_taken'))
       return
     }
 
     if (!passwordStrong) {
-      setError('Password does not meet all requirements')
+      setError(t('auth.password_rules'))
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('auth.passwords_not_match'))
       return
     }
 
@@ -130,13 +132,12 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Registration Submitted</h1>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">{t('register.success_title')}</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Your registration request has been submitted successfully. The platform admin will review
-            your request and approve your account. You will be able to log in once approved.
+            {t('register.success_message')}
           </p>
           <Link href="/login" className="btn-primary inline-block px-8">
-            Back to Login
+            {t('register.back_to_login')}
           </Link>
         </div>
       </div>
@@ -144,7 +145,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-primary-50 to-white px-4 py-8">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-primary-50 to-white px-4 py-8 relative">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={() => setLocale(locale === 'en' ? 'te' : 'en')}
+          className="text-xs font-medium px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm transition-colors"
+        >
+          {locale === 'en' ? 'తెలుగు' : 'English'}
+        </button>
+      </div>
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-600 mb-3">
@@ -152,7 +161,7 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Register Your Business</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('register.page_title')}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -162,99 +171,99 @@ export default function RegisterPage() {
 
           {/* Business Details */}
           <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Business Details</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('register.step1_title')}</h2>
 
             <div>
-              <label className="label">Organization Name *</label>
-              <input className="input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Srinivasa Finance" required />
+              <label className="label">{t('register.organization_name')} *</label>
+              <input className="input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder={t('register.organization_name_placeholder')} required />
             </div>
 
             <div>
-              <label className="label">Owner Name *</label>
-              <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Enter your full name" required />
+              <label className="label">{t('register.owner_name')} *</label>
+              <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('register.owner_name_placeholder')} required />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Phone Number *</label>
+                <label className="label">{t('register.phone_number')} *</label>
                 <input
                   className="input"
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="10-digit mobile"
+                  placeholder={t('register.phone_placeholder')}
                   required
                   maxLength={10}
                 />
               </div>
               <div>
-                <label className="label">Email</label>
-                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Optional" />
+                <label className="label">{t('register.email')}</label>
+                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('register.email_placeholder')} />
               </div>
             </div>
           </div>
 
           {/* Login Details */}
           <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Login Details</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('register.step2_title')}</h2>
 
             <div>
-              <label className="label">Username *</label>
+              <label className="label">{t('register.username')} *</label>
               <input
                 className="input"
                 value={username}
                 onChange={(e) => handleUsernameChange(e.target.value)}
-                placeholder="4-20 chars (letters, numbers, . _)"
+                placeholder={t('register.username_placeholder')}
                 required
                 minLength={4}
                 maxLength={20}
                 autoCapitalize="none"
               />
               {usernameStatus === 'checking' && (
-                <p className="text-xs text-gray-400 mt-1">Checking availability...</p>
+                <p className="text-xs text-gray-400 mt-1">{t('register.username_checking')}</p>
               )}
               {usernameStatus === 'available' && (
-                <p className="text-xs text-green-600 mt-1">Username is available</p>
+                <p className="text-xs text-green-600 mt-1">{t('register.username_available')}</p>
               )}
               {usernameStatus === 'taken' && (
-                <p className="text-xs text-danger-600 mt-1">Username is already taken</p>
+                <p className="text-xs text-danger-600 mt-1">{t('register.username_taken')}</p>
               )}
             </div>
 
             <div>
-              <label className="label">Password *</label>
+              <label className="label">{t('register.password')} *</label>
               <input
                 className="input"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 8 characters"
+                placeholder={t('register.password_placeholder')}
                 required
                 autoComplete="new-password"
               />
               {password.length > 0 && (
                 <div className="mt-2 space-y-1">
-                  <PwCheck met={pwChecks.length} label="At least 8 characters" />
-                  <PwCheck met={pwChecks.uppercase} label="One uppercase letter" />
-                  <PwCheck met={pwChecks.number} label="One number" />
-                  <PwCheck met={pwChecks.special} label="One special character" />
+                  <PwCheck met={pwChecks.length} label={t('auth.password_min')} />
+                  <PwCheck met={pwChecks.uppercase} label={t('auth.password_uppercase')} />
+                  <PwCheck met={pwChecks.number} label={t('auth.password_number')} />
+                  <PwCheck met={pwChecks.special} label={t('auth.password_special')} />
                 </div>
               )}
             </div>
 
             <div>
-              <label className="label">Confirm Password *</label>
+              <label className="label">{t('register.confirm_password')} *</label>
               <input
                 className="input"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
+                placeholder={t('register.confirm_password_placeholder')}
                 required
                 autoComplete="new-password"
               />
               {confirmPassword.length > 0 && confirmPassword !== password && (
-                <p className="text-xs text-danger-600 mt-1">Passwords do not match</p>
+                <p className="text-xs text-danger-600 mt-1">{t('auth.passwords_not_match')}</p>
               )}
             </div>
           </div>
@@ -269,7 +278,7 @@ export default function RegisterPage() {
                 className="mt-0.5 rounded border-gray-300 text-primary-600"
               />
               <span className="text-sm text-gray-700">
-                I declare that the information provided is accurate and I agree to the terms of use of this platform. I understand that my account will be reviewed and approved by the platform administrator.
+                {t('register.declaration')}
               </span>
             </label>
           </div>
@@ -277,12 +286,12 @@ export default function RegisterPage() {
           {/* Submit */}
           <div className="space-y-3 pt-2">
             <button type="submit" disabled={loading || usernameStatus === 'taken' || !declaration} className="btn-primary w-full btn-lg">
-              {loading ? 'Submitting...' : 'Submit Registration'}
+              {loading ? t('register.submitting') : t('register.submit')}
             </button>
             <p className="text-center text-sm text-gray-500">
-              Already have an account?{' '}
+              {t('register.already_have_account')}{' '}
               <Link href="/login" className="text-primary-600 font-medium">
-                Sign In
+                {t('register.sign_in')}
               </Link>
             </p>
           </div>

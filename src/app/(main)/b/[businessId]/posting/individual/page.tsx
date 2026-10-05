@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface Agent { id: string; fullName: string; role: string }
 interface CustomerResult {
@@ -40,6 +41,7 @@ type Step = 'search' | 'selectLoan' | 'payment' | 'success'
 
 
 export default function RecordPaymentPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const searchParams = useSearchParams()
   const businessId = params.businessId as string
@@ -352,8 +354,8 @@ export default function RecordPaymentPage() {
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Record Payment</h1>
-      <p className="text-sm text-gray-500 mb-6">Search a customer to record their payment</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('payments.record_payment')}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t('payments.search_payment_subtitle')}</p>
 
       {error && (
         <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>
@@ -388,7 +390,7 @@ export default function RecordPaymentPage() {
                 onChange={(e) => setShowCompleted(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-primary-600"
               />
-              <span className="text-xs text-gray-600">Payment Completed</span>
+              <span className="text-xs text-gray-600">{t('payments.payment_completed')}</span>
             </label>
             <span className="text-xs text-gray-400">
               {showCompleted ? `${filteredCustomers.length} paid` : `${filteredCustomers.length} pending`}
@@ -406,12 +408,12 @@ export default function RecordPaymentPage() {
               }}
               className="px-2 py-1 text-xs rounded border border-primary-200 text-primary-600 hover:bg-primary-50"
             >
-              Refresh
+              {t('common.refresh')}
             </button>
           </div>
 
           <div>
-            <label className="label">Search Customer</label>
+            <label className="label">{t('payments.search_customers')}</label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -463,11 +465,11 @@ export default function RecordPaymentPage() {
                   <p className="text-xs text-gray-500">{selectedCustomer.customerId} &middot; {selectedCustomer.phone}</p>
                 </div>
               </div>
-              <button onClick={handleNewPayment} className="text-xs text-gray-500">Change</button>
+              <button onClick={handleNewPayment} className="text-xs text-gray-500">{t('common.change')}</button>
             </div>
           </div>
 
-          <p className="text-sm font-medium text-gray-700">Select a loan to post payment:</p>
+          <p className="text-sm font-medium text-gray-700">{t('payments.select_location')}</p>
 
           <div className="space-y-2">
             {customerLoans.map((loan) => {
@@ -513,7 +515,7 @@ export default function RecordPaymentPage() {
                   <p className="text-xs text-gray-500">{selectedCustomer.customerId}</p>
                 </div>
               </div>
-              <button type="button" onClick={handleNewPayment} className="text-xs text-gray-500">Change</button>
+              <button type="button" onClick={handleNewPayment} className="text-xs text-gray-500">{t('common.change')}</button>
             </div>
             <div className="border-t border-gray-200 pt-2 flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
@@ -526,7 +528,7 @@ export default function RecordPaymentPage() {
                 </span>
               </div>
               {customerLoans.length > 1 && (
-                <button type="button" onClick={() => setStep('selectLoan')} className="text-xs text-primary-600">Change Loan</button>
+                <button type="button" onClick={() => setStep('selectLoan')} className="text-xs text-primary-600">{t('common.change')}</button>
               )}
             </div>
           </div>
@@ -539,7 +541,7 @@ export default function RecordPaymentPage() {
             return (
               <div className="card">
                 <button type="button" onClick={() => setLoanSummaryOpen(!loanSummaryOpen)} className="w-full p-4 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Loan Summary</h2>
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('loans.loan_summary')}</h2>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-gray-700">Outstanding: {formatPaiseShort(outstanding)}</span>
                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${loanSummaryOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -548,15 +550,15 @@ export default function RecordPaymentPage() {
                 {loanSummaryOpen && <div className="px-4 pb-4 space-y-3">
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Total Repayable</span>
+                      <span className="text-gray-500">{t('loans.total_repayable')}</span>
                       <span className="font-semibold text-gray-900">{formatPaiseShort(selectedLoan.totalRepayable)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Already Paid</span>
+                      <span className="text-gray-500">{t('loans.total_paid')}</span>
                       <span className="text-success-600 font-semibold">{formatPaiseShort(paid)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500 font-semibold">Outstanding</span>
+                      <span className="text-gray-500 font-semibold">{t('loans.outstanding')}</span>
                       <span className="font-bold text-gray-900">{formatPaiseShort(outstanding)}</span>
                     </div>
                   </div>
@@ -577,7 +579,7 @@ export default function RecordPaymentPage() {
 
                   {/* Agent Name */}
                   <div className="pt-2">
-                    <label className="label">Agent Name</label>
+                    <label className="label">{t('payments.agent_name')}</label>
                     {agents.length > 0 ? (
                       <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
                         <option value="">Myself (logged-in employee)</option>
@@ -594,10 +596,10 @@ export default function RecordPaymentPage() {
 
           {/* Payment */}
           <div className="card p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Payment</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('payments.payments')}</h2>
 
             <div>
-              <label className="label">Posting Date *</label>
+              <label className="label">{t('payments.posting_date')} *</label>
               <input
                 type="date"
                 className="input text-xs py-1.5"
@@ -613,7 +615,7 @@ export default function RecordPaymentPage() {
             </div>
 
             <div>
-              <label className="label">Amount (₹) *</label>
+              <label className="label">{t('payments.amount_rs')} *</label>
               <input
                 type="number"
                 className="input text-2xl font-bold text-center"
@@ -658,7 +660,7 @@ export default function RecordPaymentPage() {
             })()}
 
             <div>
-              <label className="label">Payment Mode</label>
+              <label className="label">{t('payments.payment_mode')}</label>
               <div className="flex gap-2">
                 {['Cash', 'UPI'].map((mode) => (
                   <button
@@ -680,7 +682,7 @@ export default function RecordPaymentPage() {
 
           <div className="flex gap-2">
             <button type="submit" disabled={posting} className="btn-primary flex-1 text-sm font-medium rounded-lg px-3 py-2.5">
-              {posting ? '...' : existingPaymentId ? 'Update' : 'Post'}
+              {posting ? '...' : existingPaymentId ? t('common.update') : t('payments.post')}
             </button>
             <button
               type="button"
@@ -688,7 +690,7 @@ export default function RecordPaymentPage() {
               onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, 'next')}
               className="flex-1 text-sm font-medium rounded-lg px-3 py-2.5 bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
             >
-              {posting ? '...' : 'Post & New'}
+              {posting ? '...' : t('payments.post_and_new')}
             </button>
             <button
               type="button"
@@ -696,7 +698,7 @@ export default function RecordPaymentPage() {
               onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, 'nextDay')}
               className="flex-1 text-sm font-medium rounded-lg px-3 py-2.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
             >
-              {posting ? '...' : 'Post & Next Day'}
+              {posting ? '...' : t('payments.post_and_next_day')}
             </button>
           </div>
         </form>
@@ -711,7 +713,7 @@ export default function RecordPaymentPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Payment Recorded</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('payments.payment_recorded')}</h2>
             <p className="text-3xl font-bold text-success-600 mb-2">{formatPaiseShort(receipt.amount)}</p>
             <div className="space-y-1 text-sm text-gray-500">
               <p>Receipt: <span className="font-mono font-semibold text-gray-700">{receipt.receiptNumber}</span></p>
@@ -725,10 +727,10 @@ export default function RecordPaymentPage() {
 
           <div className="flex gap-3">
             <button onClick={handleNewPayment} className="btn-primary flex-1">
-              Record Another Payment
+              {t('payments.record_another_payment')}
             </button>
             <Link href={`/b/${businessId}/posting/view`} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-teal-200 text-teal-600 hover:bg-teal-50 transition-colors text-center">
-              View Payments
+              {t('payments.view_payments')}
             </Link>
           </div>
         </div>

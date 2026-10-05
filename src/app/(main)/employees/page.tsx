@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/lib/i18n'
 
 interface Employee {
   id: string
@@ -14,6 +15,7 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
@@ -147,11 +149,11 @@ export default function EmployeesPage() {
     <div className="px-4 py-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Employees</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('common.employees')}</h1>
           <p className="text-sm text-gray-500">{employees.length} employees across all businesses</p>
         </div>
         <button onClick={() => setShowCreate(!showCreate)} className="btn-primary text-sm">
-          + New Employee
+          + {t('common.new_employee')}
         </button>
       </div>
 
@@ -161,29 +163,29 @@ export default function EmployeesPage() {
       {/* Create Form */}
       {showCreate && (
         <div className="card p-4 space-y-4 mb-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Create Employee</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('common.create_employee')}</h2>
           <form onSubmit={handleCreate} className="space-y-3">
             <div>
-              <label className="label">Full Name *</label>
+              <label className="label">{t('profile.full_name')} *</label>
               <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Username *</label>
+                <label className="label">{t('auth.username')} *</label>
                 <input className="input" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} required />
               </div>
               <div>
-                <label className="label">Password *</label>
+                <label className="label">{t('auth.password')} *</label>
                 <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={4} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Phone</label>
+                <label className="label">{t('common.phone')}</label>
                 <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
               </div>
               <div>
-                <label className="label">Role *</label>
+                <label className="label">{t('common.role')} *</label>
                 <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
                   <option value="AGENT">Agent</option>
                   <option value="BUSINESS_ADMIN">Business Admin</option>
@@ -192,10 +194,10 @@ export default function EmployeesPage() {
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={creating} className="btn-primary text-sm flex-1">
-                {creating ? 'Creating...' : 'Create'}
+                {creating ? t('common.creating') : t('common.create')}
               </button>
               <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary text-sm flex-1">
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -205,7 +207,7 @@ export default function EmployeesPage() {
       {/* Employee List */}
       {employees.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-400 text-sm">No employees yet. Create one to get started.</p>
+          <p className="text-gray-400 text-sm">{t('common.no_employees_yet')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -215,16 +217,16 @@ export default function EmployeesPage() {
               {editingId === emp.id ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="label text-xs">Full Name</label>
+                    <label className="label text-xs">{t('profile.full_name')}</label>
                     <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="label text-xs">Phone</label>
+                      <label className="label text-xs">{t('common.phone')}</label>
                       <input className="input" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
                     </div>
                     <div>
-                      <label className="label text-xs">Role</label>
+                      <label className="label text-xs">{t('common.role')}</label>
                       <select className="input" value={editRole} onChange={(e) => setEditRole(e.target.value)}>
                         <option value="AGENT">Agent</option>
                         <option value="BUSINESS_ADMIN">Business Admin</option>
@@ -233,9 +235,9 @@ export default function EmployeesPage() {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={handleSaveEdit} disabled={saving} className="btn-primary text-xs flex-1">
-                      {saving ? 'Saving...' : 'Save'}
+                      {saving ? t('common.saving') : t('common.save')}
                     </button>
-                    <button onClick={() => setEditingId(null)} className="btn-secondary text-xs flex-1">Cancel</button>
+                    <button onClick={() => setEditingId(null)} className="btn-secondary text-xs flex-1">{t('common.cancel')}</button>
                   </div>
                 </div>
               ) : (
@@ -249,17 +251,17 @@ export default function EmployeesPage() {
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                         emp.role === 'AGENT' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                       }`}>
-                        {emp.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'}
+                        {emp.role === 'BUSINESS_ADMIN' ? t('profile.role_admin') : t('profile.role_agent')}
                       </span>
                       {!emp.isActive && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">Suspended</span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">{t('common.suspended')}</span>
                       )}
                     </div>
                     <p className="text-xs text-gray-500">@{emp.username}{emp.phone ? ` · ${emp.phone}` : ''}</p>
                     {emp.businesses.length > 0 ? (
                       <p className="text-[10px] text-gray-400 mt-0.5">{emp.businesses.join(', ')}</p>
                     ) : (
-                      <p className="text-[10px] text-amber-500 mt-0.5">Not assigned to any business</p>
+                      <p className="text-[10px] text-amber-500 mt-0.5">{t('common.not_assigned_to_business')}</p>
                     )}
                   </div>
 
@@ -279,16 +281,16 @@ export default function EmployeesPage() {
                     {actionMenu === emp.id && (
                       <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 w-44 py-1">
                         <button onClick={() => startEdit(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Edit
+                          {t('common.edit')}
                         </button>
                         <button onClick={() => handleResetPassword(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Reset Password
+                          {t('common.reset_password')}
                         </button>
                         <button onClick={() => handleToggleSuspend(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          {emp.isActive ? 'Suspend' : 'Activate'}
+                          {emp.isActive ? t('common.suspend') : t('common.activate')}
                         </button>
                         <button onClick={() => handleDelete(emp)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                          Delete
+                          {t('common.delete')}
                         </button>
                       </div>
                     )}

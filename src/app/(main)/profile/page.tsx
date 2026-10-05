@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation, Locale } from '@/lib/i18n'
 
 interface BusinessInfo {
   id: string
@@ -26,6 +27,7 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
@@ -185,7 +187,7 @@ export default function ProfilePage() {
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
+      <h1 className="text-xl font-bold text-gray-900">{t('profile.my_profile')}</h1>
 
       {/* Profile Info Card */}
       <div className="card p-4">
@@ -206,14 +208,14 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">{t('profile.phone')}</p>
                 <p className="text-sm text-gray-900">{profile.phone || 'Not set'}</p>
               </div>
               <button
                 onClick={() => setEditingProfile(true)}
                 className="text-sm text-primary-600 font-medium"
               >
-                Edit
+                {t('common.edit')}
               </button>
             </div>
             {profileMsg.text && (
@@ -230,29 +232,32 @@ export default function ProfilePage() {
               </div>
             )}
             <div>
-              <label className="label">Full Name</label>
+              <label className="label">{t('profile.full_name')}</label>
               <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} required />
             </div>
             <div>
-              <label className="label">Phone</label>
+              <label className="label">{t('profile.phone')}</label>
               <input className="input" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="e.g. 9876543210" />
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={profileSaving} className="btn-primary flex-1">
-                {profileSaving ? 'Saving...' : 'Save'}
+                {profileSaving ? t('common.saving') : t('common.save')}
               </button>
               <button type="button" onClick={() => { setEditingProfile(false); setEditName(profile.fullName); setEditPhone(profile.phone || '') }} className="btn-secondary flex-1">
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
         )}
       </div>
 
+      {/* Language */}
+      <LanguageSection />
+
       {/* Change Password */}
       <div className="card">
         <button type="button" onClick={() => setPwOpen(!pwOpen)} className="w-full p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('auth.change_password')}</h2>
           <svg className={`w-4 h-4 text-gray-400 transition-transform ${pwOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </button>
         {pwOpen && <form onSubmit={handleChangePassword} className="px-4 pb-4 space-y-3">
@@ -262,19 +267,19 @@ export default function ProfilePage() {
             </div>
           )}
           <div>
-            <label className="label">Current Password</label>
+            <label className="label">{t('auth.current_password')}</label>
             <input type="password" className="input" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
           </div>
           <div>
-            <label className="label">New Password</label>
+            <label className="label">{t('auth.new_password')}</label>
             <input type="password" className="input" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 4 characters" required />
           </div>
           <div>
-            <label className="label">Confirm New Password</label>
+            <label className="label">{t('auth.confirm_new_password')}</label>
             <input type="password" className="input" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
           </div>
           <button type="submit" disabled={pwLoading} className="btn-primary w-full">
-            {pwLoading ? 'Changing...' : 'Change Password'}
+            {pwLoading ? t('auth.changing') : t('auth.change_password')}
           </button>
         </form>}
       </div>
@@ -283,7 +288,7 @@ export default function ProfilePage() {
       {isOwner && (
         <div className="card">
           <button type="button" onClick={() => setCollectionsOpen(!collectionsOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">My Collections</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('profile.my_collections')}</h2>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${collectionsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           {collectionsOpen && <div className="px-4 pb-4 space-y-3">
@@ -297,23 +302,23 @@ export default function ProfilePage() {
                       </div>
                     )}
                     <div>
-                      <label className="label">Collection Name</label>
+                      <label className="label">{t('common.collection_name')}</label>
                       <input className="input" value={bizName} onChange={(e) => setBizName(e.target.value)} required />
                     </div>
                     <div>
-                      <label className="label">City</label>
+                      <label className="label">{t('common.city')}</label>
                       <input className="input" value={bizCity} onChange={(e) => setBizCity(e.target.value)} required />
                     </div>
                     <div>
-                      <label className="label">Phone</label>
+                      <label className="label">{t('common.phone')}</label>
                       <input className="input" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="Optional" />
                     </div>
                     <div className="flex gap-2">
                       <button type="submit" disabled={bizSaving} className="btn-primary flex-1 text-sm">
-                        {bizSaving ? 'Saving...' : 'Save'}
+                        {bizSaving ? t('common.saving') : t('common.save')}
                       </button>
                       <button type="button" onClick={() => setEditingBiz(null)} className="btn-secondary flex-1 text-sm">
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </form>
@@ -325,7 +330,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => startEditBiz(biz)} className="text-xs text-primary-600 font-medium px-2 py-1 hover:bg-primary-50 rounded">
-                        Edit
+                        {t('common.edit')}
                       </button>
                       {archiveConfirm === biz.id ? (
                         <div className="flex items-center gap-1">
@@ -338,7 +343,7 @@ export default function ProfilePage() {
                         </div>
                       ) : (
                         <button onClick={() => setArchiveConfirm(biz.id)} className="text-xs text-danger-600 font-medium px-2 py-1 hover:bg-danger-50 rounded">
-                          Archive
+                          {t('profile.archive')}
                         </button>
                       )}
                     </div>
@@ -348,19 +353,19 @@ export default function ProfilePage() {
             ))}
 
             {profile.businesses.filter(b => b.isActive).length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-2">No active businesses</p>
+              <p className="text-sm text-gray-500 text-center py-2">{t('common.no_active_businesses')}</p>
             )}
 
             {profile.businesses.filter(b => !b.isActive).length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-100">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Archived</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{t('common.archived')}</p>
                 {profile.businesses.filter(b => !b.isActive).map((biz) => (
                   <div key={biz.id} className="flex items-center justify-between py-1.5">
                     <div>
                       <p className="text-sm text-gray-400">{biz.name}</p>
                       <p className="text-xs text-gray-300">{biz.city}</p>
                     </div>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Archived</span>
+                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{t('common.archived')}</span>
                   </div>
                 ))}
               </div>
@@ -369,5 +374,51 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+  )
+}
+
+function LanguageSection() {
+  const { locale, setLocale, t } = useTranslation()
+  const [toast, setToast] = useState('')
+
+  function handleChange(newLocale: Locale) {
+    setLocale(newLocale)
+    setToast(newLocale === 'te' ? 'భాష మార్చబడింది' : 'Language updated')
+    setTimeout(() => setToast(''), 3000)
+  }
+
+  return (
+    <>
+      <div className="card p-4">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('profile.language')}</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleChange('en')}
+            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+              locale === 'en'
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {locale === 'en' && '✓ '}English
+          </button>
+          <button
+            onClick={() => handleChange('te')}
+            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+              locale === 'te'
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {locale === 'te' && '✓ '}తెలుగు
+          </button>
+        </div>
+      </div>
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50">
+          {toast}
+        </div>
+      )}
+    </>
   )
 }

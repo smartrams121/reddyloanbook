@@ -7,6 +7,7 @@ import { todayIST } from '@/lib/date'
 import { deriveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 import BusinessActions from './BusinessActions'
+import { T } from '@/lib/i18n'
 
 export default async function DashboardPage() {
   const user = await getSession()
@@ -109,25 +110,25 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="stat-card">
           <div className="stat-value">{grandTotals.todayNewLoans}</div>
-          <div className="stat-label">New Loans</div>
+          <div className="stat-label"><T k="dashboard.new_loans" /></div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{formatPaiseShort(grandTotals.todayDisbursed)}</div>
-          <div className="stat-label">Disbursed</div>
+          <div className="stat-label"><T k="dashboard.disbursed" /></div>
         </div>
         <div className="stat-card">
           <div className="stat-value text-success-600">
             {formatPaiseShort(grandTotals.todayCollection)}
           </div>
-          <div className="stat-label">Collection</div>
+          <div className="stat-label"><T k="dashboard.collection" /></div>
         </div>
       </div>
 
       {/* Business List */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-900">My Collections</h2>
+        <h2 className="text-lg font-semibold text-gray-900"><T k="dashboard.my_collections" /></h2>
         <Link href="/businesses/new" className="text-xs font-medium px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors">
-          + New Collection
+          + <T k="dashboard.new_collection" />
         </Link>
       </div>
       <div className="space-y-2">
@@ -153,7 +154,7 @@ export default async function DashboardPage() {
           <div className="card p-8 text-center">
             <p className="text-gray-500 mb-4">No businesses registered yet.</p>
             <Link href="/businesses/new" className="btn-primary">
-              Register Your First Collection
+              <T k="dashboard.register_first_collection" />
             </Link>
           </div>
         )}

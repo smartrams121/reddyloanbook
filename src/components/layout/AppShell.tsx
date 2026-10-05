@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { AuthUser } from '@/lib/auth'
 import { Role } from '@/lib/constants'
+import { useTranslation } from '@/lib/i18n'
 
 interface AppShellProps {
   user: AuthUser
@@ -20,6 +21,7 @@ interface BusinessInfo {
 export default function AppShell({ user, children }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [businesses, setBusinesses] = useState<BusinessInfo[]>([])
@@ -102,7 +104,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
                 <span className="text-white text-sm font-bold">₹</span>
               </div>
-              <span className="font-semibold text-gray-900 hidden sm:block">{user.organizationName || 'Daily Finance'}</span>
+              <span className="font-semibold text-gray-900 hidden sm:block">{user.organizationName || t('common.app_name')}</span>
             </Link>
           </div>
 
@@ -115,42 +117,42 @@ export default function AppShell({ user, children }: AppShellProps) {
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Dashboard</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('dashboard.collection')}</span>
                 </Link>
                 {/* 2. Customers (mobile + desktop) */}
                 <Link href={`/b/${activeBusinessId}/customers`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title="Customers">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Customers</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('customers.customers')}</span>
                 </Link>
                 {/* 3. Loans (mobile + desktop) */}
                 <Link href={`/b/${activeBusinessId}/loans`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Loans">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Loans</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('loans.loans')}</span>
                 </Link>
                 {/* 4. Payments (mobile + desktop) */}
                 <Link href={`/b/${activeBusinessId}/posting/view`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="View Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Payments</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('payments.payments')}</span>
                 </Link>
                 {/* 5. New Payment (desktop only) */}
                 <Link href={`/b/${activeBusinessId}/posting/individual`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors" title="New Payment">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">New Payment</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('payments.new_payment')}</span>
                 </Link>
                 {/* 6. Bulk Payments (desktop only) */}
                 <Link href={`/b/${activeBusinessId}/posting/bulk`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title="Bulk Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.243 1.007-2.25 2.25-2.25" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Bulk Payments</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('payments.bulk_payments')}</span>
                 </Link>
                 {/* 7. Locations (desktop only) */}
                 <Link href={`/b/${activeBusinessId}/villages`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-cyan-600 hover:bg-cyan-50 transition-colors" title="Locations">
@@ -158,7 +160,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Locations</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('customers.location')}</span>
                 </Link>
                 {/* 8. Employees (desktop only, owner/admin) */}
                 {isOwnerOrAdmin && (
@@ -166,7 +168,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Employees</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('dashboard.employees')}</span>
                 </Link>
                 )}
                 {/* 9. Reports (desktop only) */}
@@ -174,7 +176,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                  <span className="text-[10px] leading-tight font-medium">Reports</span>
+                  <span className="text-[10px] leading-tight font-medium">{t('reports.reports')}</span>
                 </Link>
               </div>
             )}
@@ -186,7 +188,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 value={activeBusinessId || ''}
                 onChange={(e) => handleBusinessSwitch(e.target.value)}
               >
-                <option value="">Select Collection</option>
+                <option value="">{t('dashboard.select_collection')}</option>
                 {businesses.map((biz) => (
                   <option key={biz.id} value={biz.id}>
                     {biz.name}
@@ -212,37 +214,40 @@ export default function AppShell({ user, children }: AppShellProps) {
           <div className="absolute right-4 top-14 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
             <div className="px-4 py-2 border-b border-gray-100">
               <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
-              <p className="text-xs text-gray-500">{user.role.replace(/_/g, ' ')}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-500">{user.role.replace(/_/g, ' ')}</p>
+                {user.role !== Role.PLATFORM_ADMIN && <LanguageToggle />}
+              </div>
             </div>
             <Link
               href="/profile"
               onClick={() => setMenuOpen(false)}
               className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
-              Profile & Settings
+              {t('profile.profile_settings')}
             </Link>
             <div className="border-t border-gray-100 my-1" />
-            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Help</p>
+            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('profile.faq')}</p>
             <Link
               href="/contact-us"
               onClick={() => setMenuOpen(false)}
               className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
-              Contact Us
+              {t('profile.contact_us')}
             </Link>
             <Link
               href="/faq"
               onClick={() => setMenuOpen(false)}
               className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
-              FAQ
+              {t('profile.faq')}
             </Link>
             <div className="border-t border-gray-100 my-1" />
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-gray-50"
             >
-              Sign Out
+              {t('auth.logout')}
             </button>
           </div>
         )}
@@ -276,25 +281,25 @@ export default function AppShell({ user, children }: AppShellProps) {
                   )}
                 </div>
               </div>
-              <Link href="/profile" onClick={() => setNavOpen(false)} className="text-xs text-primary-600 font-medium hover:underline">My Profile</Link>
+              <Link href="/profile" onClick={() => setNavOpen(false)} className="text-xs text-primary-600 font-medium hover:underline">{t('profile.my_profile')}</Link>
             </div>
 
             <div className="py-2">
               {/* Business-scoped links — only when a business is selected */}
               {activeBusinessId && (
-                <NavSection title="Business Objects">
-                  <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={isOwnerOrAdmin ? 'Add Locations' : 'Locations'} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
+                <NavSection title={t('dashboard.collection')}>
+                  <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={t('customers.location')} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
                   {isOwnerOrAdmin && (
                     <>
-                      <NavLink href={`/b/${activeBusinessId}/customers/new`} icon="➕" label="New Customer" active={pathname === `/b/${activeBusinessId}/customers/new`} />
-                      <NavLink href={`/b/${activeBusinessId}/loans/new`} icon="📝" label="New Loan" active={pathname === `/b/${activeBusinessId}/loans/new`} />
+                      <NavLink href={`/b/${activeBusinessId}/customers/new`} icon="➕" label={t('customers.new_customer')} active={pathname === `/b/${activeBusinessId}/customers/new`} />
+                      <NavLink href={`/b/${activeBusinessId}/loans/new`} icon="📝" label={t('loans.new_loan')} active={pathname === `/b/${activeBusinessId}/loans/new`} />
                     </>
                   )}
-                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label="New Payments" active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
+                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label={t('payments.new_payment')} active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
                   {isOwnerOrAdmin && (
                     <>
-                      <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label="Reports" active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
-                      <NavLink href={`/b/${activeBusinessId}/employees`} icon="👥" label="Employees" active={pathname.startsWith(`/b/${activeBusinessId}/employees`)} />
+                      <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label={t('reports.reports')} active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
+                      <NavLink href={`/b/${activeBusinessId}/employees`} icon="👥" label={t('dashboard.employees')} active={pathname.startsWith(`/b/${activeBusinessId}/employees`)} />
                     </>
                   )}
                 </NavSection>
@@ -302,13 +307,13 @@ export default function AppShell({ user, children }: AppShellProps) {
 
               {/* Owner-level links */}
               {user.role === Role.OWNER && (
-                <NavSection title="Owner Objects">
-                  <NavLink href="/businesses/new" icon="➕" label="Register New Collection" active={pathname === '/businesses/new'} />
-                  <NavLink href="/employees" icon="👤" label="Manage Employees" active={pathname.startsWith('/employees')} />
+                <NavSection title={t('profile.role_owner')}>
+                  <NavLink href="/businesses/new" icon="➕" label={t('dashboard.new_collection')} active={pathname === '/businesses/new'} />
+                  <NavLink href="/employees" icon="👤" label={t('dashboard.employees')} active={pathname.startsWith('/employees')} />
                   {activeBusinessId && (
-                    <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label="Collection Settings" active={pathname === `/b/${activeBusinessId}/settings`} />
+                    <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label={t('settings.collection_settings')} active={pathname === `/b/${activeBusinessId}/settings`} />
                   )}
-                  <NavLink href="/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
+                  <NavLink href="/password-resets" icon="🔑" label={t('auth.change_password')} active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
                 </NavSection>
               )}
 
@@ -331,9 +336,9 @@ export default function AppShell({ user, children }: AppShellProps) {
               )}
 
               {/* Help section */}
-              <NavSection title="Help">
-                <NavLink href="/contact-us" icon="📞" label="Contact Us" active={pathname === '/contact-us'} />
-                <NavLink href="/faq" icon="❓" label="FAQ" active={pathname === '/faq'} />
+              <NavSection title={t('profile.faq')}>
+                <NavLink href="/contact-us" icon="📞" label={t('profile.contact_us')} active={pathname === '/contact-us'} />
+                <NavLink href="/faq" icon="❓" label={t('profile.faq')} active={pathname === '/faq'} />
               </NavSection>
             </div>
 
@@ -344,7 +349,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-danger-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <span className="text-base">🚪</span>
-                <span>Sign Out</span>
+                <span>{t('auth.logout')}</span>
               </button>
             </div>
           </nav>
@@ -471,5 +476,20 @@ function ReportsIcon({ active }: { active: boolean }) {
     <svg className="w-7 h-7" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
     </svg>
+  )
+}
+
+function LanguageToggle() {
+  const { locale, setLocale } = useTranslation()
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        setLocale(locale === 'en' ? 'te' : 'en')
+      }}
+      className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+    >
+      {locale === 'en' ? 'తె' : 'EN'}
+    </button>
   )
 }

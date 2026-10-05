@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
 import { formatDateDisplay } from '@/lib/date'
+import { useTranslation } from '@/lib/i18n'
 
 interface CustomerRow {
   id: string
@@ -71,6 +72,7 @@ interface Props {
 }
 
 function CustomerDetailModal({ customer, businessId, onClose }: { customer: CustomerDetail; businessId: string; onClose: () => void }) {
+  const { t } = useTranslation()
   const s = customer.summary
 
   function handleSharePdf() {
@@ -111,20 +113,20 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
   }
 
   const rows: { label: string; value: string }[] = [
-    { label: 'Customer ID', value: customer.customerId },
-    { label: 'Full Name', value: customer.fullName },
-    ...(customer.age ? [{ label: 'Age', value: String(customer.age) }] : []),
-    { label: 'Phone', value: customer.phone },
-    ...(customer.altPhone ? [{ label: 'Alt Phone', value: customer.altPhone }] : []),
-    { label: 'Location', value: customer.village.name },
-    ...(customer.address ? [{ label: 'Address', value: customer.address }] : []),
-    ...(customer.jobType ? [{ label: 'Occupation', value: customer.jobType }] : []),
-    ...(customer.guarantorName ? [{ label: 'Guarantor', value: customer.guarantorName }] : []),
-    ...(customer.guarantorPhone ? [{ label: 'Guarantor Phone', value: customer.guarantorPhone }] : []),
-    ...(customer.aadhaarLast4 ? [{ label: 'Aadhaar (last 4)', value: `XXXX-XXXX-${customer.aadhaarLast4}` }] : []),
-    ...(customer.notes ? [{ label: 'Notes', value: customer.notes }] : []),
-    { label: 'Status', value: s.customerStatus },
-    { label: 'Created', value: new Date(customer.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
+    { label: t('customers.customer_id'), value: customer.customerId },
+    { label: t('customers.full_name'), value: customer.fullName },
+    ...(customer.age ? [{ label: t('customers.age'), value: String(customer.age) }] : []),
+    { label: t('customers.phone'), value: customer.phone },
+    ...(customer.altPhone ? [{ label: t('customers.alt_phone'), value: customer.altPhone }] : []),
+    { label: t('customers.location'), value: customer.village.name },
+    ...(customer.address ? [{ label: t('customers.address'), value: customer.address }] : []),
+    ...(customer.jobType ? [{ label: t('customers.occupation'), value: customer.jobType }] : []),
+    ...(customer.guarantorName ? [{ label: t('customers.guarantor'), value: customer.guarantorName }] : []),
+    ...(customer.guarantorPhone ? [{ label: t('customers.guarantor_phone'), value: customer.guarantorPhone }] : []),
+    ...(customer.aadhaarLast4 ? [{ label: t('customers.aadhaar_last4'), value: `XXXX-XXXX-${customer.aadhaarLast4}` }] : []),
+    ...(customer.notes ? [{ label: t('customers.notes'), value: customer.notes }] : []),
+    { label: t('customers.status'), value: s.customerStatus },
+    { label: t('common.created'), value: new Date(customer.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
   ]
 
   return (
@@ -135,26 +137,26 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-base font-bold text-gray-900">Customer Details</h2>
+          <h2 className="text-base font-bold text-gray-900">{t('customers.customer_details')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
 
         {/* Summary */}
         <div className="px-4 py-3 bg-gray-50 grid grid-cols-2 gap-2">
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Total Loans</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('customers.total_loans')}</p>
             <p className="text-sm font-bold text-gray-900">{formatPaiseShort(s.totalLent)}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Total Repayable</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('customers.total_loan_amount')}</p>
             <p className="text-sm font-bold text-gray-900">{formatPaiseShort(s.totalRepayable)}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Total Paid</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('customers.total_paid')}</p>
             <p className="text-sm font-bold text-green-700">{formatPaiseShort(s.totalPaid)}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Outstanding</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('customers.total_outstanding')}</p>
             <p className="text-sm font-bold text-red-700">{formatPaiseShort(s.totalOutstanding)}</p>
           </div>
         </div>
@@ -231,6 +233,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
 const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
 export default function CustomerList({ customers, businessId, isAdminOrOwner }: Props) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [processing, setProcessing] = useState(false)
@@ -334,10 +337,10 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
       {/* Customer Table */}
       {customers.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-500 mb-4">No customers found.</p>
+          <p className="text-gray-500 mb-4">{t('customers.no_customers')}</p>
           {isAdminOrOwner && (
             <Link href={`/b/${businessId}/customers/new`} className="btn-primary">
-              Add First Customer
+              {t('customers.add_first_customer')}
             </Link>
           )}
         </div>
@@ -351,11 +354,11 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
                 )}
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customerId')}>CID{sortIcon('customerId')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('fullName')}>Customer{sortIcon('fullName')}</th>
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('phone')}>Phone{sortIcon('phone')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('village')}>Location{sortIcon('village')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customerId')}>{t('customers.cid')}{sortIcon('customerId')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('fullName')}>{t('customers.customer_name')}{sortIcon('fullName')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('phone')}>{t('customers.phone')}{sortIcon('phone')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('village')}>{t('customers.location')}{sortIcon('village')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('status')}>{t('customers.status')}{sortIcon('status')}</th>
                 <th className="py-2 px-2 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loans')}>Loans{sortIcon('loans')}</th>
               </tr>
             </thead>
@@ -476,13 +479,13 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                     disabled={viewLoading}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
                   >
-                    {viewLoading ? '...' : 'View'}
+                    {viewLoading ? '...' : t('common.view')}
                   </button>
                   <button
                     onClick={() => router.push(`/b/${businessId}/customers/${selectedId}/edit`)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                   >
-                    Edit
+                    {t('common.edit')}
                   </button>
                 </>
               )}
@@ -491,7 +494,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                 disabled={processing}
                 className="px-3 py-2 text-xs font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 disabled:opacity-50 transition-colors"
               >
-                {processing ? '...' : 'Delete'}
+                {processing ? '...' : t('common.delete')}
               </button>
             </div>
           </div>

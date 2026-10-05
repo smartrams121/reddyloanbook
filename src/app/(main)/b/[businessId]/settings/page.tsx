@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface BusinessSettings {
   id: string
@@ -30,6 +31,7 @@ interface BusinessSettings {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const businessId = params.businessId as string
@@ -189,9 +191,9 @@ export default function SettingsPage() {
     <div className="px-4 py-6 max-w-md mx-auto">
       <div className="mb-6">
         <Link href={`/b/${businessId}/more`} className="text-sm text-primary-600 hover:underline">
-          ← Back to Menu
+          {t('settings.back_to_menu')}
         </Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-2">Collection Settings</h1>
+        <h1 className="text-xl font-bold text-gray-900 mt-2">{t('settings.collection_settings')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -205,34 +207,34 @@ export default function SettingsPage() {
         {/* Basic Info */}
         <div className="card">
           <button type="button" onClick={() => setBasicInfoOpen(!basicInfoOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Basic Info</h2>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('settings.basic_info')}</h2>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${basicInfoOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           {basicInfoOpen && <div className="px-4 pb-4 space-y-4">
 
           <div>
-            <label className="label">Collection ID</label>
+            <label className="label">{t('settings.collection_id')}</label>
             <input className="input bg-gray-100 text-gray-500 cursor-not-allowed" value={settings.id} disabled readOnly />
-            <p className="text-[10px] text-gray-400 mt-1">System-generated, cannot be changed</p>
+            <p className="text-[10px] text-gray-400 mt-1">{t('settings.system_generated')}</p>
           </div>
           <div>
-            <label className="label">Collection Name</label>
+            <label className="label">{t('settings.collection_name')}</label>
             <input className="input" value={settings.name} onChange={(e) => update('name', e.target.value)} required />
           </div>
           <div>
-            <label className="label">City</label>
+            <label className="label">{t('settings.city')}</label>
             <input className="input" value={settings.city} onChange={(e) => update('city', e.target.value)} required />
           </div>
           <div>
-            <label className="label">Address</label>
+            <label className="label">{t('settings.address')}</label>
             <input className="input" value={settings.address || ''} onChange={(e) => update('address', e.target.value)} />
           </div>
           <div>
-            <label className="label">Phone</label>
+            <label className="label">{t('settings.phone')}</label>
             <input className="input" value={settings.phone || ''} onChange={(e) => update('phone', e.target.value)} />
           </div>
           <div>
-            <label className="label">Receipt Prefix</label>
+            <label className="label">{t('settings.receipt_prefix')}</label>
             <input
               className="input"
               value={settings.receiptPrefix || ''}
@@ -246,17 +248,17 @@ export default function SettingsPage() {
 
         {/* Collection Settings */}
         <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Collection</h2>
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('common.collection')}</h2>
 
           <div>
-            <label className="label">Collection Type</label>
+            <label className="label">{t('settings.collection_type')}</label>
             <input className="input bg-gray-100 text-gray-500 cursor-not-allowed" value={settings.collectionType === 'DAILY' ? 'Daily' : settings.collectionType === 'WEEKLY' ? 'Weekly' : 'Monthly'} disabled readOnly />
             <p className="text-[10px] text-gray-400 mt-1">Set at business creation, cannot be changed</p>
           </div>
 
           {settings.collectionType === 'WEEKLY' && (
             <div>
-              <label className="label">Collection Day</label>
+              <label className="label">{t('settings.collection_day')}</label>
               <select className="input" value={settings.defaultCollectionDay || ''} onChange={(e) => update('defaultCollectionDay', e.target.value || null)}>
                 <option value="">Select day</option>
                 {['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((d) => (
@@ -268,7 +270,7 @@ export default function SettingsPage() {
 
           {settings.collectionType === 'DAILY' && (
             <div>
-              <label className="label">Collection Days</label>
+              <label className="label">{t('settings.collection_days')}</label>
               <div className="flex flex-wrap gap-2">
                 {(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const).map((day) => {
                   const labels: Record<string, string> = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' }
@@ -299,7 +301,7 @@ export default function SettingsPage() {
           )}
 
           <div>
-            <label className="label">Repayment Multiplier</label>
+            <label className="label">{t('settings.repayment_multiplier')}</label>
             <input
               type="number"
               className="input"
@@ -317,7 +319,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="label">Grace Period ({settings.collectionType === 'DAILY' ? 'days' : settings.collectionType === 'WEEKLY' ? 'weeks' : 'months'})</label>
+            <label className="label">{t('settings.grace_period')} ({settings.collectionType === 'DAILY' ? t('common.days').toLowerCase() : settings.collectionType === 'WEEKLY' ? t('common.weeks').toLowerCase() : t('common.months').toLowerCase()})</label>
             <input
               type="number"
               className="input"
@@ -337,13 +339,13 @@ export default function SettingsPage() {
         {/* Other */}
         <div className="card">
           <button type="button" onClick={() => setOtherOpen(!otherOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Other</h2>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('settings.other_settings')}</h2>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${otherOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           {otherOpen && <div className="px-4 pb-4 space-y-4">
 
           <div>
-            <label className="label">WhatsApp Template</label>
+            <label className="label">{t('settings.whatsapp_template')}</label>
             <textarea
               className="input min-h-[80px]"
               value={settings.whatsappTemplate}
@@ -356,7 +358,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="label">Auto Logout (minutes)</label>
+            <label className="label">{t('settings.auto_logout')}</label>
             <input
               type="number"
               className="input"
@@ -372,13 +374,13 @@ export default function SettingsPage() {
         {/* Business Sequence */}
         <div className="card">
           <button type="button" onClick={() => setSeqOpen(!seqOpen)} className="w-full p-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">UID Formatting</h2>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('settings.uid_formatting')}</h2>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${seqOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           {seqOpen && <div className="px-4 pb-4 space-y-6">
             {/* Customer ID Config */}
             {(['customer', 'loan', 'receipt'] as const).map(type => {
-              const labels = { customer: 'Customer ID', loan: 'Loan ID', receipt: 'Receipt ID' }
+              const labels = { customer: t('settings.customer_id'), loan: t('settings.loan_id'), receipt: t('settings.receipt_id') }
               const fmtKey = `${type}IdFormat` as keyof BusinessSettings
               const prefixKey = `${type}IdPrefix` as keyof BusinessSettings
               const padKey = `${type}IdPadding` as keyof BusinessSettings
@@ -390,7 +392,7 @@ export default function SettingsPage() {
                   <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{labels[type]}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="label text-xs">Format</label>
+                      <label className="label text-xs">{t('settings.format')}</label>
                       <select className="input text-xs" value={settings[fmtKey] as string} onChange={(e) => {
                         const oldVal = settings[fmtKey]
                         if (oldVal !== e.target.value && (settings[seqKey] as number) > 0) {
@@ -403,23 +405,23 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="label text-xs">Prefix</label>
+                      <label className="label text-xs">{t('settings.prefix')}</label>
                       <input className="input text-xs" value={settings[prefixKey] as string} onChange={(e) => update(prefixKey, e.target.value)} placeholder="e.g. CUS, VF" />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {settings[fmtKey] === 'STRING' && (
                       <div>
-                        <label className="label text-xs">Padding</label>
+                        <label className="label text-xs">{t('settings.padding')}</label>
                         <input type="number" className="input text-xs" min={1} max={10} value={settings[padKey] as number} onChange={(e) => update(padKey, parseInt(e.target.value) || 4)} />
                       </div>
                     )}
                     <div>
-                      <label className="label text-xs">Start</label>
+                      <label className="label text-xs">{t('settings.start')}</label>
                       <input type="number" className="input text-xs" min={1} value={settings[startKey] as number} onChange={(e) => update(startKey, parseInt(e.target.value) || 1)} />
                     </div>
                     <div>
-                      <label className="label text-xs">Max</label>
+                      <label className="label text-xs">{t('settings.max')}</label>
                       <input type="number" className="input text-xs" min={1} value={settings[maxKey] as number} onChange={(e) => update(maxKey, parseInt(e.target.value) || 100000)} />
                     </div>
                   </div>
@@ -431,12 +433,12 @@ export default function SettingsPage() {
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full btn-lg">
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? t('common.saving') : t('settings.save_settings')}
         </button>
 
         {/* Export Data */}
         <div className="card p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Export Data</h2>
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('common.export_data')}</h2>
           <p className="text-xs text-gray-500">
             Download all business data as an Excel file — includes Locations, Customers, Loans, Payments, and Users across separate sheets.
           </p>
@@ -446,22 +448,22 @@ export default function SettingsPage() {
             disabled={exporting}
             className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
-            {exporting ? 'Preparing Export...' : 'Download Collection Data (.xlsx)'}
+            {exporting ? t('settings.preparing_export') : t('settings.download_collection_data')}
           </button>
         </div>
 
         {/* Danger Zone */}
         <div className="card border-red-200 p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-red-700 uppercase tracking-wide">Danger Zone</h2>
+          <h2 className="text-sm font-semibold text-red-700 uppercase tracking-wide">{t('settings.danger_zone')}</h2>
           <p className="text-xs text-gray-500">
-            Permanently delete this business and all associated data — customers, loans, payments, locations, employees, and reports. This action cannot be undone.
+            {t('settings.danger_zone_warning')}
           </p>
           <button
             type="button"
             onClick={() => { setShowDeleteModal(true); setDeleteConfirmText('') }}
             className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
           >
-            Delete Collection
+            {t('settings.delete_collection')}
           </button>
         </div>
 
@@ -490,7 +492,7 @@ export default function SettingsPage() {
                   onClick={() => { setShowDeleteModal(false); setDeleteConfirmText('') }}
                   className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -498,7 +500,7 @@ export default function SettingsPage() {
                   disabled={deleteConfirmText !== 'DELETE' || deleting}
                   className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  {deleting ? 'Deleting...' : 'Delete'}
+                  {deleting ? t('common.deleting') : t('common.delete')}
                 </button>
               </div>
             </div>

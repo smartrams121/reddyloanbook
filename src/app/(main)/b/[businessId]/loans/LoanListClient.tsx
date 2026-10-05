@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
 import { formatDateDisplay } from '@/lib/date'
+import { useTranslation } from '@/lib/i18n'
 
 interface LoanData {
   id: string
@@ -79,7 +80,23 @@ function statusBadgeClass(status: string): string {
   }
 }
 
+function statusLabel(status: string, t: (key: string) => string): string {
+  const map: Record<string, string> = {
+    ACTIVE: t('loans.status_active'),
+    OVERDUE: t('loans.status_overdue'),
+    COMPLETED: t('loans.status_completed'),
+    DEFAULTER: t('loans.status_defaulter'),
+    PAUSED: t('loans.status_paused'),
+    SETTLED: t('loans.status_settled'),
+    WRITTEN_OFF: t('loans.status_written_off'),
+    RENEWED: t('loans.status_renewed'),
+  }
+  return map[status] || status.replace(/_/g, ' ')
+}
+
 function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; businessId: string; onClose: () => void }) {
+  const { t } = useTranslation()
+
   function handleSharePdf() {
     const a = document.createElement('a')
     a.href = `/api/b/${businessId}/loans/${loan.id}/pdf`
@@ -118,30 +135,30 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
   }
 
   const rows: { label: string; value: string }[] = [
-    { label: 'Loan Number', value: loan.loanNumber },
-    { label: 'Customer', value: `${loan.customer.fullName} (${loan.customer.customerId})` },
-    { label: 'Phone', value: loan.customer.phone },
-    { label: 'Status', value: loan.status },
-    { label: 'Interest Model', value: loan.interestModel === 'UPFRONT' ? 'Upfront' : 'Add-on' },
-    { label: 'Collection Type', value: loan.collectionType },
-    ...(loan.collectionDay ? [{ label: 'Collection Day', value: loan.collectionDay.charAt(0) + loan.collectionDay.slice(1).toLowerCase() }] : []),
-    { label: 'Principal Amount', value: formatPaiseShort(loan.loanAmount) },
-    { label: 'Interest Amount', value: formatPaiseShort(loan.interestAmount) },
-    { label: 'Total Repayable', value: formatPaiseShort(loan.totalRepayable) },
-    { label: 'Amount Given', value: formatPaiseShort(loan.amountGiven) },
-    { label: 'Installment Amount', value: formatPaiseShort(loan.installmentAmount) },
-    { label: 'Number of Installments', value: String(loan.numberOfInstallments) },
-    { label: 'Last Installment', value: formatPaiseShort(loan.lastInstallmentAmount) },
-    { label: 'Start Date', value: formatDateDisplay(loan.startDate) },
-    { label: 'Expected End Date', value: formatDateDisplay(loan.expectedEndDate) },
-    ...(loan.agent ? [{ label: 'Agent', value: loan.agent.fullName }] : []),
-    ...(loan.notes ? [{ label: 'Notes', value: loan.notes }] : []),
-    ...(loan.pausedAt ? [{ label: 'Paused At', value: formatDateDisplay(loan.pausedAt) }] : []),
-    ...(loan.settlementAmount ? [{ label: 'Settlement Amount', value: formatPaiseShort(loan.settlementAmount) }] : []),
-    ...(loan.settlementReason ? [{ label: 'Settlement Reason', value: loan.settlementReason }] : []),
-    ...(loan.writeOffReason ? [{ label: 'Write-off Reason', value: loan.writeOffReason }] : []),
-    ...(loan.closedAt ? [{ label: 'Closed At', value: formatDateDisplay(loan.closedAt) }] : []),
-    { label: 'Created', value: new Date(loan.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
+    { label: t('loans.loan_number'), value: loan.loanNumber },
+    { label: t('customers.customer_name'), value: `${loan.customer.fullName} (${loan.customer.customerId})` },
+    { label: t('common.phone'), value: loan.customer.phone },
+    { label: t('common.status'), value: statusLabel(loan.status, t) },
+    { label: t('loans.interest_model'), value: loan.interestModel === 'UPFRONT' ? t('loans.interest_model_upfront') : t('loans.interest_model_added') },
+    { label: t('loans.collection_type'), value: loan.collectionType },
+    ...(loan.collectionDay ? [{ label: t('loans.collection_day'), value: loan.collectionDay.charAt(0) + loan.collectionDay.slice(1).toLowerCase() }] : []),
+    { label: t('loans.principal_amount'), value: formatPaiseShort(loan.loanAmount) },
+    { label: t('loans.interest_amount'), value: formatPaiseShort(loan.interestAmount) },
+    { label: t('loans.total_repayable'), value: formatPaiseShort(loan.totalRepayable) },
+    { label: t('loans.amount_given'), value: formatPaiseShort(loan.amountGiven) },
+    { label: t('loans.installment'), value: formatPaiseShort(loan.installmentAmount) },
+    { label: t('loans.num_installments'), value: String(loan.numberOfInstallments) },
+    { label: t('loans.last_installment'), value: formatPaiseShort(loan.lastInstallmentAmount) },
+    { label: t('loans.start_date'), value: formatDateDisplay(loan.startDate) },
+    { label: t('loans.end_date'), value: formatDateDisplay(loan.expectedEndDate) },
+    ...(loan.agent ? [{ label: t('loans.agent'), value: loan.agent.fullName }] : []),
+    ...(loan.notes ? [{ label: t('common.notes'), value: loan.notes }] : []),
+    ...(loan.pausedAt ? [{ label: t('common.paused_at'), value: formatDateDisplay(loan.pausedAt) }] : []),
+    ...(loan.settlementAmount ? [{ label: t('loans.settlement_amount'), value: formatPaiseShort(loan.settlementAmount) }] : []),
+    ...(loan.settlementReason ? [{ label: t('loans.settlement_reason'), value: loan.settlementReason }] : []),
+    ...(loan.writeOffReason ? [{ label: t('loans.write_off_reason'), value: loan.writeOffReason }] : []),
+    ...(loan.closedAt ? [{ label: t('common.closed_at'), value: formatDateDisplay(loan.closedAt) }] : []),
+    { label: t('common.created'), value: new Date(loan.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
   ]
 
   return (
@@ -152,7 +169,7 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-base font-bold text-gray-900">Loan Details</h2>
+          <h2 className="text-base font-bold text-gray-900">{t('loans.loan_details')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
         <div className="px-4 py-3 space-y-0">
@@ -166,14 +183,14 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
 
         {loan.schedule && loan.schedule.length > 0 && (
           <div className="px-4 pb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Schedule ({loan.schedule.length} installments)</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('loans.repayment_schedule')} ({loan.schedule.length})</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-gray-500 border-b">
                     <th className="py-1.5 pr-2">#</th>
-                    <th className="py-1.5 pr-2">Due Date</th>
-                    <th className="py-1.5 text-right">Amount</th>
+                    <th className="py-1.5 pr-2">{t('loans.due_date')}</th>
+                    <th className="py-1.5 text-right">{t('common.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -213,6 +230,7 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
 }
 
 function PaymentHistoryModal({ payments, loanNumber, totalRepayable, onClose }: { payments: PaymentRecord[]; loanNumber: string; totalRepayable: number; onClose: () => void }) {
+  const { t } = useTranslation()
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const outstanding = totalRepayable - totalPaid
 
@@ -225,38 +243,38 @@ function PaymentHistoryModal({ payments, loanNumber, totalRepayable, onClose }: 
       >
         <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Payment History</h2>
-            <p className="text-xs text-gray-500">{loanNumber} · {payments.length} payment{payments.length !== 1 ? 's' : ''}</p>
+            <h2 className="text-base font-bold text-gray-900">{t('payments.view_payments')}</h2>
+            <p className="text-xs text-gray-500">{loanNumber} · {payments.length}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
 
         <div className="px-4 py-3 bg-gray-50 grid grid-cols-3 gap-2 text-center">
           <div>
-            <p className="text-[10px] text-gray-500 uppercase">Repayable</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('loans.total_repayable')}</p>
             <p className="text-sm font-bold text-gray-900">{formatPaiseShort(totalRepayable)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 uppercase">Paid</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('payments.paid')}</p>
             <p className="text-sm font-bold text-green-700">{formatPaiseShort(totalPaid)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 uppercase">Outstanding</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('loans.outstanding')}</p>
             <p className="text-sm font-bold text-red-700">{formatPaiseShort(outstanding)}</p>
           </div>
         </div>
 
         {payments.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-400 text-sm">No payments recorded yet.</div>
+          <div className="px-4 py-8 text-center text-gray-400 text-sm">{t('payments.no_payments')}</div>
         ) : (
           <div className="px-4 py-2">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-left text-gray-500 border-b">
-                  <th className="py-2 pr-2">Receipt</th>
-                  <th className="py-2 pr-2">Date</th>
-                  <th className="py-2 pr-2">Collected By</th>
-                  <th className="py-2 text-right">Amount</th>
+                  <th className="py-2 pr-2">{t('common.receipt')}</th>
+                  <th className="py-2 pr-2">{t('common.date')}</th>
+                  <th className="py-2 pr-2">{t('payments.collected_by')}</th>
+                  <th className="py-2 text-right">{t('common.amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,6 +299,7 @@ const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
 export default function LoanListClient({ loans, businessId, isAdminOrOwner = true }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -411,10 +430,10 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
       {/* Loan Table */}
       {loans.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-500 mb-4">No loans found.</p>
+          <p className="text-gray-500 mb-4">{t('loans.no_loans')}</p>
           {isAdminOrOwner && (
             <Link href={`/b/${businessId}/loans/new`} className="btn-primary">
-              Create First Loan
+              {t('loans.new_loan_btn')}
             </Link>
           )}
         </div>
@@ -428,13 +447,13 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
                 )}
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>Loan #{sortIcon('loanNumber')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>Customer{sortIcon('customer')}</th>
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('startDate')}>Date{sortIcon('startDate')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs text-right" onClick={() => toggleSort('lent')}>Loan{sortIcon('lent')}</th>
-                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('due')}>Due{sortIcon('due')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('agent')}>Agent{sortIcon('agent')}</th>
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>Status{sortIcon('status')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>{t('loans.loan_number_short')}{sortIcon('loanNumber')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>{t('customers.customer_name')}{sortIcon('customer')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('startDate')}>{t('common.date')}{sortIcon('startDate')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs text-right" onClick={() => toggleSort('lent')}>{t('loans.loan_short')}{sortIcon('lent')}</th>
+                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('due')}>{t('loans.outstanding')}{sortIcon('due')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('agent')}>{t('loans.agent')}{sortIcon('agent')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>{t('common.status')}{sortIcon('status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -457,7 +476,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     <td className="py-2 px-2 text-[10px] md:text-xs">{loan.agent ? <Link href={`/b/${businessId}/users/${loan.agent.id}`} className="text-primary-600 hover:underline">{loan.agent.fullName}</Link> : '-'}</td>
                     <td className="py-2 px-3">
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadgeClass(loan.status)}`}>
-                        {loan.status.replace(/_/g, ' ')}
+                        {statusLabel(loan.status, t)}
                       </span>
                     </td>
                   </tr>
@@ -476,7 +495,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
               {showAll ? `All ${loans.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, loans.length)} of ${loans.length}`}
             </span>
             <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600">
-              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? 'All' : s}</option>)}
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? t('common.all') : s}</option>)}
             </select>
           </div>
           {totalPages > 1 && <div className="flex gap-1">
@@ -488,7 +507,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                 <button onClick={() => setPage(p)} className={`px-2.5 py-1 text-xs rounded border transition-colors ${p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
               </span>
             ))}
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">{t('common.next')}</button>
             <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Last</button>
           </div>}
         </div>
@@ -499,7 +518,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg px-4 py-3 safe-area-inset-bottom">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-gray-700">
-              {selected.size} loan{selected.size > 1 ? 's' : ''} selected
+              {selected.size} {t('loans.loans')}
             </span>
             <div className="flex gap-2">
               {selected.size === 1 && (
@@ -509,20 +528,20 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                     disabled={viewLoading}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
                   >
-                    {viewLoading ? '...' : 'View'}
+                    {viewLoading ? '...' : t('common.view')}
                   </button>
                   <button
                     onClick={() => openPaymentHistory(selectedLoanId!)}
                     disabled={paymentsLoading}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                   >
-                    {paymentsLoading ? '...' : 'Payments'}
+                    {paymentsLoading ? '...' : t('payments.payments')}
                   </button>
                   <button
                     onClick={() => router.push(`/b/${businessId}/loans/${selectedLoanId}/edit`)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                   >
-                    Edit
+                    {t('common.edit')}
                   </button>
                 </>
               )}
@@ -531,7 +550,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
                 disabled={loading}
                 className="px-3 py-2 text-xs font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 disabled:opacity-50 transition-colors"
               >
-                {loading ? '...' : 'Delete'}
+                {loading ? '...' : t('common.delete')}
               </button>
             </div>
           </div>

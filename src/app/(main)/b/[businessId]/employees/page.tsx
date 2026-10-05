@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Owner {
@@ -15,6 +16,7 @@ interface Employee {
 }
 
 export default function EmployeesAssignmentPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const businessId = params.businessId as string
 
@@ -100,14 +102,14 @@ export default function EmployeesAssignmentPage() {
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Employees</h1>
-      <p className="text-sm text-gray-500 mb-6">Assign employees to this business and their locations</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('common.employees')}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t('settings.assign_employees_desc')}</p>
 
       {employees.length === 0 && (
         <div className="card p-8 text-center">
-          <p className="text-gray-400 text-sm mb-3">No employees found.</p>
+          <p className="text-gray-400 text-sm mb-3">{t('common.no_employees_found')}</p>
           <Link href="/employees" className="text-primary-600 text-sm font-medium hover:underline">
-            Create employees first →
+            {t('common.create_employees_first')} →
           </Link>
         </div>
       )}
@@ -116,7 +118,7 @@ export default function EmployeesAssignmentPage() {
       {(owner || assignedEmployees.length > 0) && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Assigned ({assignedEmployees.length})
+            {t('common.assigned')} ({assignedEmployees.length})
           </h2>
           <div className="space-y-2">
             {/* Owner Row */}
@@ -130,15 +132,15 @@ export default function EmployeesAssignmentPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-gray-900 truncate">{owner.fullName}</p>
                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                        Owner
+                        {t('profile.role_owner')}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      @{owner.username}{owner.phone ? ` · ${owner.phone}` : ''} · All Villages
+                      @{owner.username}{owner.phone ? ` · ${owner.phone}` : ''} · {t('common.all_villages')}
                     </p>
                   </div>
                   <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 shrink-0">
-                    Active
+                    {t('common.active')}
                   </span>
                 </div>
               </div>
@@ -169,7 +171,7 @@ export default function EmployeesAssignmentPage() {
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                         emp.role === 'AGENT' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                       }`}>
-                        {emp.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'}
+                        {emp.role === 'BUSINESS_ADMIN' ? t('profile.role_admin') : t('profile.role_agent')}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500">
@@ -185,7 +187,7 @@ export default function EmployeesAssignmentPage() {
                     className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    View
+                    {t('common.view')}
                   </Link>
 
                   <button
@@ -201,9 +203,9 @@ export default function EmployeesAssignmentPage() {
                 {/* Village assignments */}
                 {expandedUser === emp.id && (
                   <div className="px-4 pb-4 pt-0">
-                    <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Assign Locations</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">{t('common.assign_locations')}</p>
                     {villages.length === 0 ? (
-                      <p className="text-xs text-gray-400">No locations in this business yet.</p>
+                      <p className="text-xs text-gray-400">{t('common.no_locations_yet')}</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {villages.map(v => {
@@ -237,7 +239,7 @@ export default function EmployeesAssignmentPage() {
       {unassignedEmployees.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Available ({unassignedEmployees.length})
+            {t('common.available')} ({unassignedEmployees.length})
           </h2>
           <div className="space-y-2">
             {unassignedEmployees.map(emp => (
@@ -254,7 +256,7 @@ export default function EmployeesAssignmentPage() {
                     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                       emp.role === 'AGENT' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                     }`}>
-                      {emp.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'}
+                      {emp.role === 'BUSINESS_ADMIN' ? t('profile.role_admin') : t('profile.role_agent')}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500">@{emp.username}{emp.phone ? ` · ${emp.phone}` : ''}</p>
@@ -267,7 +269,7 @@ export default function EmployeesAssignmentPage() {
 
       <div className="mt-6 text-center">
         <Link href="/employees" className="text-sm text-primary-600 font-medium hover:underline">
-          + Create New Employee
+          + {t('common.create_employee')}
         </Link>
       </div>
     </div>
