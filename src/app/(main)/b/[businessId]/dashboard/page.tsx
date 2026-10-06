@@ -291,13 +291,6 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
             <div className="text-xs text-gray-500"><T k="dashboard.new_loans" />{newLoanCount > 0 ? ` (${newLoanCount})` : ''}</div>
           </div>
           <div>
-            <div className={`text-lg font-bold ${periodInHand >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
-              {formatPaiseShort(Math.abs(periodInHand))}
-              {periodInHand < 0 && <span className="text-xs font-normal text-danger-500 ml-1"><T k="dashboard.deficit" /></span>}
-            </div>
-            <div className="text-xs text-gray-500"><T k="dashboard.in_hand" /></div>
-          </div>
-          <div>
             <div className="text-lg font-bold text-success-700">{completedLoansCount}</div>
             <div className="text-xs text-gray-500"><T k="dashboard.completed_loans" /></div>
           </div>
