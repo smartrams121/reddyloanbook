@@ -57,7 +57,11 @@ export async function createSession(
   activeBusinessId?: string
 ): Promise<string> {
   const expiresAt = new Date()
-  expiresAt.setHours(expiresAt.getHours() + SESSION_EXPIRY_HOURS)
+  if (role === Role.OWNER) {
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+  } else {
+    expiresAt.setHours(expiresAt.getHours() + SESSION_EXPIRY_HOURS)
+  }
 
   const session = await prisma.session.create({
     data: {
@@ -103,11 +107,13 @@ export async function getSession(): Promise<AuthUser | null> {
   if (new Date() > session.expiresAt) return null
   if (!session.user.isActive) return null
 
-  const autoLogoutMs = 30 * 60 * 1000
-  const inactiveMs = Date.now() - session.lastActivityAt.getTime()
-  if (inactiveMs > autoLogoutMs) {
-    await prisma.session.delete({ where: { id: session.id } })
-    return null
+  if (session.user.role !== 'OWNER') {
+    const autoLogoutMs = 30 * 60 * 1000
+    const inactiveMs = Date.now() - session.lastActivityAt.getTime()
+    if (inactiveMs > autoLogoutMs) {
+      await prisma.session.delete({ where: { id: session.id } })
+      return null
+    }
   }
 
   await prisma.session.update({
