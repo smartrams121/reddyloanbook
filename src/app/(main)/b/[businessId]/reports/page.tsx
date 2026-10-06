@@ -39,10 +39,11 @@ export default function ReportsPage() {
 
   const today = todayISO()
 
-  const [preset, setPreset] = useState<RangePreset>('all')
+  const [preset, setPreset] = useState<RangePreset>('today')
   const [customFrom, setCustomFrom] = useState(today)
   const [customTo, setCustomTo] = useState(today)
-  const [entity, setEntity] = useState<Entity>('payslips')
+  const [entity, setEntity] = useState<Entity>('daily_collection')
+  const [collectionStatusFilter, setCollectionStatusFilter] = useState<'all' | 'paid' | 'unpaid'>('all')
 
   const [payslipDate, setPayslipDate] = useState(today)
   const [userRole, setUserRole] = useState<string>('')
@@ -124,8 +125,13 @@ export default function ReportsPage() {
         return
       }
       setColumns(data.columns)
-      setRows(data.rows)
-      setCount(data.count)
+      let filteredRows = data.rows
+      if (entity === 'daily_collection' && collectionStatusFilter !== 'all') {
+        const target = collectionStatusFilter === 'paid' ? 'Paid' : 'Unpaid'
+        filteredRows = data.rows.filter((r: Record<string, unknown>) => r.paymentStatus === target)
+      }
+      setRows(filteredRows)
+      setCount(filteredRows.length)
       setPage(1)
       setViewed(true)
     } catch {
@@ -140,6 +146,7 @@ export default function ReportsPage() {
     let url = `/api/b/${businessId}/reports/download?entity=${entity}&from=${from}&to=${to}&format=${format}`
     if (entity === 'villages' && villageId) url += `&villageId=${villageId}`
     if (entity === 'loans' && selectedStatuses.size > 0) url += `&statuses=${Array.from(selectedStatuses).join(',')}`
+    if (entity === 'daily_collection' && collectionStatusFilter !== 'all') url += `&paymentStatus=${collectionStatusFilter}`
     return url
   }
 
@@ -306,6 +313,22 @@ export default function ReportsPage() {
             ))}
           </select>
         </div>
+
+        {/* Payment Status filter — shown when entity is Daily Collection Summary */}
+        {entity === 'daily_collection' && (
+          <div>
+            <label className="label">Payment Status</label>
+            <select
+              className="input"
+              value={collectionStatusFilter}
+              onChange={(e) => { setCollectionStatusFilter(e.target.value as 'all' | 'paid' | 'unpaid'); setViewed(false) }}
+            >
+              <option value="all">All</option>
+              <option value="paid">Paid</option>
+              <option value="unpaid">Unpaid</option>
+            </select>
+          </div>
+        )}
 
         {/* Status multi-select — shown when entity is Loans */}
         {entity === 'loans' && (

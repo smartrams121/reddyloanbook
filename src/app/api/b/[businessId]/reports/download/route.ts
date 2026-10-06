@@ -36,6 +36,7 @@ export async function GET(request: Request, { params }: Props) {
 
   const villageId = searchParams.get('villageId')
   const statuses = searchParams.get('statuses')
+  const paymentStatus = searchParams.get('paymentStatus')
 
   const business = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true } })
   const businessName = business?.name || 'Business'
@@ -55,9 +56,14 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json(reportData, { status: reportRes.status })
   }
 
-  const { columns, rows } = reportData as {
+  let { columns, rows } = reportData as {
     columns: { key: string; label: string }[]
     rows: Record<string, unknown>[]
+  }
+
+  if (entity === 'daily_collection' && paymentStatus && paymentStatus !== 'all') {
+    const target = paymentStatus === 'paid' ? 'Paid' : 'Unpaid'
+    rows = rows.filter(r => r.paymentStatus === target)
   }
 
   if (format === 'pdf') {

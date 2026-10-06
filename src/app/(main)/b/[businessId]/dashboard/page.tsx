@@ -183,6 +183,19 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         return !loan || true // new loans don't have village easily, include all if no filter
       })
     : rangeNewLoans
+  // Paid/Unpaid loan counts for the range
+  const paidLoanIds = new Set(rangePaymentsDetail.map(p => p.loan?.customerId ? p.loan.customerId : ''))
+  const rangePaidLoans = rangePaymentsDetail.map(p => p.loan)
+  const paidLoanIdSet = new Set<string>()
+  // Get unique loan IDs that received payments in the range
+  const rangePaymentsByLoan = await prisma.payment.findMany({
+    where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
+    select: { loanId: true },
+    distinct: ['loanId'],
+  })
+  const paidLoanCount = rangePaymentsByLoan.length
+  const unpaidLoanCount = Math.max(0, rangeActiveLoans.length - paidLoanCount)
+
   const newLoanAmount = rangeNewLoans.reduce((sum, l) => sum + l.amountGiven, 0)
   const newLoanCount = rangeNewLoans.length
   const periodInHand = periodCollected - newLoanAmount
@@ -288,6 +301,14 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
             <div className="text-lg font-bold text-success-700">{completedLoansCount}</div>
             <div className="text-xs text-gray-500"><T k="dashboard.completed_loans" /></div>
           </div>
+          <Link href={`/b/${businessId}/posting/view`} className="hover:opacity-80 transition-opacity">
+            <div className="text-lg font-bold text-green-600">{paidLoanCount}</div>
+            <div className="text-xs text-gray-500">Paid</div>
+          </Link>
+          <Link href={`/b/${businessId}/posting/bulk`} className="hover:opacity-80 transition-opacity">
+            <div className="text-lg font-bold text-red-600">{unpaidLoanCount}</div>
+            <div className="text-xs text-gray-500">Unpaid</div>
+          </Link>
         </div>
         {periodExpected > 0 && (
           <div className="mt-3">
