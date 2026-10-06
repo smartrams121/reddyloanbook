@@ -41,12 +41,12 @@ src/
 │   ├── (main)/          Authenticated app pages
 │   │   ├── dashboard/   Owner combined dashboard
 │   │   ├── b/[id]/      Business-scoped pages (customers, loans, villages, posting, users)
-│   │   ├── admin/       Platform admin (owners, registration requests, password resets, settings)
-│   │   ├── faq/         FAQ accordion
+│   │   ├── admin/       Platform admin (organizations, registration requests, password resets, settings)
+│   │   ├── faq/         Help (FAQ accordion)
 │   │   └── profile/     User profile
 │   └── api/             REST API routes (auth, admin, owner, b/[businessId])
-├── lib/                 Core utilities (auth, db, money, date, loan-calc, loan-status, audit, scope, rate-limit, receipt, whatsapp, csv-parse, xlsx-import, schedule, constants)
-├── components/          React components (ui/, layout/, ResetPasswordModal)
+├── lib/                 Core utilities (auth, db, money, date, loan-status, audit, scope, rate-limit, csv-parse, xlsx-import, schedule, constants, i18n)
+├── components/          React components (ui/, layout/)
 └── middleware.ts        Auth + route protection
 prisma/
 ├── schema.prisma        Database schema (SQLite locally, PostgreSQL in prod)
@@ -127,6 +127,26 @@ All use password: `Test@123`
 - **Permissions Update**: Business Admin gained create_business, manage_employee_password_resets.
 - **Report Changes**: Loans report columns updated (-Phone/-Interest/+CID/+Dates), Customers -Age, Payments -Phone.
 - **Loans List**: Due Date column added.
+
+## Recent Features (Session 2026-10-06)
+
+- **Admin Page Redesign**: Owners page → "Organizations" table view (OrgID, Organization, Owner, City, Phone, Email, Collections, Customers, Loans, Payments, Created, Last Login, Status). Search, pagination 10/page, sorted by last login desc. "+ Register New Business" button. Removed Edit Owner, Reset Password actions. Renamed Suspend/Delete Owner → Suspend/Delete Organization. Delete requires typing "DELETE" + force delete checkbox. Removed dead admin/owners/new and admin/owners/[ownerId]/edit pages. Sidebar: "Manage Owners" → "Organizations".
+- **Organization Model**: User.organizationName field. OrgID = Owner's user ID. Profile: Organization Details section (5 editable fields). Header shows organizationName (fallback to first business name). PATCH /api/profile/organization endpoint.
+- **Registration Flow**: Approval creates Owner account only (no auto-collection). City and Email mandatory. Phone duplicate check. Old approved requests cleaned up for username reuse. Removed Collection Type and Locations from registration requests page.
+- **Password & Session**: Platform Admin forgot password auto-resets to "system" (no approval). Owner sessions persist until manual logout (1-year expiry). Agents/BA keep 30-min inactivity timeout.
+- **Sidebar Reorder**: Collection section: New Payment, New Customer, New Loan, Location, Employees, Reports, Settings. Settings moved from Owner to Collection section. FAQ → "Help". Password Resets → "Employee Password Management".
+- **Customer Merge**: Select 2+ customers → Merge → pick Master → loans moved, duplicates deleted. Requires typing "MERGE". POST /api/b/{businessId}/customers/merge.
+- **System Banner**: Platform Settings Banner tab. Yellow banner at top of all pages. Stored as system_banner in PlatformSetting.
+- **Dashboard Improvements**: 60-second auto-refresh (AutoRefresh component). Paid/Unpaid loan counts in Today's Collection. Paid links to View Payments, Unpaid links to Bulk Posting. Removed "In Hand" stat.
+- **View Payments**: Paid/Unpaid/Expected/Collected stats bar. Unpaid links to Bulk Posting.
+- **Reports**: New "Daily Collection Summary" report (default). Shows active loans with Paid/Unpaid for selected date. Payment Status filter (All/Paid/Unpaid). Default preset "Today". PDF/XLSX respects payment status filter.
+- **Collection Creation**: Removed Basic Info section (city, phone, address, receipt prefix) from New Collection. Collection Name in Collection Settings. Import: added Collection Type, Collection Days, Repayment Multiplier. Import: zero payments accepted, city defaults to "Default".
+- **Settings**: Removed address, phone, receipt prefix from Basic Info. Only Collection ID and Collection Name.
+- **Payment Flow**: Customer names clickable in Record Payment / Bulk Posting. Loan-level payment tracking with Paid/Pending badges. Loans page: New Payment button replaces Payments button. Loan detail modal: payment history replaces repayment schedule.
+- **Profile**: Removed My Collections section. Removed edit button from profile card. Danger Zone: Delete Organization (owner only, blocked if collections exist).
+- **Delete Flow**: Force delete cascade deletes all businesses, data, orphaned agents. Orphaned agents fully deleted (not just deactivated).
+- **Dead Code Removed**: ResetPasswordModal, Toast, LoadingSpinner components. password-gen, loan-calc, rating, whatsapp, receipt lib files. admin/owners/new, admin/owners/[ownerId]/edit, users/new pages. admin/owners/route.ts, auth/me, owner/agents API routes.
+- **Terminology**: "Record Payment" → "New Payment" everywhere. "business" → "collection" in remaining UI text.
 
 ## Documentation
 

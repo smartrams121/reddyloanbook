@@ -135,6 +135,27 @@ Stage 3: runner   — minimal Node.js runtime, copy standalone + static
 
 These columns are added via `prisma db push` (local dev) or `ALTER TABLE` statements on production. The `prisma db push --accept-data-loss` command on production (after copying the PostgreSQL schema) handles these automatically.
 
+**Session 2026-10-06 — New columns requiring ALTER TABLE on production PostgreSQL:**
+
+| Table | Column | Type | Default | Purpose |
+|-------|--------|------|---------|---------|
+| User | organizationName | String? | null | Separate organization name for owners (distinct from business names) |
+
+**Session 2026-10-06 — New PlatformSetting keys:**
+
+| Key | Value Type | Purpose |
+|-----|-----------|---------|
+| system_banner | String (empty = no banner) | Yellow announcement banner shown at top of all pages |
+
+**Session 2026-10-06 — Dead code removed (pages, components, lib files):**
+
+| Type | Removed Items |
+|------|--------------|
+| Components | ResetPasswordModal, Toast, LoadingSpinner |
+| Lib files | password-gen, loan-calc, rating, whatsapp, receipt |
+| Pages | admin/owners/new, admin/owners/[ownerId]/edit, users/new |
+| API routes | admin/owners/route.ts (POST create owner), auth/me, owner/agents |
+
 ### 18.3 Database Management
 
 | Task | Command |

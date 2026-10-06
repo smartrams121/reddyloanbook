@@ -52,7 +52,7 @@
 
 | Model | Key Fields | Relationships |
 |-------|-----------|---------------|
-| **User** | id, username (unique), passwordHash, fullName, phone, email, role, isActive, mustChangePassword, preferredLanguage (default: "en") | → ownedBusinesses, businessAssignments, villageAssignments, collectedPayments, assignedLoans |
+| **User** | id, username (unique), passwordHash, fullName, phone, email, role, isActive, mustChangePassword, preferredLanguage (default: "en"), organizationName (nullable) | → ownedBusinesses, businessAssignments, villageAssignments, collectedPayments, assignedLoans |
 | **Business** | id, name, city, ownerId, collectionType, interestModel, collectionDays, gracePeriods, repaymentMultipliers, defaulterPeriodDays (default: 365), receiptPrefix, sequences (customerSeq, loanSeq, receiptSeq) | → owner(User), villages, customers, loans, payments |
 | **Village** | id, name, businessId, isActive | → business, customers, agentAssignments. Unique: [businessId, name] |
 | **Customer** | id, customerId, fullName, phone, villageId, businessId, status, age, aadhaarHash, aadhaarLast4, photoPath, guarantorName | → village, business, loans. Unique: [businessId, customerId] |
@@ -80,9 +80,9 @@
 
 | Role | Scope | Description |
 |------|-------|-------------|
-| PLATFORM_ADMIN | Global | Manages owners, approves registrations, resets passwords, platform settings |
+| PLATFORM_ADMIN | Global | Manages organizations, approves registrations, employee password management, platform settings (including system banner) |
 | OWNER | Own businesses | Creates businesses, manages employees, full access to all owned businesses |
-| BUSINESS_ADMIN | Assigned business | Full business access including business creation, except business deletion |
+| BUSINESS_ADMIN | Assigned business | Full business access including collection creation, except collection deletion |
 | AGENT | Assigned villages | Records payments, views assigned customers/loans only |
 
 ### 8.2 Permission Matrix
@@ -136,10 +136,10 @@
 | POST | /api/auth/register | Public | Self-service registration |
 | POST | /api/auth/forgot-password | Auth | Request password reset |
 | POST | /api/auth/change-password | Auth | Change own password |
-| GET | /api/auth/me | Auth | Get current user info |
 | GET | /api/auth/check-username | Public | Check username availability |
 | PATCH | /api/auth/profile | Auth | Update own profile |
 | PATCH | /api/profile/language | Auth | Update preferred language (en/te) |
+| PATCH | /api/profile/organization | Auth (Owner) | Update/delete organization details (org name, owner name, phone, email, city) |
 
 ### 9.2 Admin APIs
 
@@ -160,7 +160,6 @@
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/owner/businesses | Owner | List own businesses |
-| GET | /api/owner/agents | Owner | List agents across businesses |
 | GET | /api/owner/employees | Owner | List all employees |
 | POST | /api/owner/employees | Owner | Create employee |
 | PATCH | /api/owner/employees/[id] | Owner | Edit/reset/suspend employee |
@@ -184,6 +183,7 @@
 | POST | /customers | create_customer | Create customer |
 | POST | /customers/import | create_customer | CSV bulk import |
 | POST | /customers/bulk | edit_customer | Bulk edit/delete |
+| POST | /customers/merge | edit_customer | Merge 2+ customers into master (moves loans, deletes duplicates) |
 | GET | /customers/[id] | view_customer | Customer detail |
 | PATCH/DELETE | /customers/[id] | edit_customer | Edit/delete customer |
 | GET | /customers/[id]/pdf | view_customer | Customer PDF |

@@ -232,7 +232,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               {t('profile.profile_settings')}
             </Link>
             <div className="border-t border-gray-100 my-1" />
-            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('profile.faq')}</p>
+            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Help</p>
             <Link
               href="/contact-us"
               onClick={() => setMenuOpen(false)}

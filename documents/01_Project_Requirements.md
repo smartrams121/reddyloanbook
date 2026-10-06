@@ -12,7 +12,7 @@
 
 | Role | Description | Typical User |
 |------|-------------|-------------|
-| Platform Admin | Manages owners, approves registrations, resets passwords | System administrator |
+| Platform Admin | Manages organizations, approves registrations, manages employee passwords, platform settings | System administrator |
 | Owner | Owns 1+ businesses, manages agents, views reports | Finance business owner |
 | Business Admin | Manages a single business on behalf of owner | Office manager |
 | Agent | Collects payments, records transactions in the field | Field collection agent |
@@ -31,8 +31,8 @@
 1. Multi-owner, multi-business architecture with complete tenant isolation
 2. Four-tier role hierarchy with 36 granular permissions (RBAC)
 3. Loan lifecycle: Disbursement → Collection scheduling → Payment posting → Overdue/Defaulter → Settlement/Write-off/Renewal
-4. Configurable per-business: repayment multiplier, grace period, defaulter period, collection days, WhatsApp template
-5. Bulk operations: CSV import for customers/loans/payments, bulk payment posting by village
+4. Configurable per-business: repayment multiplier, grace period, defaulter period, collection days
+5. Bulk operations: CSV import for customers/loans/payments, bulk payment posting by village, customer merge
 6. Financial reporting: Collections, loans, villages, employees — PDF and XLSX export
 7. Mobile-first responsive UI for field agents on Android phones
 8. Self-service registration with admin approval workflow
@@ -41,6 +41,11 @@
 11. Telugu (తెలుగు) language support with full i18n across all pages
 12. Manual loan status override for owner/admin control
 13. UI rebrand: "Business" terminology replaced with "Collection" across all labels
+14. Organization model with separate org name, OrgID, and profile management
+15. Customer merge for deduplication (select 2+ → pick master → consolidate loans)
+16. System-wide banner for platform announcements
+17. Daily Collection Summary report with Paid/Unpaid status tracking
+18. Dashboard auto-refresh (60-second interval)
 
 ### 1.5 Data Hierarchy
 
@@ -67,11 +72,11 @@ Platform Admin
 | Feature | Description |
 |---------|-------------|
 | Login | Username + password, JWT stored in httpOnly cookie |
-| Registration | Self-service with admin approval workflow; Organization Name, Owner Name, Business Details / Login Details sections |
-| Forgot Password | Accepts username OR phone number; Agent resets go to Owner, Owner resets go to Platform Admin; Password reset to username automatically; `mustChangePassword` forced on first login after reset |
+| Registration | Self-service with admin approval workflow; Organization Name, Owner Name, City (required), Email (required), Login Details sections; phone duplicate check; approval creates Owner account only (no auto-collection creation); old approved requests cleaned up for username reuse |
+| Forgot Password | Accepts username OR phone number; Agent resets go to Owner, Owner resets go to Platform Admin; Platform Admin forgot password auto-resets to "system" (no approval needed); Password reset to username automatically; `mustChangePassword` forced on first login after reset |
 | Change Password | Forced on first login (`mustChangePassword` flag) |
 | 2FA | TOTP-based (Google Authenticator) via otplib + qrcode |
-| Session | JWT with configurable expiry (default 24h), auto-logout timer per business |
+| Session | JWT with configurable expiry; Owner sessions persist until manual logout (1-year expiry, no inactivity timeout); Agents/BA keep 30-min inactivity timeout |
 
 ### 2.2 Customer Management
 
@@ -85,6 +90,7 @@ Platform Admin
 | Filters | Multi-select status (Active, Overdue, Defaulter, Completed, No Loans), Village |
 | Table View | Sortable columns, pagination (15 desktop, 10 mobile) |
 | Bulk Actions | Select multiple → delete (with confirmation) |
+| Customer Merge | Select 2+ customers → Merge button → pick Master customer → all loans moved to Master, duplicate customers deleted; requires typing "MERGE" to confirm |
 
 ### 2.3 Loan Lifecycle
 
@@ -115,7 +121,7 @@ Platform Admin
 
 ### 2.4 Payment Posting
 
-#### Individual Payment (Record Payment)
+#### Individual Payment (New Payment)
 - Date filter with "Payment Completed" checkbox (shows paid vs pending customers)
 - Only shows customers with ACTIVE loans started on/before posting date
 - Default amount = expected installment (editable)
@@ -123,6 +129,8 @@ Platform Admin
 - Agent defaults to loan's assigned agent (editable)
 - Loan summary collapsible with outstanding info
 - Post & Next flow for rapid entry
+- Customer names clickable (link to customer profile)
+- Loan-level payment tracking with Paid/Pending badges per loan
 
 #### Bulk Payment (Bulk Posting)
 - Select Location (default: All Locations)
@@ -133,9 +141,12 @@ Platform Admin
 - Payment Completed checkbox filter
 - Defaulter checkbox (unchecked by default): shows Active + Overdue only; when checked, includes Defaulters
 - Details section collapsible (posting date, submission date, collector, payment mode)
+- Customer names clickable (link to customer profile)
 - No backdate limit on payment posting date (previously 1 month)
 
 #### View Payments
+- Paid/Unpaid/Expected/Collected stats bar above table
+- Unpaid count links to Bulk Posting page
 - Date presets: Today, Yesterday, 7 Days, 15 Days, 30 Days, All, Custom
 - Custom filters: Village + Employee multi-select
 - Sortable table: Date, Customer, Village, Amount, Collector, Mode, Receipt
@@ -147,6 +158,7 @@ Platform Admin
 
 | Report | Contents | Export |
 |--------|----------|--------|
+| Daily Collection Summary | All active loans with Paid/Unpaid status for selected date; Payment Status filter (All/Paid/Unpaid); default report type; default date preset "Today" | PDF, XLSX |
 | Customers | All customers with CID, status, village, guarantor (no Age column) | PDF, XLSX |
 | Loans | All loans with CID, amounts, status, agent, Start Date, Due Date (no Phone/Interest columns) | PDF, XLSX |
 | Payments | Payment history with receipts (no Phone column) | PDF, XLSX |
@@ -157,11 +169,11 @@ Platform Admin
 
 | Setting | Description |
 |---------|-------------|
-| Basic Info | Name, city, address, phone, receipt prefix (collapsible) |
+| Basic Info | Collection ID and Collection Name only (city, address, phone, receipt prefix removed) |
 | Collection | Type (read-only), collection day/days, repayment multiplier, grace period, defaulter period |
-| Other | WhatsApp template, auto-logout minutes (collapsible) |
-| Export Data | Download full business data as XLSX |
-| Danger Zone | Delete business (requires typing "DELETE" in modal) |
+| Other | Auto-logout minutes (collapsible) |
+| Export Data | Download full collection data as XLSX |
+| Danger Zone | Delete collection (requires typing "DELETE" in modal) |
 
 ### 2.7 Employee Management
 
@@ -171,8 +183,8 @@ Platform Admin
 - Edit, Reset Password (to username), Suspend/Activate, Delete
 - Shows assigned businesses per employee
 
-#### Business-Scoped (Business Objects → Employees)
-- Assign/unassign employees to the business (checkbox)
+#### Collection-Scoped (Collection → Employees)
+- Assign/unassign employees to the collection (checkbox)
 - Per-employee village assignment (multi-select pills)
 - View button → employee activity page
 - Only visible to Owner/Admin (hidden from agents)
@@ -200,11 +212,51 @@ Platform Admin
   - Select Business → Select Collection
   - Business Settings → Collection Settings
   - Business Dashboard → Collection Dashboard
-- Header displays dynamic organization name (from owner's first business name) instead of static "Daily Finance"
-- Register page: Organization Name field added, Owner Name field, Business Details / Login Details sections
-- Sidebar labels: "Settings" (was "Business Settings"), "Manage Employees" shown for Owner
-- Settings page labels: Collection ID (was Business ID), UID Formatting
+  - Record Payment → New Payment (everywhere)
+- Header displays dynamic organization name (from `organizationName` field, falls back to first business name) instead of static "Daily Finance"
+- Register page: Organization Name field, Owner Name field, City (required), Email (required), Login Details sections
+- Sidebar: Collection section reordered: New Payment, New Customer, New Loan, Location, Employees, Reports, Settings. Settings moved from Owner to Collection section. FAQ renamed to "Help". Password Resets renamed to "Employee Password Management". "Manage Owners" renamed to "Organizations".
+- Settings page labels: Collection ID (was Business ID), Collection Name only
 - Owner pre-selected as default agent in New Collection form
+
+### 2.10a Organization Model (Session 2026-10-06)
+
+- `User.organizationName` field added (separate from business/collection names)
+- OrgID = Owner's user ID (displayed in admin Organizations table and profile page)
+- Profile page: Organization Details section with 5 editable fields (org name, owner name, phone, email, city)
+- Header shows `organizationName` (falls back to first business name)
+- `PATCH /api/profile/organization` endpoint for update and delete
+- Removed: My Collections section from profile, edit button from profile card (edit via Organization Details instead)
+- Danger Zone on profile: Delete Organization (owner only, blocked if collections exist)
+
+### 2.10b Admin Page Redesign (Session 2026-10-06)
+
+- Owners page redesigned as "Organizations" table view
+- Columns: #, OrgID, Organization, Owner, City, Phone, Email, Collections, Customers, Loans, Payments, Created, Last Login, Status
+- Search by OrgID, org name, owner, username, city, phone, email
+- Pagination: 10 per page, sorted by last login descending
+- "+ Register New Business" button (links to /register)
+- Refresh button to reload data
+- Removed: Edit Owner, Reset Password from actions menu
+- Renamed: Suspend/Delete Owner → Suspend/Delete Organization
+- Delete requires typing "DELETE" + force delete checkbox for cascade delete
+- Force delete cascade deletes all businesses, data, and orphaned agents (fully deleted, not just deactivated)
+- Removed dead code: admin/owners/new and admin/owners/[ownerId]/edit pages
+
+### 2.10c System Banner (Session 2026-10-06)
+
+- Platform Settings: new Banner tab
+- Yellow banner displayed at top of all pages when message is set
+- Stored as `system_banner` key in PlatformSetting model
+- Admin can set/clear banner message via Platform Settings
+
+### 2.10d Customer Merge (Session 2026-10-06)
+
+- Select 2+ customers from customer list → Merge button appears
+- Pick Master customer → all loans from duplicate customers moved to Master
+- Duplicate customers deleted after loan transfer
+- Requires typing "MERGE" to confirm
+- `POST /api/b/{businessId}/customers/merge` endpoint
 
 ### 2.10 Telugu Language Support (i18n)
 
@@ -223,17 +275,34 @@ Platform Admin
 - Today's stats: New Loans, Disbursed amount, Collection amount
 - My Collections list with outstanding and today's collection
 - "+ New Collection" button at top
+- 60-second auto-refresh (AutoRefresh component)
 
-#### Business Dashboard
+#### Collection Dashboard
 - Top stats: Loans (amount + count), Repayable, Outstanding
 - Clickable: Customers, Loans, Employees (link to respective pages)
 - Date filter: Today, Yesterday, 7 Days, 1 Month, Custom
 - Custom: Date range + Village multi-select + Employee multi-select
-- Collection section: Expected, Collected, New Loans, In Hand, Completed Loans
+- Today's Collection section: Expected, Collected, New Loans, Paid count (links to View Payments), Unpaid count (links to Bulk Posting), Completed Loans
+- "In Hand" stat removed
 - Loan status badges (clickable, link to filtered loans page)
+- 60-second auto-refresh (AutoRefresh component)
 
 #### Agent Dashboard
 - Redirects to employee activity page (`/b/{id}/users/{userId}`)
+
+### 2.12 Collection Creation (Session 2026-10-06)
+
+- New Collection form: Basic Info section removed (city, phone, address, receipt prefix no longer collected at creation)
+- Collection Name moved to Collection Settings section
+- Import: added Collection Type, Collection Days, Repayment Multiplier fields
+- Import: zero-amount (₹0) payments accepted during import
+- Import: city defaults to "Default" when not specified
+
+### 2.13 Loan Detail & Loans Page (Session 2026-10-06)
+
+- Loans page: "New Payment" button replaces "Payments" button
+- Loan detail modal: payment history replaces repayment schedule display
+- Loans list: Due Date column added
 
 ---
 

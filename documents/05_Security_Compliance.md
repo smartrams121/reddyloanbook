@@ -10,10 +10,10 @@
 |-------|---------------|
 | Password Storage | bcryptjs with 12 salt rounds |
 | Session Tokens | JWT (jsonwebtoken) in httpOnly, sameSite cookie |
-| Session Expiry | Configurable per deployment (default 24h) |
-| Auto-Logout | Per-business configurable timer (default 30 min) |
+| Session Expiry | Owner sessions: 1-year expiry, persist until manual logout (no inactivity timeout); Agent/BA sessions: 30-min inactivity timeout |
+| Auto-Logout | Per-business configurable timer (default 30 min, applies to Agent/BA only; Owner exempt) |
 | First Login | `mustChangePassword` flag forces password change (also set after password reset) |
-| Password Reset Flow | Forgot password accepts username OR phone (was phone only); Password is reset to username automatically (no custom password); Agent resets escalate to Owner; Owner resets escalate to Platform Admin |
+| Password Reset Flow | Forgot password accepts username OR phone; Password is reset to username automatically; Agent resets escalate to Owner; Owner resets escalate to Platform Admin; Platform Admin forgot password auto-resets to "system" (no approval needed) |
 | 2FA | TOTP (Time-based One-Time Password) via otplib + qrcode |
 
 ### 13.2 Data Security
@@ -106,7 +106,7 @@
 | Data ownership | Each business owner owns their data |
 | Data isolation | Owner-level and business-level tenant isolation |
 | Data export | Full business data export as XLSX (Settings → Export) |
-| Data deletion | Danger Zone with "DELETE" confirmation; cascade deletes loans, payments, documents |
+| Data deletion | Danger Zone with "DELETE" confirmation; force delete checkbox for cascade delete of all businesses, data, and orphaned agents (fully deleted, not deactivated). Organization delete on profile (blocked if collections exist). Admin can delete organization with force cascade. |
 | Aadhaar handling | Hashed storage, last 4 only visible, compliant with UIDAI guidelines |
 
 ### 15.2 Backup Strategy

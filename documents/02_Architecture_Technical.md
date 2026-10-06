@@ -38,9 +38,9 @@
 │  ┌───────▼────────────────────────────────────────────────────┐  │
 │  │                    SERVICE LAYER (src/lib/)                 │  │
 │  │  auth.ts │ permissions.ts │ scope.ts │ validators.ts       │  │
-│  │  loan-status.ts │ schedule.ts │ loan-calc.ts │ money.ts    │  │
-│  │  date.ts │ receipt.ts │ csv-parse.ts │ xlsx-import.ts      │  │
-│  │  rate-limit.ts │ whatsapp.ts │ constants.ts │ i18n.ts      │  │
+│  │  loan-status.ts │ schedule.ts │ money.ts │ date.ts         │  │
+│  │  csv-parse.ts │ xlsx-import.ts │ constants.ts │ i18n.ts    │  │
+│  │  rate-limit.ts │ audit.ts                                  │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
           │
@@ -234,8 +234,8 @@ src/
 │   │   │   ├── reports/     Report viewer + download
 │   │   │   ├── settings/    Business settings + export + danger zone
 │   │   │   └── more/        Mobile menu page
-│   │   ├── admin/           Platform admin pages
-│   │   ├── faq/             FAQ accordion
+│   │   ├── admin/           Platform admin pages (organizations, registrations, password mgmt, settings)
+│   │   ├── faq/             Help (FAQ accordion)
 │   │   └── profile/         User profile
 │   └── api/                 REST API routes
 │       ├── auth/            Login, logout, register, forgot-password, profile
@@ -272,19 +272,18 @@ src/
 | `scope.ts` | `assertBusinessAccess()` — tenant isolation, `getAccessibleVillageIds()` — village scoping for agents |
 | `validators.ts` | Zod schemas: `createBusinessSchema`, `createCustomerSchema`, `createLoanSchema`, `createPaymentSchema`, `bulkPaymentSchema`, `createUserSchema` |
 | `loan-status.ts` | `resolveLoanStatus()` — checks for manual override, then derives ACTIVE/OVERDUE/DEFAULTER/COMPLETED from dates + grace period + configurable defaulter period. Replaces `deriveLoanStatus()`. `deriveCustomerStatus()`. `getGracePeriod()` helper. |
-| `loan-calc.ts` | `calculateLoan()` — totalRepayable, amountGiven, lastInstallmentAmount. `validateLoanAmounts()`. `calculateBalance()`. |
 | `schedule.ts` | `generateSchedule()` — creates LoanScheduleEntry array from startDate + installments + collectionType + collectionDays. Handles DAILY (skip non-collection days), WEEKLY, MONTHLY. |
 | `money.ts` | `formatPaiseShort()` — display ₹ with locale formatting. `rupeesToPaise()`. |
 | `date.ts` | IST helpers: `nowIST()`, `todayIST()`, `formatDateISO()`, `formatDateDisplay()`, `parseISODate()`, `addDays()`, `addWeeks()`, `addMonths()`, `daysBetween()`. |
-| `receipt.ts` | `nextReceiptNumber()`, `nextLoanNumber()`, `nextCustomerId()` — auto-increment sequences in Prisma transactions. |
 | `csv-parse.ts` | Shared CSV parser: `parseCsvLine()` (handles quoted fields), `parseCsv<T>()` (generic typed). Used by customer, loan, payment CSV upload. |
 | `xlsx-import.ts` | `parseBusinessXlsx()` — parses 5-sheet XLSX (Locations, Customers, Loans, Payments, Users) with cross-reference validation. Returns `ParseResult` with errors/warnings. |
 | `xlsx-import-template.ts` | `generateImportTemplate()` — creates sample XLSX with correct headers, example rows, and Instructions sheet. |
-| `constants.ts` | Enums: `Role`, `CollectionType`, `InterestModel`, `CustomerStatus`, `LoanStatus`, `DayOfWeek`, `DAY_OF_WEEK_JS_MAP`, `RATING_LABELS`. |
+| `constants.ts` | Enums: `Role`, `CollectionType`, `InterestModel`, `CustomerStatus`, `LoanStatus`, `DayOfWeek`, `DAY_OF_WEEK_JS_MAP`. |
 | `rate-limit.ts` | In-memory rate limiter for login/register endpoints. |
-| `whatsapp.ts` | `buildWhatsAppUrl()` — constructs `wa.me` URLs with template variables. |
 | `audit.ts` | Audit logging utility for sensitive operations. |
 | `i18n.ts` | Internationalization provider, `useTranslation()` hook, locale/namespace loader, language context. |
+
+**Removed in Session 2026-10-06:** `loan-calc.ts`, `receipt.ts`, `whatsapp.ts`, `password-gen.ts`, `rating.ts` (dead code cleanup).
 
 ### 6.3 Middleware (`src/middleware.ts`)
 
@@ -298,8 +297,10 @@ src/
 
 | Component | Purpose |
 |-----------|---------|
-| `AppShell.tsx` | Main layout — sidebar navigation, header with business selector, role-based menu items, desktop/mobile navigation |
-| `ResetPasswordModal.tsx` | Modal for password reset flow |
+| `AppShell.tsx` | Main layout — sidebar navigation, header with collection selector, role-based menu items, desktop/mobile navigation, system banner display |
+| `AutoRefresh.tsx` | 60-second auto-refresh component for dashboards |
+
+**Removed in Session 2026-10-06:** `ResetPasswordModal.tsx`, `Toast.tsx`, `LoadingSpinner.tsx` (dead code cleanup).
 
 ### 6.5 Key Page Components
 
