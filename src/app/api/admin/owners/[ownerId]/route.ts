@@ -170,6 +170,22 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       await prisma.business.delete({ where: { id: biz.id } })
     }
 
+    // Delete orphaned agents/employees with no remaining business assignments
+    const orphanedAgents = await prisma.user.findMany({
+      where: {
+        role: { in: ['AGENT', 'BUSINESS_ADMIN'] },
+        businessAssignments: { none: {} },
+      },
+      select: { id: true },
+    })
+    for (const agent of orphanedAgents) {
+      await prisma.session.deleteMany({ where: { userId: agent.id } })
+      await prisma.passwordResetRequest.deleteMany({ where: { userId: agent.id } })
+      await prisma.auditLog.deleteMany({ where: { userId: agent.id } })
+      await prisma.userVillageAssignment.deleteMany({ where: { userId: agent.id } })
+      await prisma.user.delete({ where: { id: agent.id } })
+    }
+
     // Clean up user-level records with FK to this user
     await prisma.auditLog.deleteMany({ where: { userId: ownerId } })
     await prisma.supportAccess.deleteMany({ where: { OR: [{ ownerId }, { adminId: ownerId }] } })

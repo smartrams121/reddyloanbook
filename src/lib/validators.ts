@@ -35,7 +35,7 @@ export const createOwnerSchema = z.object({
 
 export const createBusinessSchema = z.object({
   name: z.string().min(2, 'Business name must be at least 2 characters'),
-  city: z.string().min(2, 'City is required'),
+  city: z.string().optional().default('Default'),
   address: z.string().optional(),
   phone: z.string().optional(),
   receiptPrefix: z

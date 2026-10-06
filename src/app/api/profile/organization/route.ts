@@ -91,6 +91,20 @@ export async function DELETE(request: NextRequest) {
       await tx.passwordResetRequest.deleteMany({ where: { userId: user.id } })
       await tx.userVillageAssignment.deleteMany({ where: { userId: user.id } })
       await tx.userBusinessAssignment.deleteMany({ where: { userId: user.id } })
+
+      // Delete orphaned agents with no remaining assignments
+      const orphanedAgents = await tx.user.findMany({
+        where: { role: { in: ['AGENT', 'BUSINESS_ADMIN'] }, businessAssignments: { none: {} } },
+        select: { id: true },
+      })
+      for (const agent of orphanedAgents) {
+        await tx.session.deleteMany({ where: { userId: agent.id } })
+        await tx.passwordResetRequest.deleteMany({ where: { userId: agent.id } })
+        await tx.auditLog.deleteMany({ where: { userId: agent.id } })
+        await tx.userVillageAssignment.deleteMany({ where: { userId: agent.id } })
+        await tx.user.delete({ where: { id: agent.id } })
+      }
+
       await tx.user.delete({ where: { id: user.id } })
     })
 

@@ -46,9 +46,7 @@ export async function POST(request: Request) {
   if (!name || name.length < 2) {
     return NextResponse.json({ error: 'Business name is required (min 2 characters)' }, { status: 400 })
   }
-  if (!city || city.length < 2) {
-    return NextResponse.json({ error: 'City is required (min 2 characters)' }, { status: 400 })
-  }
+  const effectiveCity = city && city.length >= 2 ? city : 'Default'
 
   const existing = await prisma.business.findFirst({
     where: { ownerId: user.id, name },
@@ -91,7 +89,7 @@ export async function POST(request: Request) {
       const biz = await tx.business.create({
         data: {
           name,
-          city,
+          city: effectiveCity,
           receiptPrefix: receiptPrefix || null,
           collectionType,
           defaultCollectionDay: collectionType === 'WEEKLY' ? defaultCollectionDay : null,
