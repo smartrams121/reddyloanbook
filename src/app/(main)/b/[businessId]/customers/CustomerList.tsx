@@ -245,6 +245,10 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
 
   const [viewCustomer, setViewCustomer] = useState<CustomerDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
+  const [showMergeModal, setShowMergeModal] = useState(false)
+  const [mergeConfirm, setMergeConfirm] = useState('')
+  const [mergeMaster, setMergeMaster] = useState<string | null>(null)
+  const [merging, setMerging] = useState(false)
 
   function toggleSort(field: string) {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -326,7 +330,41 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
     }
   }, [selected, businessId, router])
 
+  function openMerge() {
+    const ids = Array.from(selected)
+    setMergeMaster(ids[0])
+    setMergeConfirm('')
+    setShowMergeModal(true)
+  }
+
+  async function handleMerge() {
+    if (!mergeMaster || mergeConfirm !== 'MERGE') return
+    const duplicateIds = Array.from(selected).filter(id => id !== mergeMaster)
+    setMerging(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/b/${businessId}/customers/merge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ masterId: mergeMaster, duplicateIds }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setShowMergeModal(false)
+        setSelected(new Set())
+        router.refresh()
+      } else {
+        setError(data.error || 'Merge failed')
+      }
+    } catch {
+      setError('Network error')
+    } finally {
+      setMerging(false)
+    }
+  }
+
   const selectedId = selected.size === 1 ? Array.from(selected)[0] : null
+  const selectedCustomers = customers.filter(c => selected.has(c.id))
 
   return (
     <>
@@ -495,12 +533,85 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                   </button>
                 </>
               )}
+              {selected.size >= 2 && (
+                <button
+                  onClick={openMerge}
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+                >
+                  Merge
+                </button>
+              )}
               <button
                 onClick={handleBulkDelete}
                 disabled={processing}
                 className="px-3 py-2 text-xs font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 disabled:opacity-50 transition-colors"
               >
                 {processing ? '...' : t('common.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Merge Modal */}
+      {showMergeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowMergeModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Merge Customers</h3>
+              <p className="text-sm text-gray-500 mt-1">Select the Master record. All loans from duplicates will be moved to the Master, then duplicates will be deleted.</p>
+            </div>
+            <div className="p-6 space-y-3">
+              {selectedCustomers.map(c => (
+                <label
+                  key={c.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    mergeMaster === c.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="mergeMaster"
+                    checked={mergeMaster === c.id}
+                    onChange={() => setMergeMaster(c.id)}
+                    className="w-4 h-4 text-primary-600"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900">{c.fullName}</p>
+                      {mergeMaster === c.id && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary-100 text-primary-700">Master</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">{c.customerId} · {c.phone} · {c.village?.name || '-'}</p>
+                    <p className="text-xs text-gray-400">{c._count?.loans || 0} loan(s)</p>
+                  </div>
+                </label>
+              ))}
+
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg mb-3">
+                  {selectedCustomers.filter(c => c.id !== mergeMaster).map(c => c.customerId).join(', ')} will be deleted.
+                  All their loans will be moved to {selectedCustomers.find(c => c.id === mergeMaster)?.customerId || '...'}.
+                  This action cannot be undone.
+                </p>
+                <label className="label">Type MERGE to confirm</label>
+                <input
+                  className="input"
+                  value={mergeConfirm}
+                  onChange={(e) => setMergeConfirm(e.target.value)}
+                  placeholder="MERGE"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+              <button onClick={() => setShowMergeModal(false)} className="btn-secondary px-4 py-2">{t('common.cancel')}</button>
+              <button
+                onClick={handleMerge}
+                disabled={mergeConfirm !== 'MERGE' || !mergeMaster || merging}
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {merging ? 'Merging...' : 'Merge Customers'}
               </button>
             </div>
           </div>

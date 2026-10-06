@@ -15,6 +15,7 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
   const [loading, setLoading] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [forceDelete, setForceDelete] = useState(false)
 
   async function toggleStatus() {
     const action = isActive ? 'suspend' : 'activate'
@@ -37,7 +38,7 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
   async function deleteOwner() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/owners/${ownerId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/owners/${ownerId}${forceDelete ? '?force=true' : ''}`, { method: 'DELETE' })
       if (res.ok) {
         router.refresh()
       } else {
@@ -66,8 +67,8 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed right-8 z-50 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1" style={{ marginTop: '2px' }}>
             <button
               onClick={toggleStatus}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
@@ -106,6 +107,15 @@ export default function OwnerActions({ ownerId, isActive, ownerName }: Props) {
                   autoFocus
                 />
               </div>
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={forceDelete}
+                  onChange={(e) => setForceDelete(e.target.checked)}
+                  className="w-4 h-4 rounded border-red-300 text-red-600"
+                />
+                <span className="text-xs text-red-600 font-medium">Force delete (remove all collections, customers, loans, payments)</span>
+              </label>
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
               <button onClick={() => setShowDeleteModal(false)} className="btn-secondary px-4 py-2">Cancel</button>

@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertPermission } from '@/lib/permissions'
 
-const VALID_KEYS = ['contact_us', 'faq'] as const
+const VALID_KEYS = ['contact_us', 'faq', 'system_banner'] as const
 
 export async function GET() {
   const user = await getSession()

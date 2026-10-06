@@ -103,7 +103,7 @@ export default async function DashboardPage() {
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome, {user.fullName}</h1>
       <p className="text-sm text-gray-500 mb-6">
-        {businesses.length} business{businesses.length !== 1 ? 'es' : ''} &middot; Select a business from the top-right dropdown to manage it
+        {businesses.length} collection{businesses.length !== 1 ? 's' : ''} &middot; Select a collection from the top-right dropdown to manage it
       </p>
 
       {/* Today's Totals */}

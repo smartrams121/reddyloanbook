@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { hashPassword } from '@/lib/auth'
 import { forgotPasswordSchema } from '@/lib/validators'
 import { checkRateLimit, recordRateLimitHit } from '@/lib/rate-limit'
 import { createAuditLog } from '@/lib/audit'
+import { Role } from '@/lib/constants'
 
 const GENERIC_MESSAGE = 'If an account is found, a password reset request has been submitted. Your business owner will review it shortly.'
 
@@ -43,6 +45,23 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ message: GENERIC_MESSAGE })
+    }
+
+    if (user.role === Role.PLATFORM_ADMIN) {
+      const passwordHash = await hashPassword('system')
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash, mustChangePassword: true },
+      })
+      await prisma.session.deleteMany({ where: { userId: user.id } })
+      await createAuditLog({
+        action: 'PASSWORD_RESET_AUTO',
+        entityType: 'User',
+        entityId: user.id,
+        newValues: { identifier, role: user.role, resetTo: 'system' },
+        userId: user.id,
+      })
+      return NextResponse.json({ message: 'Password has been reset. Please login with password: system' })
     }
 
     const existingPending = await prisma.passwordResetRequest.findFirst({

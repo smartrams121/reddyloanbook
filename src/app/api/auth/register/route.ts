@@ -45,6 +45,9 @@ export async function POST(request: NextRequest) {
     if (existingRequest && existingRequest.status === 'PENDING') {
       return NextResponse.json({ error: 'A registration with this username is already pending.' }, { status: 409 })
     }
+    if (existingRequest && existingRequest.status !== 'PENDING') {
+      await prisma.registrationRequest.delete({ where: { username } })
+    }
 
     const passwordHash = await hashPassword(password)
 

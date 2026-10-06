@@ -36,7 +36,9 @@ export async function POST(request: Request) {
   const city = formData.get('city') as string || ''
   const receiptPrefix = formData.get('receiptPrefix') as string || ''
   const collectionType = (formData.get('collectionType') as string || 'DAILY').toUpperCase()
+  const defaultCollectionDay = formData.get('defaultCollectionDay') as string || null
   const collectionDays = formData.get('collectionDays') as string || 'MON,TUE,WED,THU,FRI,SAT,SUN'
+  const repaymentMultiplier = parseFloat(formData.get('repaymentMultiplier') as string || '1.20')
 
   if (!file) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
@@ -92,7 +94,10 @@ export async function POST(request: Request) {
           city,
           receiptPrefix: receiptPrefix || null,
           collectionType,
+          defaultCollectionDay: collectionType === 'WEEKLY' ? defaultCollectionDay : null,
           collectionDays,
+          repaymentMultiplierDailyWeekly: collectionType !== 'MONTHLY' ? repaymentMultiplier : 1.20,
+          repaymentMultiplierMonthly: collectionType === 'MONTHLY' ? repaymentMultiplier : 1.40,
           ownerId: user.id,
         },
       })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation, Locale } from '@/lib/i18n'
 
 interface BusinessInfo {
@@ -248,12 +249,18 @@ export default function ProfilePage() {
       {(isOwner || profile.role === 'BUSINESS_ADMIN') && (
         <OrganizationSection />
       )}
+
+      {/* Danger Zone (Owner only) */}
+      {isOwner && (
+        <DeleteOrganizationSection businessCount={profile.businesses?.filter(b => b.isActive).length || 0} />
+      )}
     </div>
   )
 }
 
 function OrganizationSection() {
   const { t } = useTranslation()
+  const [orgId, setOrgId] = useState('')
   const [data, setData] = useState({ organizationName: '', fullName: '', phone: '', email: '', city: '' })
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ organizationName: '', fullName: '', phone: '', email: '', city: '' })
@@ -264,6 +271,7 @@ function OrganizationSection() {
     fetch('/api/auth/profile')
       .then(r => r.json())
       .then(d => {
+        if (d.id) setOrgId(d.id)
         const vals = {
           organizationName: d.organizationName || '',
           fullName: d.fullName || '',
@@ -333,6 +341,10 @@ function OrganizationSection() {
           {msg.text}
         </div>
       )}
+      <div className="flex justify-between py-1.5 border-b border-gray-100 mb-2">
+        <span className="text-xs text-gray-500">OrgID</span>
+        <span className="text-[10px] font-mono text-gray-400">{orgId}</span>
+      </div>
       {editing ? (
         <div className="space-y-3">
           {fields.map(f => (
@@ -363,6 +375,85 @@ function OrganizationSection() {
               <span className="text-sm font-medium text-gray-900">{data[f.key] || 'Not set'}</span>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DeleteOrganizationSection({ businessCount }: { businessCount: number }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const hasCollections = businessCount > 0
+
+  async function handleDelete() {
+    if (confirmText !== 'DELETE ORGANIZATION') return
+    setDeleting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/profile/organization', {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        const logoutRes = await fetch('/api/auth/logout', { method: 'POST' })
+        if (logoutRes.ok) router.push('/login')
+        else window.location.href = '/login'
+      } else {
+        const data = await res.json()
+        setError(data.error || 'Failed to delete organization')
+      }
+    } catch {
+      setError('Network error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="card border-red-200">
+      <button type="button" onClick={() => setOpen(!open)} className="w-full p-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-red-700 uppercase tracking-wide">Danger Zone</h2>
+        <svg className={`w-4 h-4 text-red-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3">
+          {error && (
+            <div className="bg-danger-50 text-danger-700 text-sm px-3 py-2 rounded-lg">{error}</div>
+          )}
+
+          {hasCollections ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-800 font-medium">Cannot delete organization</p>
+              <p className="text-xs text-amber-700 mt-1">
+                You have {businessCount} active collection{businessCount !== 1 ? 's' : ''}. Delete all collections from Settings before deleting the organization.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500">
+                Permanently delete your organization account and all associated data. This will remove your owner account, employees, and all records. This action cannot be undone.
+              </p>
+              <div>
+                <label className="label">Type DELETE ORGANIZATION to confirm</label>
+                <input
+                  className="input"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="DELETE ORGANIZATION"
+                />
+              </div>
+              <button
+                onClick={handleDelete}
+                disabled={confirmText !== 'DELETE ORGANIZATION' || deleting}
+                className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting ? 'Deleting...' : 'Delete Organization'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -29,22 +29,6 @@ export async function POST(request: Request, { params }: Props) {
     return NextResponse.json({ error: 'Username was taken since registration. Ask the owner to re-register.' }, { status: 409 })
   }
 
-  const hasBusiness = regRequest.businessName && regRequest.businessName.length > 0
-  let businessName = regRequest.businessName
-
-  if (hasBusiness) {
-    const existingBiz = await prisma.business.findFirst({ where: { name: businessName } })
-    if (existingBiz) {
-      let suffix = 2
-      while (await prisma.business.findFirst({ where: { name: `${regRequest.businessName} (${suffix})` } })) {
-        suffix++
-      }
-      businessName = `${regRequest.businessName} (${suffix})`
-    }
-  }
-
-  const villages: string[] = JSON.parse(regRequest.villages || '[]')
-
   const result = await prisma.$transaction(async (tx) => {
     const newUser = await tx.user.create({
       data: {
@@ -56,32 +40,9 @@ export async function POST(request: Request, { params }: Props) {
         role: Role.OWNER,
         isActive: true,
         mustChangePassword: false,
+        organizationName: regRequest.businessName || null,
       },
     })
-
-    let newBusinessId: string | null = null
-
-    if (hasBusiness) {
-      const newBusiness = await tx.business.create({
-        data: {
-          name: businessName,
-          city: regRequest.city,
-          collectionType: regRequest.collectionType,
-          defaultCollectionDay: regRequest.defaultCollectionDay,
-          ownerId: newUser.id,
-        },
-      })
-      newBusinessId = newBusiness.id
-
-      if (villages.length > 0) {
-        await tx.village.createMany({
-          data: villages.map((name) => ({
-            name,
-            businessId: newBusiness.id,
-          })),
-        })
-      }
-    }
 
     await tx.registrationRequest.update({
       where: { id: requestId },
@@ -92,21 +53,12 @@ export async function POST(request: Request, { params }: Props) {
       },
     })
 
-    return { userId: newUser.id, businessId: newBusinessId, businessName }
+    return { userId: newUser.id }
   })
-
-  if (hasBusiness) {
-    const nameChanged = businessName !== regRequest.businessName
-    return NextResponse.json({
-      success: true,
-      message: `Owner approved. Account and business "${result.businessName}" are now active.${nameChanged ? ` (Name adjusted to avoid duplicate)` : ''}`,
-      ...result,
-    })
-  }
 
   return NextResponse.json({
     success: true,
-    message: 'Owner approved. Account is now active. Owner can register their business after login.',
+    message: 'Owner approved. Account is now active. Owner can create their collections after login.',
     userId: result.userId,
   })
 }

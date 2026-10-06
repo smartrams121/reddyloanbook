@@ -32,6 +32,10 @@ export default function NewBusinessPage() {
   const [importName, setImportName] = useState('')
   const [importCity, setImportCity] = useState('')
   const [importPrefix, setImportPrefix] = useState('')
+  const [importCollectionType, setImportCollectionType] = useState('DAILY')
+  const [importCollectionDay, setImportCollectionDay] = useState('')
+  const [importCollectionDays, setImportCollectionDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'])
+  const [importMultiplier, setImportMultiplier] = useState(1.20)
   const [importTesting, setImportTesting] = useState(false)
   const [importImporting, setImportImporting] = useState(false)
   const [importError, setImportError] = useState('')
@@ -56,6 +60,10 @@ export default function NewBusinessPage() {
       fd.append('file', importFile)
       fd.append('name', importName)
       fd.append('city', 'Default')
+      fd.append('collectionType', importCollectionType)
+      if (importCollectionType === 'WEEKLY' && importCollectionDay) fd.append('defaultCollectionDay', importCollectionDay)
+      fd.append('collectionDays', importCollectionDays.join(','))
+      fd.append('repaymentMultiplier', String(importMultiplier))
       fd.append('action', 'test')
 
       const res = await fetch('/api/businesses/import', { method: 'POST', body: fd })
@@ -81,6 +89,10 @@ export default function NewBusinessPage() {
       fd.append('file', importFile)
       fd.append('name', importName)
       fd.append('city', 'Default')
+      fd.append('collectionType', importCollectionType)
+      if (importCollectionType === 'WEEKLY' && importCollectionDay) fd.append('defaultCollectionDay', importCollectionDay)
+      fd.append('collectionDays', importCollectionDays.join(','))
+      fd.append('repaymentMultiplier', String(importMultiplier))
       fd.append('action', 'import')
 
       const res = await fetch('/api/businesses/import', { method: 'POST', body: fd })
@@ -248,6 +260,74 @@ export default function NewBusinessPage() {
         <div>
           <label className="label">Collection Name *</label>
           <input className="input" value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="e.g. Sai Finance" />
+        </div>
+
+        <div>
+          <label className="label">Collection Type *</label>
+          <div className="grid grid-cols-3 gap-2">
+            {['DAILY', 'WEEKLY', 'MONTHLY'].map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setImportCollectionType(type)}
+                className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                  importCollectionType === type
+                    ? 'bg-primary-600 text-white border-primary-600'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {importCollectionType === 'WEEKLY' && (
+          <div>
+            <label className="label">Collection Day</label>
+            <select className="input" value={importCollectionDay} onChange={(e) => setImportCollectionDay(e.target.value)}>
+              <option value="">Select day</option>
+              {['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((d) => (
+                <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {importCollectionType === 'DAILY' && (
+          <div>
+            <label className="label">Collection Days</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const).map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => setImportCollectionDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    importCollectionDays.includes(day)
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  {day.charAt(0) + day.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="label">Repayment Multiplier</label>
+          <input
+            type="number"
+            className="input"
+            step="0.01"
+            min="1"
+            max="5"
+            value={importMultiplier}
+            onChange={(e) => setImportMultiplier(parseFloat(e.target.value) || 1.20)}
+          />
+          <p className="text-[10px] text-gray-400 mt-1">e.g. 1.20 = 20% interest</p>
         </div>
 
         <div>

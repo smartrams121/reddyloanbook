@@ -227,24 +227,6 @@ export default function SettingsPage() {
             <label className="label">{t('settings.city')}</label>
             <input className="input" value={settings.city} onChange={(e) => update('city', e.target.value)} required />
           </div>
-          <div>
-            <label className="label">{t('settings.address')}</label>
-            <input className="input" value={settings.address || ''} onChange={(e) => update('address', e.target.value)} />
-          </div>
-          <div>
-            <label className="label">{t('settings.phone')}</label>
-            <input className="input" value={settings.phone || ''} onChange={(e) => update('phone', e.target.value)} />
-          </div>
-          <div>
-            <label className="label">{t('settings.receipt_prefix')}</label>
-            <input
-              className="input"
-              value={settings.receiptPrefix || ''}
-              onChange={(e) => update('receiptPrefix', e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5))}
-              placeholder="e.g. SDF"
-              maxLength={5}
-            />
-          </div>
         </div>}
         </div>
 

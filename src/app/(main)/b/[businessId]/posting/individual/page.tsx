@@ -503,7 +503,7 @@ export default function RecordPaymentPage() {
                   {selectedCustomer.fullName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{selectedCustomer.fullName}</p>
+                  <Link href={`/b/${businessId}/customers/${selectedCustomer.id}`} className="text-sm font-semibold text-primary-600 hover:underline">{selectedCustomer.fullName}</Link>
                   <p className="text-xs text-gray-500">{selectedCustomer.customerId} &middot; {selectedCustomer.phone}</p>
                 </div>
               </div>
@@ -562,7 +562,7 @@ export default function RecordPaymentPage() {
                   {selectedCustomer.fullName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{selectedCustomer.fullName}</p>
+                  <Link href={`/b/${businessId}/customers/${selectedCustomer.id}`} className="text-sm font-semibold text-primary-600 hover:underline">{selectedCustomer.fullName}</Link>
                   <p className="text-xs text-gray-500">{selectedCustomer.customerId}</p>
                 </div>
               </div>
@@ -768,7 +768,7 @@ export default function RecordPaymentPage() {
             <p className="text-3xl font-bold text-success-600 mb-2">{formatPaiseShort(receipt.amount)}</p>
             <div className="space-y-1 text-sm text-gray-500">
               <p>Receipt: <span className="font-mono font-semibold text-gray-700">{receipt.receiptNumber}</span></p>
-              <p>Customer: <span className="font-semibold text-gray-700">{selectedCustomer.fullName}</span></p>
+              <p>Customer: <Link href={`/b/${businessId}/customers/${selectedCustomer.id}`} className="font-semibold text-primary-600 hover:underline">{selectedCustomer.fullName}</Link></p>
               <p>Loan: <span className="font-semibold text-gray-700">{selectedLoan.loanNumber}</span></p>
               <p>Posting Date: <span className="font-semibold text-gray-700">{formatDisplayDate(postingDate)}</span></p>
               {collectorId && <p>Collected By: <Link href={`/b/${businessId}/users/${collectorId}`} className="font-semibold text-primary-600 hover:underline">{agents.find(a => a.id === collectorId)?.fullName}</Link></p>}

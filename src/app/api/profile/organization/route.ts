@@ -65,3 +65,38 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getSession()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    if (user.role !== Role.OWNER) {
+      return NextResponse.json({ error: 'Only the Owner can delete the organization' }, { status: 403 })
+    }
+
+    const activeBusinesses = await prisma.business.findMany({
+      where: { ownerId: user.id, isActive: true },
+      select: { id: true },
+    })
+
+    if (activeBusinesses.length > 0) {
+      return NextResponse.json({
+        error: `Cannot delete organization — ${activeBusinesses.length} active collection(s) exist. Delete all collections first.`,
+      }, { status: 400 })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.session.deleteMany({ where: { userId: user.id } })
+      await tx.passwordResetRequest.deleteMany({ where: { userId: user.id } })
+      await tx.userVillageAssignment.deleteMany({ where: { userId: user.id } })
+      await tx.userBusinessAssignment.deleteMany({ where: { userId: user.id } })
+      await tx.user.delete({ where: { id: user.id } })
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Organization delete error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

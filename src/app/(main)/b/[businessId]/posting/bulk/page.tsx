@@ -18,7 +18,7 @@ interface CustomerEntry {
   loans: LoanEntry[]
 }
 interface PaymentRow {
-  customerId: string; customerName: string; phone: string
+  customerInternalId: string; customerId: string; customerName: string; phone: string
   loanId: string; loanNumber: string; installmentAmount: number
   outstanding: number; amountStr: string; status: string
   existingPaymentId?: string; existingAmountPaise?: number
@@ -129,6 +129,7 @@ export default function VillageBulkPostingPage() {
           const effectiveOutstanding = existing ? l.outstanding + existing.amount : l.outstanding
           if (effectiveOutstanding > 0 || existing) {
             paymentRows.push({
+              customerInternalId: c.id,
               customerId: c.customerId,
               customerName: c.fullName,
               phone: c.phone,
@@ -487,7 +488,7 @@ export default function VillageBulkPostingPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{idx + 1}.</span>
-                          <p className="text-sm font-semibold text-gray-900 truncate">{row.customerName}</p>
+                          <Link href={`/b/${businessId}/customers/${row.customerInternalId}`} className="text-sm font-semibold text-primary-600 hover:underline truncate">{row.customerName}</Link>
                         </div>
                         <div className="ml-7 space-y-0.5">
                           <p className="text-xs text-gray-500">{row.phone} &middot; {row.loanNumber}</p>

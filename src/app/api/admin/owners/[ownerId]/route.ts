@@ -114,7 +114,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   })
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   const { ownerId } = await params
   const user = await getSession()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -122,6 +122,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   try { assertPermission(user, 'manage_owners') } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
+
+  const url = new URL(request.url)
+  const force = url.searchParams.get('force') === 'true'
 
   const owner = await prisma.user.findFirst({
     where: { id: ownerId, role: 'OWNER' },
@@ -133,10 +136,10 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   }
 
   const activeBusinesses = owner.ownedBusinesses.filter(b => b.isActive)
-  if (activeBusinesses.length > 0) {
+  if (activeBusinesses.length > 0 && !force) {
     const names = activeBusinesses.map(b => b.name).join(', ')
     return NextResponse.json(
-      { error: `Cannot delete owner with active businesses: ${names}. Deactivate or remove them first.` },
+      { error: `Cannot delete owner with active businesses: ${names}. Use force delete or deactivate them first.` },
       { status: 400 }
     )
   }

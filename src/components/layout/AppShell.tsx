@@ -27,6 +27,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const [businesses, setBusinesses] = useState<BusinessInfo[]>([])
   const [pendingRegCount, setPendingRegCount] = useState(0)
   const [pendingResetCount, setPendingResetCount] = useState(0)
+  const [systemBanner, setSystemBanner] = useState('')
 
   const businessMatch = pathname.match(/^\/b\/([^/]+)/)
   const activeBusinessId = businessMatch?.[1] || user.activeBusinessId
@@ -62,6 +63,10 @@ export default function AppShell({ user, children }: AppShellProps) {
         })
         .catch(() => {})
     }
+    fetch('/api/admin/platform-settings')
+      .then(r => r.json())
+      .then(data => { if (data.system_banner) setSystemBanner(data.system_banner) })
+      .catch(() => {})
   }, [user.role])
 
   useEffect(() => {
@@ -288,18 +293,19 @@ export default function AppShell({ user, children }: AppShellProps) {
               {/* Business-scoped links — only when a business is selected */}
               {activeBusinessId && (
                 <NavSection title={t('dashboard.collection')}>
-                  <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={t('customers.location')} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
+                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label={t('payments.new_payment')} active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
                   {isOwnerOrAdmin && (
                     <>
                       <NavLink href={`/b/${activeBusinessId}/customers/new`} icon="➕" label={t('customers.new_customer')} active={pathname === `/b/${activeBusinessId}/customers/new`} />
                       <NavLink href={`/b/${activeBusinessId}/loans/new`} icon="📝" label={t('loans.new_loan')} active={pathname === `/b/${activeBusinessId}/loans/new`} />
                     </>
                   )}
-                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label={t('payments.new_payment')} active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
+                  <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={t('customers.location')} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
                   {isOwnerOrAdmin && (
                     <>
-                      <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label={t('reports.reports')} active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
                       <NavLink href={`/b/${activeBusinessId}/employees`} icon="👥" label={t('dashboard.employees')} active={pathname.startsWith(`/b/${activeBusinessId}/employees`)} />
+                      <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label={t('reports.reports')} active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
+                      <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label={t('settings.collection_settings')} active={pathname === `/b/${activeBusinessId}/settings`} />
                     </>
                   )}
                 </NavSection>
@@ -310,17 +316,14 @@ export default function AppShell({ user, children }: AppShellProps) {
                 <NavSection title={t('profile.role_owner')}>
                   <NavLink href="/businesses/new" icon="➕" label={t('dashboard.new_collection')} active={pathname === '/businesses/new'} />
                   <NavLink href="/employees" icon="👤" label={t('common.manage_employees')} active={pathname.startsWith('/employees')} />
-                  {activeBusinessId && (
-                    <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label={t('settings.collection_settings')} active={pathname === `/b/${activeBusinessId}/settings`} />
-                  )}
-                  <NavLink href="/password-resets" icon="🔑" label={t('auth.change_password')} active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
+                  <NavLink href="/password-resets" icon="🔑" label="Employee Password Management" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
                 </NavSection>
               )}
 
               {/* If no business selected, prompt */}
               {!activeBusinessId && user.role !== Role.PLATFORM_ADMIN && (
                 <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-gray-500 mb-2">Select a business from the top-right dropdown to see all features.</p>
+                  <p className="text-sm text-gray-500 mb-2">Select a collection from the top-right dropdown to see all features.</p>
                 </div>
               )}
 
@@ -336,7 +339,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               )}
 
               {/* Help section */}
-              <NavSection title={t('profile.faq')}>
+              <NavSection title="Help">
                 <NavLink href="/contact-us" icon="📞" label={t('profile.contact_us')} active={pathname === '/contact-us'} />
                 <NavLink href="/faq" icon="❓" label={t('profile.faq')} active={pathname === '/faq'} />
               </NavSection>
@@ -354,6 +357,13 @@ export default function AppShell({ user, children }: AppShellProps) {
             </div>
           </nav>
         </>
+      )}
+
+      {/* System Banner */}
+      {systemBanner && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center">
+          <p className="text-sm text-amber-800">{systemBanner}</p>
+        </div>
       )}
 
       {/* Main Content */}

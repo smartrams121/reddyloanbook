@@ -455,7 +455,7 @@ export async function parseBusinessXlsx(buffer: ArrayBuffer | Buffer): Promise<P
         const paymentDate = parseDDMMYYYY(row.getCell(colDate).value)
         const collectedBy = colCollector ? cellStr(row, colCollector) : ''
 
-        if (amount === null || amount <= 0) {
+        if (amount === null || amount < 0) {
           payErrors.push({ sheet: 'Payments', row: rowNum, field: 'Amount', message: `Invalid payment amount at row ${rowNum}` })
           return
         }

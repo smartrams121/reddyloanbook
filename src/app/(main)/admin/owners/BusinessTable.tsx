@@ -45,6 +45,7 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
     if (!search.trim()) return rows
     const q = search.toLowerCase()
     return rows.filter(r =>
+      r.ownerId.toLowerCase().includes(q) ||
       r.ownerName.toLowerCase().includes(q) ||
       r.ownerUsername.toLowerCase().includes(q) ||
       r.ownerPhone.includes(q) ||
@@ -77,7 +78,7 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
       <input
         type="text"
         className="input mb-4"
-        placeholder="Search by organization, owner, phone, city..."
+        placeholder="Search by OrgID, organization, owner, username, city, phone, email..."
         value={search}
         onChange={(e) => { setSearch(e.target.value); setPage(0) }}
       />
@@ -91,6 +92,7 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
               <thead>
                 <tr className="text-left text-gray-500 border-b border-gray-200 bg-gray-50">
                   <th className="py-2 px-2 font-medium">#</th>
+                  <th className="py-2 px-2 font-medium">OrgID</th>
                   <th className="py-2 px-2 font-medium">Organization</th>
                   <th className="py-2 px-2 font-medium">Owner</th>
                   <th className="py-2 px-2 font-medium">City</th>
@@ -110,6 +112,7 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
                 {paged.map((r, i) => (
                   <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-2 px-2 text-gray-400">{page * PAGE_SIZE + i + 1}</td>
+                    <td className="py-2 px-2 text-gray-400 font-mono text-[10px]">{r.ownerId}</td>
                     <td className="py-2 px-2 font-medium text-gray-900">{r.organizationName}</td>
                     <td className="py-2 px-2">
                       <div className="font-medium text-gray-900">{r.ownerName}</div>
