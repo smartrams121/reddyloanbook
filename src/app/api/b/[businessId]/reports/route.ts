@@ -59,6 +59,8 @@ export async function GET(request: Request, { params }: Props) {
       return getPaymentsReport(businessId, startDate, endDate)
     case 'payslips':
       return getPaySlipsReport(businessId, startDate)
+    case 'daily_collection':
+      return getDailyCollectionReport(businessId, startDate, graceConfig)
     default:
       return NextResponse.json({ error: 'Invalid entity' }, { status: 400 })
   }
@@ -589,6 +591,91 @@ async function getPaySlipsReport(businessId: string, date: string) {
       { key: 'installmentAmount', label: 'Installment (₹)' },
       { key: 'collectionDate', label: 'Collection Date' },
       { key: 'paid', label: 'Paid' },
+    ],
+    rows,
+  })
+}
+
+async function getDailyCollectionReport(businessId: string, date: string, graceConfig: GracePeriodConfig) {
+  const loans = await prisma.loan.findMany({
+    where: { businessId, startDate: { lte: date }, status: { not: 'COMPLETED' } },
+    select: {
+      id: true, loanNumber: true, installmentAmount: true, totalRepayable: true,
+      expectedEndDate: true, numberOfInstallments: true, collectionType: true,
+      statusOverride: true, statusOverrideDate: true,
+      customer: { select: { fullName: true, customerId: true, village: { select: { name: true } } } },
+      agent: { select: { fullName: true } },
+    },
+  })
+
+  const loanIds = loans.map(l => l.id)
+
+  const [totalPaidSums, datePaidSums] = await Promise.all([
+    loanIds.length > 0
+      ? prisma.payment.groupBy({ by: ['loanId'], where: { loanId: { in: loanIds }, isDeleted: false }, _sum: { amount: true } })
+      : [],
+    loanIds.length > 0
+      ? prisma.payment.groupBy({ by: ['loanId'], where: { loanId: { in: loanIds }, paymentDate: date, isDeleted: false }, _sum: { amount: true } })
+      : [],
+  ])
+
+  const totalPaidMap = new Map(totalPaidSums.map(p => [p.loanId, p._sum.amount || 0]))
+  const datePaidMap = new Map(datePaidSums.map(p => [p.loanId, p._sum.amount || 0]))
+
+  const rows = loans
+    .map(l => {
+      const totalPaid = totalPaidMap.get(l.id) || 0
+      const outstanding = l.totalRepayable - totalPaid
+      if (outstanding <= 0) return null
+      const paidToday = datePaidMap.get(l.id) || 0
+      const status = resolveLoanStatus(l, totalPaid, getGracePeriod(graceConfig, l.collectionType), l.collectionType, graceConfig.defaulterPeriodDays)
+      return {
+        customerName: l.customer.fullName,
+        customerId: l.customer.customerId,
+        loanNumber: l.loanNumber,
+        location: l.customer.village.name,
+        installment: l.installmentAmount / 100,
+        paidToday: paidToday / 100,
+        outstanding: outstanding / 100,
+        agent: l.agent?.fullName || '-',
+        loanStatus: status,
+        paymentStatus: paidToday > 0 ? 'Paid' : 'Unpaid',
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a!.paymentStatus === b!.paymentStatus) return a!.customerName.localeCompare(b!.customerName)
+      return a!.paymentStatus === 'Unpaid' ? -1 : 1
+    })
+
+  const totalExpected = rows.reduce((sum, r) => sum + r!.installment, 0)
+  const totalCollected = rows.reduce((sum, r) => sum + r!.paidToday, 0)
+  const paidCount = rows.filter(r => r!.paymentStatus === 'Paid').length
+  const unpaidCount = rows.filter(r => r!.paymentStatus === 'Unpaid').length
+
+  return NextResponse.json({
+    entity: 'daily_collection',
+    from: date,
+    to: date,
+    count: rows.length,
+    summary: {
+      totalExpected: Math.round(totalExpected * 100) / 100,
+      totalCollected: Math.round(totalCollected * 100) / 100,
+      pending: Math.round((totalExpected - totalCollected) * 100) / 100,
+      paidCount,
+      unpaidCount,
+      pct: totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0,
+    },
+    columns: [
+      { key: 'customerName', label: 'Customer' },
+      { key: 'customerId', label: 'CID' },
+      { key: 'loanNumber', label: 'Loan #' },
+      { key: 'location', label: 'Location' },
+      { key: 'installment', label: 'Installment (₹)' },
+      { key: 'paidToday', label: 'Paid Today (₹)' },
+      { key: 'outstanding', label: 'Outstanding (₹)' },
+      { key: 'agent', label: 'Agent' },
+      { key: 'paymentStatus', label: 'Status' },
     ],
     rows,
   })

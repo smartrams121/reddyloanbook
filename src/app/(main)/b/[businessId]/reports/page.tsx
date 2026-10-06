@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 
 interface Column { key: string; label: string }
 
-type Entity = 'customers' | 'loans' | 'villages' | 'employees' | 'payments' | 'payslips'
+type Entity = 'customers' | 'loans' | 'villages' | 'employees' | 'payments' | 'payslips' | 'daily_collection'
 type RangePreset = 'all' | 'today' | 'yesterday' | '7d' | '30d' | 'custom'
 
 function todayISO() {
@@ -234,6 +234,7 @@ export default function ReportsPage() {
     { value: 'villages', label: 'Locations' },
     { value: 'employees', label: 'Employees' },
     { value: 'payslips', label: 'Pay Slips' },
+    { value: 'daily_collection', label: 'Daily Collection Summary' },
   ]
 
   const entities = userRole === 'AGENT'

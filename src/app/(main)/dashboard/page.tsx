@@ -8,6 +8,7 @@ import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 import BusinessActions from './BusinessActions'
 import { T } from '@/lib/i18n'
+import AutoRefresh from '@/components/AutoRefresh'
 
 export default async function DashboardPage() {
   const user = await getSession()
@@ -101,6 +102,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
+      <AutoRefresh />
       <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome, {user.fullName}</h1>
       <p className="text-sm text-gray-500 mb-6">
         {businesses.length} collection{businesses.length !== 1 ? 's' : ''} &middot; Select a collection from the top-right dropdown to manage it

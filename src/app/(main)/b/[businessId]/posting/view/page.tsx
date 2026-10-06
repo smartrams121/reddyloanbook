@@ -50,6 +50,9 @@ export default function ViewPaymentsPage() {
   const [sortField, setSortField] = useState('paymentDate')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
+  const [totalActiveLoans, setTotalActiveLoans] = useState(0)
+  const [totalExpected, setTotalExpected] = useState(0)
+
   // Customer search
   const [customers, setCustomers] = useState<{ id: string; fullName: string; phone: string; customerId: string; village: { name: string } }[]>([])
   const [customerQuery, setCustomerQuery] = useState('')
@@ -85,11 +88,16 @@ export default function ViewPaymentsPage() {
     if (collectorId) params.set('collectorId', collectorId)
     if (selectedCustomer) params.set('customerId', selectedCustomer.id)
 
-    fetch(`/api/b/${businessId}/payments?${params}`)
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setPayments(data) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch(`/api/b/${businessId}/payments?${params}`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/loans?activeOnDate=${toDate}`).then(r => r.json()).catch(() => []),
+    ]).then(([payData, loanData]) => {
+      if (Array.isArray(payData)) setPayments(payData)
+      if (Array.isArray(loanData)) {
+        setTotalActiveLoans(loanData.length)
+        setTotalExpected(loanData.reduce((sum: number, l: { installmentAmount: number }) => sum + (l.installmentAmount || 0), 0))
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [businessId, fromDate, toDate, villageId, collectorId, selectedCustomer])
 
   function daysAgo(n: number) {
@@ -332,6 +340,35 @@ export default function ViewPaymentsPage() {
       </div>
 
       {/* Payments Table */}
+      {/* Collection Stats */}
+      {!loading && (
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          {(() => {
+            const uniquePaidLoanIds = new Set(payments.map(p => p.loan?.loanNumber).filter(Boolean))
+            const paidCount = uniquePaidLoanIds.size
+            const unpaidCount = Math.max(0, totalActiveLoans - paidCount)
+            const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0)
+            const pct = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
+            return (
+              <>
+                <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                  Paid: {paidCount}
+                </span>
+                <Link
+                  href={`/b/${businessId}/posting/bulk`}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
+                >
+                  Unpaid: {unpaidCount}
+                </Link>
+                <span className="text-xs text-gray-500">
+                  Expected: {formatPaiseShort(totalExpected)} · Collected: {formatPaiseShort(totalCollected)} · {pct}%
+                </span>
+              </>
+            )
+          })()}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
