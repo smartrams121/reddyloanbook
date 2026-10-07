@@ -28,10 +28,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   await assertBusinessAccess(user, businessId)
 
+  const biz = await prisma.business.findUnique({ where: { id: businessId }, select: { ownerId: true } })
+  const isBusinessOwner = biz?.ownerId === userId
+
   const targetUser = await prisma.user.findFirst({
     where: {
       id: userId,
-      businessAssignments: { some: { businessId } },
+      ...(isBusinessOwner ? {} : { businessAssignments: { some: { businessId } } }),
     },
     select: {
       id: true,

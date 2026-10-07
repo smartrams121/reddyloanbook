@@ -18,8 +18,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
 
+  const biz = await prisma.business.findUnique({ where: { id: businessId }, select: { ownerId: true } })
+  const isBusinessOwner = biz?.ownerId === userId
+
   const targetUser = await prisma.user.findFirst({
-    where: { id: userId, businessAssignments: { some: { businessId } } },
+    where: { id: userId, ...(isBusinessOwner ? {} : { businessAssignments: { some: { businessId } } }) },
     select: {
       id: true, fullName: true, phone: true, role: true, isActive: true,
       villageAssignments: {
