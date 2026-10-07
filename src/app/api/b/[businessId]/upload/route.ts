@@ -12,6 +12,10 @@ interface Props {
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const DOCUMENT_TYPES = [...IMAGE_TYPES, 'application/pdf']
 
+function getUploadBase() {
+  return process.env.UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads')
+}
+
 export async function POST(request: Request, { params }: Props) {
   const { businessId } = await params
   const user = await getSession()
@@ -49,7 +53,7 @@ export async function POST(request: Request, { params }: Props) {
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
   const filename = `${crypto.randomUUID()}.${ext}`
   const subDir = type === 'document' ? 'documents' : 'customers'
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', subDir)
+  const uploadDir = path.join(getUploadBase(), subDir)
 
   await mkdir(uploadDir, { recursive: true })
 

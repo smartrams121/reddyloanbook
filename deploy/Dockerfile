@@ -55,8 +55,8 @@ COPY --from=deps /app/node_modules/tiny-inflate ./node_modules/tiny-inflate
 COPY --from=deps /app/node_modules/unicode-properties ./node_modules/unicode-properties
 COPY --from=deps /app/node_modules/unicode-trie ./node_modules/unicode-trie
 
-# Upload directory
-RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+# Upload directory (persistent volume mounted here)
+RUN mkdir -p /app/uploads/customers /app/uploads/documents && chown -R nextjs:nodejs /app/uploads
 
 USER nextjs
 

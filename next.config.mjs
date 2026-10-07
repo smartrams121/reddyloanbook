@@ -7,6 +7,14 @@ const nextConfig = {
     },
     serverComponentsExternalPackages: ['pdfkit'],
   },
+  async rewrites() {
+    if (process.env.UPLOAD_DIR) {
+      return [
+        { source: '/uploads/:path*', destination: '/api/uploads/:path*' },
+      ]
+    }
+    return []
+  },
 }
 
 export default nextConfig
