@@ -188,7 +188,7 @@ export default function EmployeesPage() {
                 <label className="label">{t('common.role')} *</label>
                 <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
                   <option value="AGENT">Agent</option>
-                  <option value="BUSINESS_ADMIN">Business Admin</option>
+                  <option value="BUSINESS_ADMIN">Partner</option>
                 </select>
               </div>
             </div>
@@ -229,7 +229,7 @@ export default function EmployeesPage() {
                       <label className="label text-xs">{t('common.role')}</label>
                       <select className="input" value={editRole} onChange={(e) => setEditRole(e.target.value)}>
                         <option value="AGENT">Agent</option>
-                        <option value="BUSINESS_ADMIN">Business Admin</option>
+                        <option value="BUSINESS_ADMIN">Partner</option>
                       </select>
                     </div>
                   </div>

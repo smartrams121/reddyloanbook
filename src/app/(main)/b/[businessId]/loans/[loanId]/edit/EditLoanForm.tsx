@@ -355,7 +355,7 @@ export default function EditLoanForm() {
               <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
                 <option value="">Not assigned</option>
                 {agents.map((a) => {
-                  const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'
+                  const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Partner' : 'Agent'
                   return <option key={a.id} value={a.id}>{a.fullName} ({roleLabel})</option>
                 })}
               </select>

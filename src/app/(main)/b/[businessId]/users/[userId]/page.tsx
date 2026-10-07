@@ -117,7 +117,7 @@ export default function EmployeeDetailPage() {
           <p className="text-sm text-gray-500">{user.phone}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${user.role === 'AGENT' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-              {user.role === 'BUSINESS_ADMIN' ? 'Admin' : user.role}
+              {user.role === 'BUSINESS_ADMIN' ? 'Partner' : user.role}
             </span>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
               {user.isActive ? 'Active' : 'Inactive'}

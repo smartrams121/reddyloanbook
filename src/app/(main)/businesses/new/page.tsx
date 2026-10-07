@@ -608,7 +608,7 @@ export default function NewBusinessPage() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900">{agent.fullName}</p>
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${isBA ? 'bg-purple-100 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
-                          {isBA ? 'Admin' : 'Agent'}
+                          {isBA ? 'Partner' : 'Agent'}
                         </span>
                       </div>
                       {agent.phone && <p className="text-xs text-gray-500">{agent.phone}</p>}

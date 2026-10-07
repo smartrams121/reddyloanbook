@@ -149,7 +149,7 @@ export default function EditUserPage() {
         </Link>
         <h1 className="text-xl font-bold text-gray-900 mt-2">Edit Employee</h1>
         <p className="text-sm text-gray-500">
-          @{username} &middot; {role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'}
+          @{username} &middot; {role === 'BUSINESS_ADMIN' ? 'Partner' : 'Agent'}
         </p>
       </div>
 

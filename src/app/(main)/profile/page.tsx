@@ -23,7 +23,7 @@ interface UserProfile {
 const ROLE_LABELS: Record<string, string> = {
   PLATFORM_ADMIN: 'Platform Admin',
   OWNER: 'Owner',
-  BUSINESS_ADMIN: 'Business Admin',
+  BUSINESS_ADMIN: 'Partner',
   AGENT: 'Agent',
 }
 

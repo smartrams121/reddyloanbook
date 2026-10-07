@@ -15,7 +15,7 @@
   "archive": "Archive",
   "username_at": "@{username}",
   "role_agent": "Agent",
-  "role_admin": "Admin",
+  "role_admin": "Partner",
   "role_owner": "Owner",
   "role_platform_admin": "Platform Admin",
   "status_active_badge": "Active",
