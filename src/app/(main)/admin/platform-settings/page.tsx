@@ -13,7 +13,15 @@ interface ContactUs {
 interface FaqItem {
   question: string
   answer: string
+  category: string
 }
+
+const FAQ_CATEGORIES = [
+  { value: 'admin', label: 'Admin Related Tasks' },
+  { value: 'collection', label: 'Collection Related Tasks' },
+  { value: 'security', label: 'Password, Access & Data Security' },
+  { value: 'others', label: 'Others' },
+]
 
 export default function PlatformSettingsPage() {
   const router = useRouter()
@@ -90,7 +98,7 @@ export default function PlatformSettingsPage() {
   }
 
   function addFaq() {
-    setFaqs([...faqs, { question: '', answer: '' }])
+    setFaqs([...faqs, { question: '', answer: '', category: 'others' }])
   }
 
   function removeFaq(index: number) {
@@ -244,6 +252,16 @@ export default function PlatformSettingsPage() {
                 >
                   Remove
                 </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={faq.category || 'others'}
+                  onChange={(e) => { const u = [...faqs]; u[i] = { ...u[i], category: e.target.value }; setFaqs(u) }}
+                  className="input"
+                >
+                  {FAQ_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
