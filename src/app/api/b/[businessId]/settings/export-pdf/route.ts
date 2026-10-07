@@ -35,7 +35,6 @@ export async function GET(_request: Request, { params }: Props) {
       where: { businessId, isDeleted: false },
       select: { receiptNumber: true, amount: true, paymentDate: true, note: true, loan: { select: { loanNumber: true, customer: { select: { fullName: true, customerId: true } } } }, collector: { select: { fullName: true } } },
       orderBy: { paymentDate: 'desc' },
-      take: 500,
     }),
     prisma.village.findMany({
       where: { businessId, isActive: true },
@@ -113,7 +112,7 @@ export async function GET(_request: Request, { params }: Props) {
   })
 
   // 3. Payments (last 500)
-  sectionHeader(`Payments (${payments.length}${payments.length >= 500 ? '+' : ''})`)
+  sectionHeader(`Payments (${payments.length})`)
   const pw = [60, 90, 55, 55, 55, 70, 40]
   tableRow(['Receipt', 'Customer', 'Loan #', 'Amount', 'Date', 'Collector', 'Mode'], pw, true)
   payments.forEach(p => tableRow([
