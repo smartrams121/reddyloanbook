@@ -152,6 +152,11 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
     a.remove()
   }
 
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
+  const outstanding = loan.totalRepayable - totalPaid
+  const paidInstallments = loan.installmentAmount > 0 ? Math.floor(totalPaid / loan.installmentAmount) : 0
+  const pendingInstallments = Math.max(0, loan.numberOfInstallments - paidInstallments)
+
   const rows: { label: string; value: string }[] = [
     { label: t('loans.loan_number'), value: loan.loanNumber },
     { label: t('customers.customer_name'), value: `${loan.customer.fullName} (${loan.customer.customerId})` },
@@ -163,9 +168,11 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
     { label: t('loans.principal_amount'), value: formatPaiseShort(loan.loanAmount) },
     { label: t('loans.interest_amount'), value: formatPaiseShort(loan.interestAmount) },
     { label: t('loans.total_repayable'), value: formatPaiseShort(loan.totalRepayable) },
-    { label: t('loans.amount_given'), value: formatPaiseShort(loan.amountGiven) },
+    { label: t('loans.total_paid'), value: formatPaiseShort(totalPaid) },
+    { label: t('loans.outstanding'), value: formatPaiseShort(outstanding) },
     { label: t('loans.installment'), value: formatPaiseShort(loan.installmentAmount) },
     { label: t('loans.num_installments'), value: String(loan.numberOfInstallments) },
+    { label: 'Pending Installments', value: String(pendingInstallments) },
     { label: t('loans.last_installment'), value: formatPaiseShort(loan.lastInstallmentAmount) },
     { label: t('loans.start_date'), value: formatDateDisplay(loan.startDate) },
     { label: t('loans.end_date'), value: formatDateDisplay(loan.expectedEndDate) },
