@@ -148,15 +148,15 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
         </div>
 
         {/* Customer Header with Photo */}
-        <div className="px-4 py-3 flex items-center gap-3">
+        <div className="px-4 py-3 flex flex-col items-center gap-2">
           {customer.photoPath ? (
-            <img src={customer.photoPath} alt={customer.fullName} className="w-14 h-14 rounded-full object-cover border-2 border-gray-200" />
+            <img src={customer.photoPath} alt={customer.fullName} className="w-[105px] h-[135px] object-cover border-2 border-gray-200 rounded-lg" />
           ) : (
-            <div className="w-14 h-14 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xl font-bold shrink-0">
+            <div className="w-[105px] h-[135px] rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center text-3xl font-bold shrink-0">
               {customer.fullName.charAt(0).toUpperCase()}
             </div>
           )}
-          <div>
+          <div className="text-center">
             <p className="text-base font-bold text-gray-900">{customer.fullName}</p>
             <p className="text-xs text-gray-500">{customer.customerId} · {customer.village.name}</p>
           </div>

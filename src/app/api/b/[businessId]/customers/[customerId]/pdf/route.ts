@@ -5,6 +5,8 @@ import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import PDFDocument from 'pdfkit'
+import { readFile } from 'fs/promises'
+import path from 'path'
 
 interface Props {
   params: Promise<{ businessId: string; customerId: string }>
@@ -88,6 +90,20 @@ export async function GET(request: Request, { params }: Props) {
   doc.moveDown(0.3)
   doc.fontSize(10).font('Helvetica').text(`Customer: ${customer.fullName} (${customer.customerId})`, { align: 'center' })
   doc.moveDown(1)
+
+  // Customer photo (passport size: 35mm × 45mm ≈ 99 × 127 pt)
+  if (customer.photoPath) {
+    try {
+      const uploadBase = process.env.UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads')
+      const relPath = customer.photoPath.replace(/^\/uploads\//, '')
+      const imgPath = path.join(uploadBase, relPath)
+      const imgBuf = await readFile(imgPath)
+      doc.image(imgBuf, doc.x, doc.y, { width: 99, height: 127 })
+      doc.y += 135
+    } catch {
+      // Photo file missing — skip silently
+    }
+  }
 
   // Customer info
   doc.fontSize(11).font('Helvetica-Bold').text('Customer Information')

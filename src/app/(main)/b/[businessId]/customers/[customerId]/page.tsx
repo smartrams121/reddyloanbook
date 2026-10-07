@@ -155,7 +155,7 @@ export default function CustomerDetailPage() {
 
       {/* ─── Section 1: Customer Summary Header ─── */}
       <div className="flex items-start gap-4 mb-4">
-        <div className="w-14 h-14 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
+        <div className="w-[105px] h-[135px] rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-2 border-gray-200">
           {customer.photoPath ? (
             <img src={customer.photoPath} alt={customer.fullName} className="w-full h-full object-cover" />
           ) : (
