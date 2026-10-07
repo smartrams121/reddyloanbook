@@ -446,6 +446,40 @@ export default function SettingsPage() {
           >
             {exporting ? t('settings.preparing_export') : t('settings.download_collection_data')}
           </button>
+          {/* PDF: Download on desktop, Share on mobile */}
+          <button
+            type="button"
+            onClick={() => {
+              const url = `/api/b/${businessId}/settings/export-pdf`
+              const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+              if (isMobile) {
+                fetch(url).then(r => r.blob()).then(blob => {
+                  const file = new File([blob], `Collection_Data.pdf`, { type: 'application/pdf' })
+                  if (navigator.share) {
+                    navigator.share({ files: [file], title: 'Collection Data' }).catch(() => {
+                      const a = document.createElement('a')
+                      a.href = URL.createObjectURL(blob)
+                      a.download = 'Collection_Data.pdf'
+                      document.body.appendChild(a); a.click(); a.remove()
+                    })
+                  } else {
+                    const a = document.createElement('a')
+                    a.href = URL.createObjectURL(blob)
+                    a.download = 'Collection_Data.pdf'
+                    document.body.appendChild(a); a.click(); a.remove()
+                  }
+                })
+              } else {
+                const a = document.createElement('a')
+                a.href = url; a.download = 'Collection_Data.pdf'
+                document.body.appendChild(a); a.click(); a.remove()
+              }
+            }}
+            className="w-full text-sm font-medium px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+          >
+            <span className="hidden md:inline">Download PDF</span>
+            <span className="md:hidden">Share PDF</span>
+          </button>
         </div>
 
         {/* Danger Zone */}
