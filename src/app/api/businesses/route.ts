@@ -38,25 +38,13 @@ export async function POST(request: Request) {
   }
 
   if (agentIds && agentIds.length > 0) {
-    const ownedBusinesses = await prisma.business.findMany({
-      where: { ownerId: user.id },
-      select: { id: true },
-    })
-    const ownedBizIds = new Set(ownedBusinesses.map((b) => b.id))
-
     const agents = await prisma.user.findMany({
-      where: { id: { in: agentIds }, role: 'AGENT', isActive: true },
-      include: { businessAssignments: { select: { businessId: true } } },
+      where: { id: { in: agentIds }, role: { in: ['AGENT', 'BUSINESS_ADMIN'] }, isActive: true },
+      select: { id: true, fullName: true },
     })
 
-    for (const agent of agents) {
-      const assignedToOwner = agent.businessAssignments.some((a) => ownedBizIds.has(a.businessId))
-      if (!assignedToOwner) {
-        return NextResponse.json(
-          { error: `Agent "${agent.fullName}" is not assigned to any of your businesses` },
-          { status: 403 }
-        )
-      }
+    if (agents.length !== agentIds.length) {
+      return NextResponse.json({ error: 'One or more selected agents are invalid or inactive' }, { status: 400 })
     }
   }
 
