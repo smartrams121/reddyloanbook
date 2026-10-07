@@ -13,6 +13,8 @@ interface CustomerRow {
   fullName: string
   phone: string
   status: string
+  latitude?: number | null
+  longitude?: number | null
   village: { id: string; name: string }
   _count: { loans: number }
 }
@@ -525,6 +527,19 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                   >
                     {t('payments.new_payment')}
                   </button>
+                  {(() => {
+                    const cust = customers.find(c => c.id === selectedId)
+                    return cust?.latitude && cust?.longitude ? (
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${cust.latitude},${cust.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 text-xs font-medium rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+                      >
+                        Navigate
+                      </a>
+                    ) : null
+                  })()}
                   <button
                     onClick={() => router.push(`/b/${businessId}/customers/${selectedId}/edit`)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"

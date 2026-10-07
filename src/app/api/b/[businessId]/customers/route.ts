@@ -142,6 +142,8 @@ export async function POST(request: Request, { params }: Props) {
           guarantorName: parsed.data.guarantorName || null,
           guarantorPhone: parsed.data.guarantorPhone || null,
           notes: parsed.data.notes || null,
+          latitude: parsed.data.latitude || null,
+          longitude: parsed.data.longitude || null,
           photoPath: parsed.data.photoPath || null,
           villageId: parsed.data.villageId,
           businessId,

@@ -209,6 +209,8 @@ model Customer {
   guarantorName  String?
   guarantorPhone String?
   notes          String?
+  latitude       Float?
+  longitude      Float?
   status         String   @default("ACTIVE")
 
   villageId  String

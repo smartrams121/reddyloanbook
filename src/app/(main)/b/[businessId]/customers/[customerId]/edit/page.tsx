@@ -25,6 +25,9 @@ export default function EditCustomerPage() {
   const [guarantorName, setGuarantorName] = useState('')
   const [guarantorPhone, setGuarantorPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
+  const [locating, setLocating] = useState(false)
   const [photoPath, setPhotoPath] = useState('')
   const [photoPreview, setPhotoPreview] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -55,6 +58,8 @@ export default function EditCustomerPage() {
           setGuarantorName(cust.guarantorName || '')
           setGuarantorPhone(cust.guarantorPhone || '')
           setNotes(cust.notes || '')
+          if (cust.latitude) setLatitude(cust.latitude)
+          if (cust.longitude) setLongitude(cust.longitude)
           if (cust.photoPath) {
             setPhotoPath(cust.photoPath)
             setPhotoPreview(cust.photoPath)
@@ -118,6 +123,8 @@ export default function EditCustomerPage() {
         guarantorName,
         guarantorPhone,
         notes,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
         photoPath: photoPath || null,
       }
       if (age) body.age = parseInt(age, 10)
@@ -288,6 +295,33 @@ export default function EditCustomerPage() {
         <div>
           <label className="label">{t('customers.notes')}</label>
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="label">Customer Location</label>
+          {latitude && longitude ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-green-600 font-medium">Location captured</span>
+              <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">View on Map</a>
+              <button type="button" onClick={() => { setLatitude(null); setLongitude(null) }} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={locating}
+              onClick={() => {
+                setLocating(true)
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => { setLatitude(pos.coords.latitude); setLongitude(pos.coords.longitude); setLocating(false) },
+                  () => { alert('Location access denied. Please enable GPS.'); setLocating(false) },
+                  { enableHighAccuracy: true, timeout: 10000 }
+                )
+              }}
+              className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              {locating ? 'Getting location...' : 'Capture Location'}
+            </button>
+          )}
         </div>
 
         <div className="flex gap-3 pt-2">

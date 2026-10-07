@@ -673,7 +673,7 @@ export default function RecordPaymentPage() {
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value)}
                 placeholder="0"
-                min={1}
+                min={0}
                 step="any"
                 autoFocus
                 required

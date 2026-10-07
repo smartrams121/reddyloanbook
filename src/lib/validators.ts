@@ -75,6 +75,8 @@ export const createCustomerSchema = z.object({
   guarantorName: z.string().optional(),
   guarantorPhone: phoneSchema.optional().or(z.literal('')),
   notes: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   photoPath: z.string().optional(),
 })
 

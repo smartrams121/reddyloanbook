@@ -71,6 +71,7 @@ export async function GET(request: Request, { params }: Props) {
         loanId: { in: allLoanIds },
         paymentDate: date,
         isDeleted: false,
+        amount: { gt: 0 },
       },
       select: { id: true, loanId: true, amount: true },
       orderBy: { createdAt: 'desc' },

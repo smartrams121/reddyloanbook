@@ -21,6 +21,8 @@ const updateCustomerSchema = z.object({
   guarantorName: z.string().optional(),
   guarantorPhone: phoneSchema.optional().or(z.literal('')),
   notes: z.string().optional(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
   photoPath: z.string().optional().nullable(),
   villageId: z.string().optional(),
   status: z.enum(['ACTIVE', 'CLOSED']).optional(),
@@ -161,6 +163,8 @@ export async function PATCH(request: Request, { params }: Props) {
   if (parsed.data.guarantorName !== undefined) data.guarantorName = parsed.data.guarantorName || null
   if (parsed.data.guarantorPhone !== undefined) data.guarantorPhone = parsed.data.guarantorPhone || null
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes || null
+  if (parsed.data.latitude !== undefined) data.latitude = parsed.data.latitude || null
+  if (parsed.data.longitude !== undefined) data.longitude = parsed.data.longitude || null
   if (parsed.data.photoPath !== undefined) data.photoPath = parsed.data.photoPath || null
   if (parsed.data.status) data.status = parsed.data.status
   if (parsed.data.villageId) {

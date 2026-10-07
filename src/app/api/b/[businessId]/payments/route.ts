@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: Props) {
   const villageId = searchParams.get('villageId')
   const collectorId = searchParams.get('collectorId')
 
-  const where: Record<string, unknown> = { businessId, isDeleted: false }
+  const where: Record<string, unknown> = { businessId, isDeleted: false, amount: { gt: 0 } }
 
   // Agents only see payments for their assigned loans
   if (user.role === Role.AGENT) {
