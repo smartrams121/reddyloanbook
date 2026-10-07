@@ -255,36 +255,6 @@ export default function EditLoanForm() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('loans.repayment_schedule')}</h2>
 
           <div>
-            <label className="label">{t('loans.collection_type')} *</label>
-            <div className="grid grid-cols-3 gap-2">
-              {['DAILY', 'WEEKLY', 'MONTHLY'].map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setCollectionType(type)}
-                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                    collectionType === type
-                      ? 'bg-primary-600 text-white border-primary-600'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {collectionType === 'WEEKLY' && (
-            <div>
-              <label className="label">{t('loans.collection_day')}</label>
-              <select className="input" value={collectionDay} onChange={(e) => setCollectionDay(e.target.value)}>
-                <option value="">Select day</option>
-                {days.map((d) => <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>)}
-              </select>
-            </div>
-          )}
-
-          <div>
             <label className="label">{t('loans.start_date')} *</label>
             <input type="date" className="input w-full min-w-0" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
           </div>

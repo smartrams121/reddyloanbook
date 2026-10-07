@@ -33,6 +33,8 @@ interface CustomerDetail {
   guarantorName: string | null
   guarantorPhone: string | null
   notes: string | null
+  latitude: number | null
+  longitude: number | null
   status: string
   village: { id: string; name: string }
   createdAt: string
@@ -117,18 +119,20 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
   const rows: { label: string; value: string }[] = [
     { label: t('customers.customer_id'), value: customer.customerId },
     { label: t('customers.full_name'), value: customer.fullName },
-    ...(customer.age ? [{ label: t('customers.age'), value: String(customer.age) }] : []),
-    { label: t('customers.phone'), value: customer.phone },
-    ...(customer.altPhone ? [{ label: t('customers.alt_phone'), value: customer.altPhone }] : []),
+    { label: t('customers.age'), value: customer.age ? String(customer.age) : '-' },
+    { label: t('customers.phone'), value: customer.phone || '-' },
+    { label: t('customers.alt_phone'), value: customer.altPhone || '-' },
     { label: t('customers.location'), value: customer.village.name },
-    ...(customer.address ? [{ label: t('customers.address'), value: customer.address }] : []),
-    ...(customer.jobType ? [{ label: t('customers.occupation'), value: customer.jobType }] : []),
-    ...(customer.guarantorName ? [{ label: t('customers.guarantor'), value: customer.guarantorName }] : []),
-    ...(customer.guarantorPhone ? [{ label: t('customers.guarantor_phone'), value: customer.guarantorPhone }] : []),
-    ...(customer.aadhaarLast4 ? [{ label: t('customers.aadhaar_last4'), value: `XXXX-XXXX-${customer.aadhaarLast4}` }] : []),
-    ...(customer.notes ? [{ label: t('customers.notes'), value: customer.notes }] : []),
+    { label: t('customers.address'), value: customer.address || '-' },
+    { label: t('customers.occupation'), value: customer.jobType || '-' },
+    { label: t('customers.aadhaar_last4'), value: customer.aadhaarLast4 ? `XXXX-XXXX-${customer.aadhaarLast4}` : '-' },
+    { label: t('customers.guarantor'), value: customer.guarantorName || '-' },
+    { label: t('customers.guarantor_phone'), value: customer.guarantorPhone || '-' },
+    { label: t('customers.notes'), value: customer.notes || '-' },
+    { label: 'GPS Location', value: customer.latitude && customer.longitude ? `${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}` : '-' },
     { label: t('customers.status'), value: s.customerStatus },
     { label: t('common.created'), value: new Date(customer.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
+    { label: t('customers.photo'), value: customer.photoPath ? 'Uploaded' : '-' },
   ]
 
   return (
@@ -141,6 +145,21 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
         <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-base font-bold text-gray-900">{t('customers.customer_details')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+
+        {/* Customer Header with Photo */}
+        <div className="px-4 py-3 flex items-center gap-3">
+          {customer.photoPath ? (
+            <img src={customer.photoPath} alt={customer.fullName} className="w-14 h-14 rounded-full object-cover border-2 border-gray-200" />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xl font-bold shrink-0">
+              {customer.fullName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <p className="text-base font-bold text-gray-900">{customer.fullName}</p>
+            <p className="text-xs text-gray-500">{customer.customerId} · {customer.village.name}</p>
+          </div>
         </div>
 
         {/* Summary */}
@@ -168,7 +187,18 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
           {rows.map((r, i) => (
             <div key={i} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
               <span className="text-xs text-gray-500">{r.label}</span>
-              <span className="text-xs font-medium text-gray-900 text-right max-w-[60%]">{r.value}</span>
+              {r.label === 'GPS Location' && customer.latitude && customer.longitude ? (
+                <a
+                  href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-primary-600 hover:underline text-right max-w-[60%]"
+                >
+                  {r.value} ↗
+                </a>
+              ) : (
+                <span className="text-xs font-medium text-gray-900 text-right max-w-[60%]">{r.value}</span>
+              )}
             </div>
           ))}
         </div>
