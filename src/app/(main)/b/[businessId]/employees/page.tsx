@@ -179,9 +179,11 @@ export default function EmployeesAssignmentPage() {
                     </div>
                     <p className="text-xs text-gray-500">
                       @{emp.username}{emp.phone ? ` · ${emp.phone}` : ''}
-                      {emp.villageIds.length > 0 && (
+                      {emp.role === 'BUSINESS_ADMIN' ? (
+                        <span className="text-gray-400"> · {t('common.all_villages')}</span>
+                      ) : emp.villageIds.length > 0 ? (
                         <span className="text-gray-400"> · {emp.villageIds.length} location{emp.villageIds.length !== 1 ? 's' : ''}</span>
-                      )}
+                      ) : null}
                     </p>
                   </div>
 
@@ -193,18 +195,20 @@ export default function EmployeesAssignmentPage() {
                     {t('common.view')}
                   </Link>
 
-                  <button
-                    onClick={() => setExpandedUser(expandedUser === emp.id ? null : emp.id)}
-                    className="shrink-0"
-                  >
-                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedUser === emp.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                  {emp.role === 'AGENT' && (
+                    <button
+                      onClick={() => setExpandedUser(expandedUser === emp.id ? null : emp.id)}
+                      className="shrink-0"
+                    >
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedUser === emp.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
-                {/* Village assignments */}
-                {expandedUser === emp.id && (
+                {/* Village assignments — only for Agents */}
+                {expandedUser === emp.id && emp.role === 'AGENT' && (
                   <div className="px-4 pb-4 pt-0">
                     <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">{t('common.assign_locations')}</p>
                     {villages.length === 0 ? (

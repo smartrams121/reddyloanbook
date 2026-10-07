@@ -137,10 +137,14 @@ export default function NewBusinessPage() {
       .then((data) => {
         if (data.owner) {
           setOwnerInfo({ id: data.owner.id, fullName: data.owner.fullName, phone: data.owner.phone })
-          setSelectedAgentIds([data.owner.id])
         }
         const emps = data.employees || (Array.isArray(data) ? data : [])
-        setAgents(emps.map((e: { id: string; fullName: string; phone: string | null }) => ({ id: e.id, fullName: e.fullName, phone: e.phone })))
+        setAgents(emps.map((e: { id: string; fullName: string; phone: string | null; role?: string }) => ({ id: e.id, fullName: e.fullName, phone: e.phone, role: e.role })))
+        // Default select Owner + all BAs
+        const defaultIds: string[] = []
+        if (data.owner) defaultIds.push(data.owner.id)
+        emps.forEach((e: { id: string; role?: string }) => { if (e.role === 'BUSINESS_ADMIN') defaultIds.push(e.id) })
+        setSelectedAgentIds(defaultIds)
       })
       .catch(() => {})
   }, [])
@@ -586,25 +590,33 @@ export default function NewBusinessPage() {
                   </div>
                 </label>
               )}
-              {agents.map((agent) => (
-                <label key={agent.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+              {agents.map((agent) => {
+                const isBA = (agent as { role?: string }).role === 'BUSINESS_ADMIN'
+                return (
+                <label key={agent.id} className={`flex items-center gap-3 py-2 px-2 rounded-lg cursor-pointer ${isBA ? 'bg-purple-50 border border-purple-200' : 'hover:bg-gray-50'}`}>
                   <input
                     type="checkbox"
                     checked={selectedAgentIds.includes(agent.id)}
                     onChange={() => toggleAgent(agent.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                    className={`w-4 h-4 rounded ${isBA ? 'border-purple-400 text-purple-600' : 'border-gray-300 text-primary-600'}`}
                   />
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isBA ? 'bg-purple-200 text-purple-800' : 'bg-blue-50 text-blue-600'}`}>
                       {agent.fullName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{agent.fullName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{agent.fullName}</p>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${isBA ? 'bg-purple-100 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
+                          {isBA ? 'Admin' : 'Agent'}
+                        </span>
+                      </div>
                       {agent.phone && <p className="text-xs text-gray-500">{agent.phone}</p>}
                     </div>
                   </div>
                 </label>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
