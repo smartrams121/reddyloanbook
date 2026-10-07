@@ -105,15 +105,19 @@ export async function POST(request: Request, { params }: Props) {
   const paymentDate = parsed.data.paymentDate || todayIST()
   let collector = user.id
   if (parsed.data.collectorId) {
-    const assignment = await prisma.userBusinessAssignment.findFirst({
-      where: { userId: parsed.data.collectorId, businessId },
-      include: { user: { select: { isActive: true } } },
-    })
-    if (!assignment) {
-      return NextResponse.json({ error: 'Selected collector is not assigned to this business' }, { status: 400 })
-    }
-    if (!assignment.user.isActive) {
-      return NextResponse.json({ error: 'Selected collector is inactive' }, { status: 400 })
+    const biz = await prisma.business.findUnique({ where: { id: businessId }, select: { ownerId: true } })
+    const isOwner = biz?.ownerId === parsed.data.collectorId
+    if (!isOwner) {
+      const assignment = await prisma.userBusinessAssignment.findFirst({
+        where: { userId: parsed.data.collectorId, businessId },
+        include: { user: { select: { isActive: true } } },
+      })
+      if (!assignment) {
+        return NextResponse.json({ error: 'Selected collector is not assigned to this business' }, { status: 400 })
+      }
+      if (!assignment.user.isActive) {
+        return NextResponse.json({ error: 'Selected collector is inactive' }, { status: 400 })
+      }
     }
     collector = parsed.data.collectorId
   }

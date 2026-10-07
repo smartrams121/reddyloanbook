@@ -87,16 +87,19 @@ export async function POST(request: Request, { params }: Props) {
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { id: true, collectionDays: true, loanSeq: true, receiptPrefix: true, loanIdFormat: true, loanIdPrefix: true, loanIdPadding: true, loanIdStart: true, loanIdMax: true },
+    select: { id: true, ownerId: true, collectionDays: true, loanSeq: true, receiptPrefix: true, loanIdFormat: true, loanIdPrefix: true, loanIdPadding: true, loanIdStart: true, loanIdMax: true },
   })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
   if (agentId) {
-    const agent = await prisma.userBusinessAssignment.findFirst({
-      where: { userId: agentId, businessId },
-    })
-    if (!agent) {
-      return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
+    const isBusinessOwner = business.ownerId === agentId
+    if (!isBusinessOwner) {
+      const agent = await prisma.userBusinessAssignment.findFirst({
+        where: { userId: agentId, businessId },
+      })
+      if (!agent) {
+        return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
+      }
     }
   }
 

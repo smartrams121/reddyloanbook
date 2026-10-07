@@ -83,10 +83,14 @@ export async function PATCH(request: Request, { params }: Props) {
   // Agent validation
   if (d.agentId !== undefined) {
     if (d.agentId) {
-      const agent = await prisma.userBusinessAssignment.findFirst({
-        where: { userId: d.agentId, businessId },
-      })
-      if (!agent) return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
+      const biz = await prisma.business.findUnique({ where: { id: businessId }, select: { ownerId: true } })
+      const isOwner = biz?.ownerId === d.agentId
+      if (!isOwner) {
+        const agent = await prisma.userBusinessAssignment.findFirst({
+          where: { userId: d.agentId, businessId },
+        })
+        if (!agent) return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
+      }
     }
     data.agentId = d.agentId || null
   }
