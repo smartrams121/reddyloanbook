@@ -65,7 +65,7 @@ export default function EditLoanForm() {
     ]).then(([loanData, biz, users]) => {
       setLoan(loanData)
       setSettings(biz)
-      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+      if (Array.isArray(users)) setAgents(users)
 
       // Populate form — amounts stored in paise, show in rupees
       setLoanAmountStr(String(loanData.loanAmount / 100))
@@ -353,8 +353,11 @@ export default function EditLoanForm() {
             <div>
               <label className="label">{t('loans.assigned_agent')}</label>
               <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                <option value="">No agent (Owner collects)</option>
-                {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                <option value="">Not assigned</option>
+                {agents.map((a) => {
+                  const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'
+                  return <option key={a.id} value={a.id}>{a.fullName} ({roleLabel})</option>
+                })}
               </select>
             </div>
           )}

@@ -139,9 +139,12 @@ export default function EmployeesAssignmentPage() {
                       @{owner.username}{owner.phone ? ` · ${owner.phone}` : ''} · {t('common.all_villages')}
                     </p>
                   </div>
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 shrink-0">
-                    {t('common.active')}
-                  </span>
+                  <Link
+                    href={`/b/${businessId}/users/${owner.id}`}
+                    className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors"
+                  >
+                    {t('common.view')}
+                  </Link>
                 </div>
               </div>
             )}

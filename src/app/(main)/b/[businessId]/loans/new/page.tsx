@@ -94,11 +94,11 @@ export default function NewLoanPage() {
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
 
-  // Filter agents by selected customer's village
+  // Filter: agents in customer's village + all BAs + owner
   const filteredAgents = selectedCustomer
     ? agents.filter(a =>
-        !a.villageAssignments || a.villageAssignments.length === 0 ||
-        a.villageAssignments.some(va => va.village.id === selectedCustomer.village.id)
+        a.role === 'OWNER' || a.role === 'BUSINESS_ADMIN' ||
+        (a.role === 'AGENT' && a.villageAssignments?.some(va => va.village.id === selectedCustomer.village.id))
       )
     : agents
 
@@ -166,9 +166,7 @@ export default function NewLoanPage() {
       setSettings(biz)
       if (Array.isArray(vils)) setVillages(vils)
       if (Array.isArray(users)) {
-        const agentList = users.filter((u: Agent) => u.role === 'AGENT')
-        setAgents(agentList)
-        if (agentList.length > 0 && !agentId) setAgentId(agentList[0].id)
+        setAgents(users)
       }
       if (Array.isArray(custs)) {
         setCustomers(custs)
@@ -187,12 +185,17 @@ export default function NewLoanPage() {
 
   async function selectCustomer(customer: CustomerResult) {
     setSelectedCustomer(customer)
-    // Auto-select first agent matching customer's village
-    const matching = agents.filter(a =>
-      !a.villageAssignments || a.villageAssignments.length === 0 ||
-      a.villageAssignments.some(va => va.village.id === customer.village.id)
+    // Priority auto-select: Agent in village → BA → Owner
+    const villageAgents = agents.filter(a =>
+      a.role === 'AGENT' &&
+      a.villageAssignments?.some(va => va.village.id === customer.village.id)
     )
-    if (matching.length > 0) setAgentId(matching[0].id)
+    const bas = agents.filter(a => a.role === 'BUSINESS_ADMIN')
+    const owner = agents.find(a => a.role === 'OWNER')
+
+    if (villageAgents.length > 0) setAgentId(villageAgents[0].id)
+    else if (bas.length > 0) setAgentId(bas[0].id)
+    else if (owner) setAgentId(owner.id)
     else setAgentId('')
     setCheckingLoans(true)
     try {
@@ -841,10 +844,13 @@ export default function NewLoanPage() {
               <label className="label">{t('loans.agent')} *</label>
               {filteredAgents.length > 0 ? (
                 <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                  {filteredAgents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+                  {filteredAgents.map((a) => {
+                    const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Agent'
+                    return <option key={a.id} value={a.id}>{a.fullName} ({roleLabel})</option>
+                  })}
                 </select>
               ) : (
-                <p className="text-sm text-gray-400 py-2">{agents.length > 0 ? 'No agents assigned to this location.' : 'No agents assigned. Add agents from the Team page.'}</p>
+                <p className="text-sm text-gray-400 py-2">No team members available. Add employees from the Manage Employees page.</p>
               )}
             </div>
 

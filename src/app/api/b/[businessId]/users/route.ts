@@ -44,6 +44,15 @@ export async function GET(_request: Request, { params }: RouteParams) {
     ),
   }))
 
+  // Include the business owner
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { owner: { select: { id: true, username: true, fullName: true, phone: true, role: true, isActive: true, createdAt: true } } },
+  })
+  if (business?.owner && !users.some(u => u.id === business.owner.id)) {
+    users.push({ ...business.owner, villageAssignments: [] })
+  }
+
   return NextResponse.json(users)
 }
 
