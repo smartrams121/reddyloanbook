@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: 'Finance collection management system',
   manifest: '/manifest.json',
   icons: {
+    icon: '/favicon.svg',
     apple: '/icons/icon-192.png',
   },
 }
