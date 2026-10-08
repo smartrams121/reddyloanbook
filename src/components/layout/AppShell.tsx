@@ -35,7 +35,7 @@ export default function AppShell({ user, children }: AppShellProps) {
 
   useEffect(() => {
     if (user.role === Role.OWNER) {
-      fetch('/api/owner/businesses')
+      fetch('/api/owner/businesses', { cache: 'no-store' })
         .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data)) setBusinesses(data)

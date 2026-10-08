@@ -12,6 +12,16 @@ const nextConfig = {
       { source: '/uploads/:path*', destination: '/api/uploads/:path*' },
     ]
   },
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+        ],
+      },
+    ]
+  },
 }
 
 export default nextConfig
