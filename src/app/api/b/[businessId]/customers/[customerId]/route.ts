@@ -160,7 +160,7 @@ export async function PATCH(request: Request, { params }: Props) {
   }
   if (parsed.data.fullName) data.fullName = parsed.data.fullName
   if (parsed.data.age !== undefined) data.age = parsed.data.age
-  if (parsed.data.phone !== undefined) data.phone = parsed.data.phone || null
+  if (parsed.data.phone !== undefined) data.phone = parsed.data.phone || ''
   if (parsed.data.altPhone !== undefined) data.altPhone = parsed.data.altPhone || null
   if (parsed.data.address !== undefined) data.address = parsed.data.address || null
   if (parsed.data.jobType !== undefined) data.jobType = parsed.data.jobType || null
