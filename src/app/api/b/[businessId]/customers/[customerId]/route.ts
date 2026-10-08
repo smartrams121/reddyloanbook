@@ -160,9 +160,7 @@ export async function PATCH(request: Request, { params }: Props) {
   }
   if (parsed.data.fullName) data.fullName = parsed.data.fullName
   if (parsed.data.age !== undefined) data.age = parsed.data.age
-  if (parsed.data.phone) {
-    data.phone = parsed.data.phone
-  }
+  if (parsed.data.phone !== undefined) data.phone = parsed.data.phone || null
   if (parsed.data.altPhone !== undefined) data.altPhone = parsed.data.altPhone || null
   if (parsed.data.address !== undefined) data.address = parsed.data.address || null
   if (parsed.data.jobType !== undefined) data.jobType = parsed.data.jobType || null
@@ -173,8 +171,8 @@ export async function PATCH(request: Request, { params }: Props) {
   if (parsed.data.guarantorName !== undefined) data.guarantorName = parsed.data.guarantorName || null
   if (parsed.data.guarantorPhone !== undefined) data.guarantorPhone = parsed.data.guarantorPhone || null
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes || null
-  if (parsed.data.latitude !== undefined) data.latitude = parsed.data.latitude || null
-  if (parsed.data.longitude !== undefined) data.longitude = parsed.data.longitude || null
+  if (parsed.data.latitude !== undefined) data.latitude = parsed.data.latitude ?? null
+  if (parsed.data.longitude !== undefined) data.longitude = parsed.data.longitude ?? null
   if (parsed.data.photoPath !== undefined) data.photoPath = parsed.data.photoPath || null
   if (parsed.data.status) data.status = parsed.data.status
   if (parsed.data.villageId) {

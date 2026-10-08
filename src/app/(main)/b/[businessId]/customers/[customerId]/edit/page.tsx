@@ -119,17 +119,17 @@ export default function EditCustomerPage() {
     try {
       const body: Record<string, unknown> = {
         fullName,
-        phone: phone || undefined,
+        phone,
         ...(custId !== originalCustId && { customerId: custId }),
         altPhone,
         villageId,
         address,
-        jobType: jobType || undefined,
+        jobType,
         guarantorName,
         guarantorPhone,
         notes,
-        latitude: latitude || undefined,
-        longitude: longitude || undefined,
+        latitude,
+        longitude,
         photoPath: photoPath || null,
       }
       if (age) body.age = parseInt(age, 10)
