@@ -38,7 +38,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   try { await assertBusinessAccess(user, businessId) } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
-  assertPermission(user, 'post_payment')
+  assertPermission(user, 'post_payment', businessId)
 
   const body = await request.json()
   const { payments, confirm } = body as { payments: PaymentRow[]; confirm?: boolean }

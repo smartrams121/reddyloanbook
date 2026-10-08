@@ -88,7 +88,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'edit_business_settings')
+    assertPermission(user, 'edit_business_settings', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
@@ -121,7 +121,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'deactivate_business')
+    assertPermission(user, 'deactivate_business', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

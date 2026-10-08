@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { assertBusinessAccess } from '@/lib/scope'
+import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { todayIST, parseISODate, addMonths } from '@/lib/date'
 import { Role } from '@/lib/constants'
@@ -43,11 +43,6 @@ export async function GET(request: Request, { params }: Props) {
 
   const where: Record<string, unknown> = { businessId, isDeleted: false, amount: { gt: 0 } }
 
-  // Agents only see payments for their assigned loans
-  if (user.role === Role.AGENT) {
-    where.loan = { ...((where.loan as Record<string, unknown>) || {}), agentId: user.id }
-  }
-
   if (loanId) where.loanId = loanId
   if (date) where.paymentDate = date
   if (from && to) where.paymentDate = { gte: from, lte: to }
@@ -57,6 +52,15 @@ export async function GET(request: Request, { params }: Props) {
   const loanFilter: Record<string, unknown> = {}
   if (customerId) loanFilter.customerId = customerId
   if (villageId) loanFilter.customer = { villageId }
+
+  // Agents see payments for loans in their assigned villages
+  if (user.role === Role.AGENT) {
+    const agentVillageIds = await getAccessibleVillageIds(user, businessId)
+    if (agentVillageIds !== 'all') {
+      loanFilter.customer = { ...((loanFilter.customer as Record<string, unknown>) || {}), villageId: { in: agentVillageIds } }
+    }
+  }
+
   if (Object.keys(loanFilter).length > 0) where.loan = loanFilter
 
   const payments = await prisma.payment.findMany({
@@ -84,7 +88,7 @@ export async function POST(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'post_payment')
+    assertPermission(user, 'post_payment', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
@@ -133,8 +137,16 @@ export async function POST(request: Request, { params }: Props) {
   }
   const loan = await prisma.loan.findFirst({
     where: { id: loanId, businessId },
+    include: { customer: { select: { villageId: true } } },
   })
   if (!loan) return NextResponse.json({ error: 'Loan not found' }, { status: 404 })
+
+  if (user.role === Role.AGENT) {
+    const agentVillageIds = await getAccessibleVillageIds(user, businessId)
+    if (agentVillageIds !== 'all' && loan.customer?.villageId && !agentVillageIds.includes(loan.customer.villageId)) {
+      return NextResponse.json({ error: 'You do not have access to this location' }, { status: 403 })
+    }
+  }
 
   const loanStartDate = parseISODate(loan.startDate)
   if (payDate < loanStartDate) {

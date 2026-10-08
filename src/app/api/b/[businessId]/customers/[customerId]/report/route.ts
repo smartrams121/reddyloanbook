@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'view_all_reports')
+    assertPermission(user, 'view_all_reports', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

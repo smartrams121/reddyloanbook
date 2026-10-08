@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { assertBusinessAccess } from '@/lib/scope'
+import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
 import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 
@@ -45,9 +45,12 @@ export default async function LoansPage({ params, searchParams }: Props) {
 
   const where: Record<string, unknown> = { businessId }
 
-  // Agents only see their own loans
+  // Agents see loans in their assigned villages
   if (user.role === Role.AGENT) {
-    where.agentId = user.id
+    const villageIds = await getAccessibleVillageIds(user, businessId)
+    if (villageIds !== 'all') {
+      where.customer = { villageId: { in: villageIds } }
+    }
   }
 
   const searchQuery = filters.search?.trim().toLowerCase()

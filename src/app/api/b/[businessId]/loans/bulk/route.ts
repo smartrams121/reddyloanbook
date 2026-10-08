@@ -43,7 +43,7 @@ export async function POST(request: Request, { params }: Props) {
   }
 
   if (action === 'delete') {
-    assertPermission(user, 'delete_loan')
+    assertPermission(user, 'delete_loan', businessId)
 
     await prisma.$transaction(async (tx) => {
       const ids = loans.map((l) => l.id)

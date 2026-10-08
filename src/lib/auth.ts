@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { Role } from './constants'
+import type { AgentPermissionGrid } from './agent-permissions'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
 const SESSION_EXPIRY_HOURS = parseInt(process.env.SESSION_EXPIRY_HOURS || '24')
@@ -26,6 +27,7 @@ export interface AuthUser {
   ownerId: string | null
   organizationName: string | null
   preferredLanguage: string
+  agentPermissions: Record<string, AgentPermissionGrid | null>
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -146,6 +148,16 @@ export async function getSession(): Promise<AuthUser | null> {
     }
   }
 
+  const agentPermissions: Record<string, AgentPermissionGrid | null> = {}
+  if (user.role === Role.AGENT) {
+    for (const a of user.businessAssignments) {
+      const raw = (a as Record<string, unknown>).permissions
+      if (!raw) { agentPermissions[a.businessId] = null }
+      else if (typeof raw === 'string') { try { agentPermissions[a.businessId] = JSON.parse(raw) } catch { agentPermissions[a.businessId] = null } }
+      else { agentPermissions[a.businessId] = raw as AgentPermissionGrid }
+    }
+  }
+
   return {
     id: user.id,
     username: user.username,
@@ -159,6 +171,7 @@ export async function getSession(): Promise<AuthUser | null> {
     ownerId,
     organizationName,
     preferredLanguage: user.preferredLanguage || 'en',
+    agentPermissions,
   }
 }
 

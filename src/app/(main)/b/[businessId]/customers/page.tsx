@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
+import { hasPermission } from '@/lib/permissions'
 import { Role } from '@/lib/constants'
 import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
@@ -118,7 +119,10 @@ export default async function CustomersPage({ params, searchParams }: Props) {
     return `/b/${businessId}/customers${parts.length ? '?' + parts.join('&') : ''}`
   }
 
-  const isAdminOrOwner = user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN
+  const canCreate = hasPermission(user, 'create_customer', businessId)
+  const canEdit = hasPermission(user, 'edit_customer', businessId)
+  const canDelete = hasPermission(user, 'delete_customer', businessId)
+  const canCreateLoan = hasPermission(user, 'create_loan', businessId)
 
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
@@ -127,7 +131,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
           <h1 className="text-xl font-bold text-gray-900">Customers</h1>
           <p className="text-sm text-gray-500">{business?.name} &middot; {customers.length} customers</p>
         </div>
-        {isAdminOrOwner && (
+        {canCreate && (
           <Link href={`/b/${businessId}/customers/new`} className="btn-primary text-sm">
             + New Customer
           </Link>
@@ -135,7 +139,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       </div>
 
       {/* CSV Bulk Upload */}
-      {isAdminOrOwner && (
+      {canCreate && (
         <div className="hidden md:block">
           <CsvBulkUpload businessId={businessId} villageNames={villages.map(v => v.name)} />
         </div>
@@ -174,7 +178,10 @@ export default async function CustomersPage({ params, searchParams }: Props) {
           _count: c._count,
         }))}
         businessId={businessId}
-        isAdminOrOwner={isAdminOrOwner}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        canCreateLoan={canCreateLoan}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { assertBusinessAccess } from '@/lib/scope'
+import { assertBusinessAccess, assertVillageAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 
@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'post_payment')
+    assertPermission(user, 'post_payment', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
@@ -25,6 +25,10 @@ export async function GET(request: Request, { params }: Props) {
   const villageId = searchParams.get('villageId')
   if (!villageId) {
     return NextResponse.json({ error: 'villageId is required' }, { status: 400 })
+  }
+
+  try { await assertVillageAccess(user, villageId) } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
 
   const date = searchParams.get('date')

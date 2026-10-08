@@ -65,7 +65,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'edit_loan')
+    assertPermission(user, 'edit_loan', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

@@ -72,7 +72,10 @@ interface CustomerDetail {
 interface Props {
   customers: CustomerRow[]
   businessId: string
-  isAdminOrOwner: boolean
+  canCreate: boolean
+  canEdit: boolean
+  canDelete: boolean
+  canCreateLoan: boolean
 }
 
 function CustomerDetailModal({ customer, businessId, onClose }: { customer: CustomerDetail; businessId: string; onClose: () => void }) {
@@ -264,7 +267,8 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
 
 const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
-export default function CustomerList({ customers, businessId, isAdminOrOwner }: Props) {
+export default function CustomerList({ customers, businessId, canCreate, canEdit, canDelete, canCreateLoan }: Props) {
+  const canSelect = canEdit || canDelete || canCreateLoan
   const { t } = useTranslation()
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -408,7 +412,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
       {customers.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-gray-500 mb-4">{t('customers.no_customers')}</p>
-          {isAdminOrOwner && (
+          {canCreate && (
             <Link href={`/b/${businessId}/customers/new`} className="btn-primary">
               {t('customers.add_first_customer')}
             </Link>
@@ -419,7 +423,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b text-left text-gray-500 bg-gray-50">
-                {isAdminOrOwner && (
+                {canSelect && (
                   <th className="py-2 px-3 w-8">
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                   </th>
@@ -435,7 +439,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
             <tbody>
               {pagedCustomers.map((c) => (
                 <tr key={c.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(c.id) ? 'bg-primary-50/30' : ''}`}>
-                  {isAdminOrOwner && (
+                  {canSelect && (
                     <td className="py-2 px-3">
                       <input
                         type="checkbox"
@@ -535,7 +539,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
       )}
 
       {/* Floating Action Bar */}
-      {selected.size > 0 && isAdminOrOwner && (
+      {selected.size > 0 && canSelect && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg px-4 py-3 safe-area-inset-bottom">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-gray-700">
@@ -553,7 +557,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                     >
                       {viewLoading ? '...' : t('common.view')}
                     </button>
-                    {cust && cust._count.loans === 0 && (
+                    {canCreateLoan && cust && cust._count.loans === 0 && (
                       <button
                         onClick={() => router.push(`/b/${businessId}/loans/new?customerId=${selectedId}`)}
                         className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
@@ -569,12 +573,14 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                         {t('payments.new_payment')}
                       </button>
                     )}
+                    {canEdit && (
                     <button
                       onClick={() => router.push(`/b/${businessId}/customers/${selectedId}/edit`)}
                       className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                     >
                       {t('common.edit')}
                     </button>
+                    )}
                     {cust?.latitude && cust?.longitude && (
                       <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${cust.latitude},${cust.longitude}`}
@@ -588,7 +594,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                   </>
                 )
               })()}
-              {selected.size >= 2 && (
+              {selected.size >= 2 && canDelete && (
                 <button
                   onClick={openMerge}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
@@ -596,6 +602,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                   Merge
                 </button>
               )}
+              {canDelete && (
               <button
                 onClick={handleBulkDelete}
                 disabled={processing}
@@ -603,6 +610,7 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
               >
                 {processing ? '...' : t('common.delete')}
               </button>
+              )}
             </div>
           </div>
         </div>

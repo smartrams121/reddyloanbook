@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'delete_customer')
+    assertPermission(user, 'delete_customer', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

@@ -1,7 +1,8 @@
 import { Role } from './constants'
 import type { AuthUser } from './auth'
+import { resolveAgentActions, type AgentPermissionGrid } from './agent-permissions'
 
-type Action =
+export type Action =
   | 'manage_owners'
   | 'view_platform_summary'
   | 'create_business'
@@ -20,10 +21,14 @@ type Action =
   | 'delete_customer'
   | 'move_customer_village'
   | 'view_customer'
+  | 'view_loan'
   | 'create_loan'
   | 'edit_loan'
   | 'settle_loan'
   | 'writeoff_loan'
+  | 'view_payments'
+  | 'view_record_payment'
+  | 'view_bulk_payment'
   | 'post_payment'
   | 'edit_own_payment_today'
   | 'edit_any_payment'
@@ -72,10 +77,14 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'delete_customer',
     'move_customer_village',
     'view_customer',
+    'view_loan',
     'create_loan',
     'edit_loan',
     'settle_loan',
     'writeoff_loan',
+    'view_payments',
+    'view_record_payment',
+    'view_bulk_payment',
     'post_payment',
     'edit_own_payment_today',
     'edit_any_payment',
@@ -112,10 +121,14 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
     'delete_customer',
     'move_customer_village',
     'view_customer',
+    'view_loan',
     'create_loan',
     'edit_loan',
     'settle_loan',
     'writeoff_loan',
+    'view_payments',
+    'view_record_payment',
+    'view_bulk_payment',
     'post_payment',
     'edit_own_payment_today',
     'edit_any_payment',
@@ -145,12 +158,18 @@ const PERMISSION_MATRIX: Record<string, Action[]> = {
   ],
 }
 
-export function hasPermission(role: Role, action: Action): boolean {
-  return PERMISSION_MATRIX[role]?.includes(action) ?? false
+export function hasPermission(user: AuthUser, action: Action, businessId?: string): boolean {
+  if (user.role !== Role.AGENT) {
+    return PERMISSION_MATRIX[user.role]?.includes(action) ?? false
+  }
+  const bid = businessId ?? user.activeBusinessId
+  if (!bid) return false
+  const grid = user.agentPermissions ? (user.agentPermissions[bid] ?? null) : null
+  return resolveAgentActions(grid).has(action)
 }
 
-export function assertPermission(user: AuthUser, action: Action): void {
-  if (!hasPermission(user.role, action)) {
+export function assertPermission(user: AuthUser, action: Action, businessId?: string): void {
+  if (!hasPermission(user, action, businessId)) {
     throw new PermissionError(`You don't have permission to ${action.replace(/_/g, ' ')}`)
   }
 }

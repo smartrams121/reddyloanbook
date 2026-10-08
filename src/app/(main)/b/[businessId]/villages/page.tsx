@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
 import { hasPermission } from '@/lib/permissions'
-import { Role } from '@/lib/constants'
 import VillageList from './VillageList'
 
 interface Props {
@@ -30,8 +29,8 @@ export default async function VillagesPage({ params }: Props) {
     orderBy: { name: 'asc' },
   })
 
-  const canAdd = hasPermission(user.role as Role, 'add_village')
-  const canEdit = hasPermission(user.role as Role, 'edit_village')
+  const canAdd = hasPermission(user, 'add_village', businessId)
+  const canEdit = hasPermission(user, 'edit_village', businessId)
 
   return (
     <VillageList

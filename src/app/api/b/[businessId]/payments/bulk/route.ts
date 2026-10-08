@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { assertBusinessAccess } from '@/lib/scope'
+import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
+import { Role } from '@/lib/constants'
 import { assertPermission } from '@/lib/permissions'
 import { todayIST, parseISODate, addMonths } from '@/lib/date'
 import { z } from 'zod'
@@ -32,7 +33,7 @@ export async function POST(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'post_payment')
+    assertPermission(user, 'post_payment', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
@@ -80,6 +81,23 @@ export async function POST(request: Request, { params }: Props) {
   if (payDate > todayDate) {
     return NextResponse.json({ error: 'Payment date cannot be in the future' }, { status: 400 })
   }
+  // Agents: verify all loans are in accessible villages
+  if (user.role === Role.AGENT) {
+    const agentVillageIds = await getAccessibleVillageIds(user, businessId)
+    if (agentVillageIds !== 'all') {
+      const loanIds = entries.map(e => e.loanId)
+      const loans = await prisma.loan.findMany({
+        where: { id: { in: loanIds }, businessId },
+        select: { id: true, customer: { select: { villageId: true } } },
+      })
+      for (const loan of loans) {
+        if (loan.customer?.villageId && !agentVillageIds.includes(loan.customer.villageId)) {
+          return NextResponse.json({ error: 'You do not have access to one or more locations' }, { status: 403 })
+        }
+      }
+    }
+  }
+
   const newCount = entries.filter(e => !e.existingPaymentId).length
 
   const results = await prisma.$transaction(async (tx) => {

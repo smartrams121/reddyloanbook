@@ -15,7 +15,7 @@ export async function GET(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'view_customer')
+    assertPermission(user, 'view_customer', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

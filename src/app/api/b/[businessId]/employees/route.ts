@@ -53,25 +53,38 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
   }
 
-  // Also find unassigned employees
-  const unassigned = await prisma.user.findMany({
+  // Find all AGENT/BUSINESS_ADMIN users who are either unassigned or only assigned within this owner's businesses
+  const allAgentsAndAdmins = await prisma.user.findMany({
     where: {
       role: { in: ['AGENT', 'BUSINESS_ADMIN'] },
       isActive: true,
-      businessAssignments: { none: {} },
     },
-    select: { id: true, fullName: true, username: true, phone: true, role: true, isActive: true },
+    select: {
+      id: true, fullName: true, username: true, phone: true, role: true, isActive: true,
+      businessAssignments: { select: { businessId: true } },
+    },
   })
-  for (const u of unassigned) {
-    userMap.set(u.id, u)
+  for (const u of allAgentsAndAdmins) {
+    const assignedBizIds = u.businessAssignments.map(a => a.businessId)
+    const allOwnedByThisOwner = assignedBizIds.length === 0 || assignedBizIds.every(id => ownerBizIds.includes(id))
+    if (allOwnedByThisOwner && !userMap.has(u.id)) {
+      userMap.set(u.id, { id: u.id, fullName: u.fullName, username: u.username, phone: u.phone, role: u.role, isActive: u.isActive })
+    }
   }
 
-  // Get current business assignments
+  // Get current business assignments (with permissions)
   const currentAssignments = await prisma.userBusinessAssignment.findMany({
     where: { businessId },
-    select: { userId: true },
+    select: { userId: true, permissions: true },
   })
   const assignedIds = new Set(currentAssignments.map(a => a.userId))
+  const permissionsMap: Record<string, unknown> = {}
+  for (const a of currentAssignments) {
+    const raw = a.permissions
+    if (!raw) permissionsMap[a.userId] = null
+    else if (typeof raw === 'string') { try { permissionsMap[a.userId] = JSON.parse(raw) } catch { permissionsMap[a.userId] = null } }
+    else permissionsMap[a.userId] = raw
+  }
 
   // Get villages for this business
   const villages = await prisma.village.findMany({
@@ -101,6 +114,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       ...u,
       assigned: assignedIds.has(u.id),
       villageIds: villageAssignmentMap[u.id] || [],
+      permissions: permissionsMap[u.id] || null,
     }))
 
   return NextResponse.json({ owner: business.owner, employees, villages })
@@ -120,7 +134,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   try { await assertBusinessAccess(user, businessId) } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
-  assertPermission(user, 'edit_business_settings')
+  assertPermission(user, 'edit_business_settings', businessId)
 
   const body = await request.json()
   const parsed = toggleSchema.safeParse(body)
@@ -163,8 +177,22 @@ export async function POST(request: Request, { params }: RouteParams) {
 }
 
 const villageAssignSchema = z.object({
+  action: z.literal('update-villages').optional(),
   userId: z.string().min(1),
   villageIds: z.array(z.string()),
+})
+
+const permissionsSchema = z.object({
+  action: z.literal('update-permissions'),
+  userId: z.string().min(1),
+  permissions: z.object({
+    customers: z.object({ view: z.boolean(), create: z.boolean(), edit: z.boolean(), delete: z.boolean() }),
+    loans: z.object({ view: z.boolean(), create: z.boolean(), edit: z.boolean(), delete: z.boolean() }),
+    payments: z.object({ view: z.boolean() }),
+    record_payment: z.object({ view: z.boolean(), create: z.boolean(), edit: z.boolean() }),
+    bulk_payment: z.object({ view: z.boolean(), create: z.boolean(), edit: z.boolean() }),
+    reports: z.object({ view: z.boolean() }),
+  }),
 })
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -175,9 +203,29 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try { await assertBusinessAccess(user, businessId) } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
-  assertPermission(user, 'edit_business_settings')
+  assertPermission(user, 'edit_business_settings', businessId)
 
   const body = await request.json()
+
+  if (body.action === 'update-permissions') {
+    const parsed = permissionsSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid permissions data' }, { status: 400 })
+    }
+    const { userId, permissions } = parsed.data
+    const assignment = await prisma.userBusinessAssignment.findFirst({
+      where: { userId, businessId },
+    })
+    if (!assignment) {
+      return NextResponse.json({ error: 'Employee not assigned to this business' }, { status: 400 })
+    }
+    await prisma.userBusinessAssignment.update({
+      where: { id: assignment.id },
+      data: { permissions: typeof permissions === 'string' ? permissions : JSON.stringify(permissions) },
+    })
+    return NextResponse.json({ ok: true })
+  }
+
   const parsed = villageAssignSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
@@ -185,19 +233,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const { userId, villageIds } = parsed.data
 
-  // Get all villages for this business
   const bizVillages = await prisma.village.findMany({
     where: { businessId },
     select: { id: true },
   })
   const bizVillageIds = new Set(bizVillages.map(v => v.id))
 
-  // Remove all current village assignments for this user in this business
   await prisma.userVillageAssignment.deleteMany({
     where: { userId, villageId: { in: Array.from(bizVillageIds) } },
   })
 
-  // Create new assignments
   const validVillageIds = villageIds.filter(id => bizVillageIds.has(id))
   if (validVillageIds.length > 0) {
     await prisma.userVillageAssignment.createMany({

@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { assertBusinessAccess } from '@/lib/scope'
 import { hasPermission } from '@/lib/permissions'
-import { Role } from '@/lib/constants'
 import EditLoanForm from './EditLoanForm'
 
 interface Props {
@@ -16,7 +15,7 @@ export default async function EditLoanPage({ params }: Props) {
 
   try { await assertBusinessAccess(user, businessId) } catch { redirect('/dashboard') }
 
-  if (!hasPermission(user.role as Role, 'edit_loan')) {
+  if (!hasPermission(user, 'edit_loan', businessId)) {
     redirect(`/b/${businessId}/loans`)
   }
 

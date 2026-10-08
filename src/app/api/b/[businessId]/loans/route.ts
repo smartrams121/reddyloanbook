@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { assertBusinessAccess } from '@/lib/scope'
+import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
+import { Role } from '@/lib/constants'
 import { createLoanSchema } from '@/lib/validators'
 import { parseISODate, addDays, addWeeks, addMonths, formatDateISO } from '@/lib/date'
 
@@ -27,6 +28,15 @@ export async function GET(request: Request, { params }: Props) {
   const activeOnDate = searchParams.get('activeOnDate')
 
   const where: Record<string, unknown> = { businessId }
+
+  // Agents see loans in their assigned villages
+  if (user.role === Role.AGENT) {
+    const agentVillageIds = await getAccessibleVillageIds(user, businessId)
+    if (agentVillageIds !== 'all') {
+      where.customer = { villageId: { in: agentVillageIds } }
+    }
+  }
+
   if (status) where.status = status
   if (customerId) where.customerId = customerId
   if (activeOnDate) {
@@ -57,7 +67,7 @@ export async function POST(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'create_loan')
+    assertPermission(user, 'create_loan', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

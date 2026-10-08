@@ -43,7 +43,7 @@ export async function POST(request: Request, { params }: Props) {
 
   try {
     await assertBusinessAccess(user, businessId)
-    assertPermission(user, 'create_customer')
+    assertPermission(user, 'create_customer', businessId)
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }

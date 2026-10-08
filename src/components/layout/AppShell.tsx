@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { AuthUser } from '@/lib/auth'
 import { Role } from '@/lib/constants'
+import { hasPermission, type Action } from '@/lib/permissions'
 import { useTranslation } from '@/lib/i18n'
 
 interface AppShellProps {
@@ -87,6 +88,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   }
 
   const isOwnerOrAdmin = user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN
+  const can = (action: Action) => hasPermission(user, action, activeBusinessId || undefined)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -125,40 +127,50 @@ export default function AppShell({ user, children }: AppShellProps) {
                   <span className="text-[10px] leading-tight font-medium">{t('dashboard.collection')}</span>
                 </Link>
                 {/* 2. Customers (mobile + desktop) */}
+                {can('view_customer') && (
                 <Link href={`/b/${activeBusinessId}/customers`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title="Customers">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">{t('customers.customers')}</span>
                 </Link>
+                )}
                 {/* 3. Loans (mobile + desktop) */}
+                {can('view_loan') && (
                 <Link href={`/b/${activeBusinessId}/loans`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Loans">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">{t('loans.loans')}</span>
                 </Link>
+                )}
                 {/* 4. Payments (mobile + desktop) */}
+                {can('view_payments') && (
                 <Link href={`/b/${activeBusinessId}/posting/view`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="View Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">{t('payments.payments')}</span>
                 </Link>
+                )}
                 {/* 5. New Payment (desktop only) */}
+                {can('view_record_payment') && (
                 <Link href={`/b/${activeBusinessId}/posting/individual`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors" title="New Payment">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">{t('payments.new_payment')}</span>
                 </Link>
+                )}
                 {/* 6. Bulk Payments (desktop only) */}
+                {can('view_bulk_payment') && (
                 <Link href={`/b/${activeBusinessId}/posting/bulk`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title="Bulk Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.243 1.007-2.25 2.25-2.25" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">{t('payments.bulk_payments')}</span>
                 </Link>
+                )}
                 {/* 7. Locations (desktop only) */}
                 <Link href={`/b/${activeBusinessId}/villages`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-cyan-600 hover:bg-cyan-50 transition-colors" title="Locations">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -177,12 +189,14 @@ export default function AppShell({ user, children }: AppShellProps) {
                 </Link>
                 )}
                 {/* 9. Reports (desktop only) */}
+                {can('view_own_collection_report') && (
                 <Link href={`/b/${activeBusinessId}/reports`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors" title="Reports">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
                   <span className="text-[10px] leading-tight font-medium">{t('reports.reports')}</span>
                 </Link>
+                )}
               </div>
             )}
 
@@ -293,20 +307,24 @@ export default function AppShell({ user, children }: AppShellProps) {
               {/* Business-scoped links — only when a business is selected */}
               {activeBusinessId && (
                 <NavSection title={t('dashboard.collection')}>
-                  <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label={t('payments.new_payment')} active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
-                  {isOwnerOrAdmin && (
-                    <>
-                      <NavLink href={`/b/${activeBusinessId}/customers/new`} icon="➕" label={t('customers.new_customer')} active={pathname === `/b/${activeBusinessId}/customers/new`} />
-                      <NavLink href={`/b/${activeBusinessId}/loans/new`} icon="📝" label={t('loans.new_loan')} active={pathname === `/b/${activeBusinessId}/loans/new`} />
-                    </>
+                  {can('view_record_payment') && (
+                    <NavLink href={`/b/${activeBusinessId}/posting`} icon="💰" label={t('payments.new_payment')} active={pathname.startsWith(`/b/${activeBusinessId}/posting`)} />
+                  )}
+                  {can('create_customer') && (
+                    <NavLink href={`/b/${activeBusinessId}/customers/new`} icon="➕" label={t('customers.new_customer')} active={pathname === `/b/${activeBusinessId}/customers/new`} />
+                  )}
+                  {can('create_loan') && (
+                    <NavLink href={`/b/${activeBusinessId}/loans/new`} icon="📝" label={t('loans.new_loan')} active={pathname === `/b/${activeBusinessId}/loans/new`} />
                   )}
                   <NavLink href={`/b/${activeBusinessId}/villages`} icon="🏘️" label={t('customers.location')} active={pathname.startsWith(`/b/${activeBusinessId}/villages`)} />
                   {isOwnerOrAdmin && (
                     <>
                       <NavLink href={`/b/${activeBusinessId}/employees`} icon="👥" label={t('dashboard.employees')} active={pathname.startsWith(`/b/${activeBusinessId}/employees`)} />
-                      <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label={t('reports.reports')} active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
                       <NavLink href={`/b/${activeBusinessId}/settings`} icon="⚙️" label={t('settings.collection_settings')} active={pathname === `/b/${activeBusinessId}/settings`} />
                     </>
+                  )}
+                  {can('view_own_collection_report') && (
+                    <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label={t('reports.reports')} active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
                   )}
                 </NavSection>
               )}
@@ -375,7 +393,7 @@ export default function AppShell({ user, children }: AppShellProps) {
       {activeBusinessId && user.role !== Role.PLATFORM_ADMIN && (
         <MobileBottomNav
           businessId={activeBusinessId}
-          role={user.role}
+          user={user}
           pathname={pathname}
         />
       )}
@@ -418,21 +436,22 @@ function NavLink({ href, icon, label, active, badge }: { href: string; icon: str
 
 function MobileBottomNav({
   businessId,
-  role,
+  user,
   pathname,
 }: {
   businessId: string
-  role: Role
+  user: AuthUser
   pathname: string
 }) {
   const base = `/b/${businessId}`
+  const mCan = (action: Action) => hasPermission(user, action, businessId)
 
   const navItems = [
-    { href: `${base}/dashboard`, label: 'Home', icon: HomeIcon },
-    { href: `${base}/posting/individual`, label: 'Collect', icon: CollectIcon },
-    { href: `${base}/posting/bulk`, label: 'Bulk', icon: BulkIcon },
-    { href: `${base}/reports`, label: 'Reports', icon: ReportsIcon },
-  ]
+    { href: `${base}/dashboard`, label: 'Home', icon: HomeIcon, show: true },
+    { href: `${base}/posting/individual`, label: 'Collect', icon: CollectIcon, show: mCan('view_record_payment') },
+    { href: `${base}/posting/bulk`, label: 'Bulk', icon: BulkIcon, show: mCan('view_bulk_payment') },
+    { href: `${base}/reports`, label: 'Reports', icon: ReportsIcon, show: mCan('view_own_collection_report') },
+  ].filter(i => i.show)
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 md:hidden no-print safe-bottom">

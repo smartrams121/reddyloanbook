@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
+import AgentPermissionGrid from '@/components/permissions/AgentPermissionGrid'
+import type { AgentPermissionGrid as GridType } from '@/lib/agent-permissions'
 
 interface Village { id: string; name: string }
 interface Owner {
@@ -13,6 +15,7 @@ interface Owner {
 interface Employee {
   id: string; fullName: string; username: string; phone: string | null
   role: string; isActive: boolean; assigned: boolean; villageIds: string[]
+  permissions: import('@/lib/agent-permissions').AgentPermissionGrid | null
 }
 
 export default function EmployeesAssignmentPage() {
@@ -83,6 +86,23 @@ export default function EmployeesAssignmentPage() {
       if (res.ok) {
         setEmployees(prev => prev.map(e =>
           e.id === userId ? { ...e, villageIds: newVillageIds } : e
+        ))
+      }
+    } catch {}
+    finally { setSaving(null) }
+  }
+
+  async function savePermissions(userId: string, permissions: GridType) {
+    setSaving(userId)
+    try {
+      const res = await fetch(`/api/b/${businessId}/employees`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-permissions', userId, permissions }),
+      })
+      if (res.ok) {
+        setEmployees(prev => prev.map(e =>
+          e.id === userId ? { ...e, permissions } : e
         ))
       }
     } catch {}
@@ -209,31 +229,43 @@ export default function EmployeesAssignmentPage() {
 
                 {/* Village assignments — only for Agents */}
                 {expandedUser === emp.id && emp.role === 'AGENT' && (
-                  <div className="px-4 pb-4 pt-0">
-                    <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">{t('common.assign_locations')}</p>
-                    {villages.length === 0 ? (
-                      <p className="text-xs text-gray-400">{t('common.no_locations_yet')}</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {villages.map(v => {
-                          const isAssigned = emp.villageIds.includes(v.id)
-                          return (
-                            <button
-                              key={v.id}
-                              onClick={() => toggleVillage(emp.id, v.id)}
-                              disabled={saving === emp.id}
-                              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors disabled:opacity-50 ${
-                                isAssigned
-                                  ? 'bg-indigo-600 text-white'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              }`}
-                            >
-                              {v.name}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
+                  <div className="px-4 pb-4 pt-0 space-y-4">
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">{t('common.assign_locations')}</p>
+                      {villages.length === 0 ? (
+                        <p className="text-xs text-gray-400">{t('common.no_locations_yet')}</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {villages.map(v => {
+                            const isAssigned = emp.villageIds.includes(v.id)
+                            return (
+                              <button
+                                key={v.id}
+                                onClick={() => toggleVillage(emp.id, v.id)}
+                                disabled={saving === emp.id}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors disabled:opacity-50 ${
+                                  isAssigned
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                              >
+                                {v.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Access Control */}
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Access Control</p>
+                      <AgentPermissionGrid
+                        value={emp.permissions}
+                        onChange={(grid) => savePermissions(emp.id, grid)}
+                        saving={saving === emp.id}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

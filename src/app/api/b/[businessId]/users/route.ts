@@ -75,9 +75,9 @@ export async function POST(request: Request, { params }: RouteParams) {
   const { fullName, phone, email, username, password, role, businessIds, villageIds } = parsed.data
 
   if (role === Role.BUSINESS_ADMIN) {
-    assertPermission(user, 'create_business_admin')
+    assertPermission(user, 'create_business_admin', businessId)
   } else {
-    assertPermission(user, 'create_agent')
+    assertPermission(user, 'create_agent', businessId)
   }
 
   const existing = await prisma.user.findUnique({ where: { username } })

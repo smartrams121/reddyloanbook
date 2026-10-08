@@ -43,7 +43,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'add_village')
+  assertPermission(user, 'add_village', businessId)
 
   const body = await request.json()
   const parsed = createVillageSchema.safeParse(body)

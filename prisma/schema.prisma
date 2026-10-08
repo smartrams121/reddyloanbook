@@ -154,12 +154,13 @@ model Business {
 }
 
 model UserBusinessAssignment {
-  id         String   @id @default(cuid())
-  userId     String
-  businessId String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  businessId  String
+  permissions String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 
   @@unique([userId, businessId])
 }

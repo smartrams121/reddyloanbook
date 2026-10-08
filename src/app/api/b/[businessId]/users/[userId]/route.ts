@@ -94,12 +94,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (email !== undefined) updateData.email = email
 
   if (isActive !== undefined) {
-    assertPermission(user, 'deactivate_user')
+    assertPermission(user, 'deactivate_user', businessId)
     updateData.isActive = isActive
   }
 
   if (resetPassword !== undefined) {
-    assertPermission(user, 'reset_user_password')
+    assertPermission(user, 'reset_user_password', businessId)
     const newPwd = resetPassword || targetUser.username
     updateData.passwordHash = await hashPassword(newPwd)
     updateData.mustChangePassword = true
@@ -164,7 +164,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   if (villageIds !== undefined) {
-    assertPermission(user, 'assign_villages')
+    assertPermission(user, 'assign_villages', businessId)
 
     const targetBusinessIds = businessIds !== undefined ? businessIds : [businessId]
 
@@ -206,7 +206,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'deactivate_user')
+  assertPermission(user, 'deactivate_user', businessId)
 
   const targetUser = await prisma.user.findFirst({
     where: {

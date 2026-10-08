@@ -67,7 +67,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'edit_business_settings')
+  assertPermission(user, 'edit_business_settings', businessId)
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },

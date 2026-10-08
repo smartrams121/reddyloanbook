@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'edit_village')
+  assertPermission(user, 'edit_village', businessId)
 
   const body = await request.json()
   const parsed = updateVillageSchema.safeParse(body)
@@ -61,7 +61,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await assertBusinessAccess(user, businessId)
-  assertPermission(user, 'edit_village')
+  assertPermission(user, 'edit_village', businessId)
 
   const village = await prisma.village.findFirst({
     where: { id: villageId, businessId },

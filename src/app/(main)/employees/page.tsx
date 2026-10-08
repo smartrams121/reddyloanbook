@@ -18,6 +18,7 @@ export default function EmployeesPage() {
   const { t } = useTranslation()
   const router = useRouter()
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [businesses, setBusinesses] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [actionMenu, setActionMenu] = useState<string | null>(null)
@@ -47,7 +48,12 @@ export default function EmployeesPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadEmployees() }, [])
+  useEffect(() => {
+    loadEmployees()
+    fetch('/api/owner/businesses').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setBusinesses(data)
+    }).catch(() => {})
+  }, [])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -286,6 +292,44 @@ export default function EmployeesPage() {
                         <button onClick={() => handleResetPassword(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           {t('common.reset_password')}
                         </button>
+                        {businesses.length <= 1 ? (
+                          <button
+                            onClick={async () => {
+                              setActionMenu(null)
+                              if (!businesses[0]) return
+                              await fetch(`/api/b/${businesses[0].id}/employees`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'assign', userId: emp.id }),
+                              })
+                              router.push(`/b/${businesses[0].id}/employees`)
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            Assign Collection
+                          </button>
+                        ) : (
+                          <div className="px-4 py-1">
+                            <p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Assign Collection</p>
+                            {businesses.map(b => (
+                              <button
+                                key={b.id}
+                                onClick={async () => {
+                                  setActionMenu(null)
+                                  await fetch(`/api/b/${b.id}/employees`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ action: 'assign', userId: emp.id }),
+                                  })
+                                  router.push(`/b/${b.id}/employees`)
+                                }}
+                                className="w-full text-left px-2 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded"
+                              >
+                                {b.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <button onClick={() => handleToggleSuspend(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           {emp.isActive ? t('common.suspend') : t('common.activate')}
                         </button>
