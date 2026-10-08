@@ -175,6 +175,8 @@ export default async function CustomersPage({ params, searchParams }: Props) {
           phone: c.phone,
           status: c.derivedStatus,
           village: c.village,
+          latitude: c.latitude,
+          longitude: c.longitude,
           _count: c._count,
         }))}
         businessId={businessId}
