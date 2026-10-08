@@ -542,24 +542,40 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
               {selected.size} customer{selected.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
-              {selected.size === 1 && (
-                <>
-                  <button
-                    onClick={() => openViewCustomer(selectedId!)}
-                    disabled={viewLoading}
-                    className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                  >
-                    {viewLoading ? '...' : t('common.view')}
-                  </button>
-                  <button
-                    onClick={() => router.push(`/b/${businessId}/posting/individual?customerId=${selectedId}`)}
-                    className="px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
-                  >
-                    {t('payments.new_payment')}
-                  </button>
-                  {(() => {
-                    const cust = customers.find(c => c.id === selectedId)
-                    return cust?.latitude && cust?.longitude ? (
+              {selected.size === 1 && (() => {
+                const cust = customers.find(c => c.id === selectedId)
+                return (
+                  <>
+                    <button
+                      onClick={() => openViewCustomer(selectedId!)}
+                      disabled={viewLoading}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                    >
+                      {viewLoading ? '...' : t('common.view')}
+                    </button>
+                    {cust && cust._count.loans === 0 && (
+                      <button
+                        onClick={() => router.push(`/b/${businessId}/loans/new?customerId=${selectedId}`)}
+                        className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                      >
+                        {t('loans.new_loan') || 'New Loan'}
+                      </button>
+                    )}
+                    {cust && cust._count.loans > 0 && (
+                      <button
+                        onClick={() => router.push(`/b/${businessId}/posting/individual?customerId=${selectedId}`)}
+                        className="px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                      >
+                        {t('payments.new_payment')}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => router.push(`/b/${businessId}/customers/${selectedId}/edit`)}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                    >
+                      {t('common.edit')}
+                    </button>
+                    {cust?.latitude && cust?.longitude && (
                       <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${cust.latitude},${cust.longitude}`}
                         target="_blank"
@@ -568,16 +584,10 @@ export default function CustomerList({ customers, businessId, isAdminOrOwner }: 
                       >
                         Navigate
                       </a>
-                    ) : null
-                  })()}
-                  <button
-                    onClick={() => router.push(`/b/${businessId}/customers/${selectedId}/edit`)}
-                    className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                  >
-                    {t('common.edit')}
-                  </button>
-                </>
-              )}
+                    )}
+                  </>
+                )
+              })()}
               {selected.size >= 2 && (
                 <button
                   onClick={openMerge}

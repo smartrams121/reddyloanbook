@@ -24,6 +24,8 @@ export default function EditCustomerPage() {
   const [address, setAddress] = useState('')
   const [guarantorName, setGuarantorName] = useState('')
   const [guarantorPhone, setGuarantorPhone] = useState('')
+  const [jobType, setJobType] = useState('')
+  const [aadhaar, setAadhaar] = useState('')
   const [notes, setNotes] = useState('')
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
@@ -57,6 +59,8 @@ export default function EditCustomerPage() {
           setAddress(cust.address || '')
           setGuarantorName(cust.guarantorName || '')
           setGuarantorPhone(cust.guarantorPhone || '')
+          setJobType(cust.jobType || '')
+          setAadhaar(cust.aadhaarLast4 ? `XXXXXXXX${cust.aadhaarLast4}` : '')
           setNotes(cust.notes || '')
           if (cust.latitude) setLatitude(cust.latitude)
           if (cust.longitude) setLongitude(cust.longitude)
@@ -115,11 +119,12 @@ export default function EditCustomerPage() {
     try {
       const body: Record<string, unknown> = {
         fullName,
-        phone,
+        phone: phone || undefined,
         ...(custId !== originalCustId && { customerId: custId }),
         altPhone,
         villageId,
         address,
+        jobType: jobType || undefined,
         guarantorName,
         guarantorPhone,
         notes,
@@ -128,6 +133,7 @@ export default function EditCustomerPage() {
         photoPath: photoPath || null,
       }
       if (age) body.age = parseInt(age, 10)
+      if (aadhaar && !aadhaar.startsWith('XXXX')) body.aadhaar = aadhaar
 
       const res = await fetch(`/api/b/${businessId}/customers/${customerId}`, {
         method: 'PATCH',
@@ -251,8 +257,8 @@ export default function EditCustomerPage() {
         </div>
 
         <div>
-          <label className="label">{t('customers.phone')} *</label>
-          <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          <label className="label">{t('customers.phone')}</label>
+          <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile" />
         </div>
 
         <div>
@@ -279,6 +285,17 @@ export default function EditCustomerPage() {
         <div>
           <label className="label">{t('customers.address')}</label>
           <textarea className="input" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t('customers.job_type')}</label>
+            <input className="input" value={jobType} onChange={(e) => setJobType(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">{t('customers.aadhaar')}</label>
+            <input className="input" value={aadhaar} onChange={(e) => setAadhaar(e.target.value)} maxLength={12} placeholder="12 digits" />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

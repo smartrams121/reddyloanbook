@@ -349,11 +349,21 @@ export default function ViewPaymentsPage() {
             const unpaidCount = Math.max(0, totalActiveLoans - paidCount)
             const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0)
             const pct = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
+            const bulkDate = preset === 'today' ? today
+              : preset === 'yesterday' ? yesterdayStr()
+              : preset === '7d' ? daysAgo(6)
+              : preset === '15d' ? daysAgo(14)
+              : preset === '30d' ? daysAgo(29)
+              : preset === 'custom' ? fromDate
+              : today
             return (
               <>
-                <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                <Link
+                  href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1&details=1&collector=self`}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                >
                   Paid: {paidCount}
-                </span>
+                </Link>
                 <Link
                   href={`/b/${businessId}/posting/bulk`}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"

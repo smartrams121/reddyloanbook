@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 
-interface Agent { id: string; fullName: string; role: string }
+interface Agent { id: string; fullName: string; role: string; villageAssignments?: { village: { id: string } }[] }
 interface Village { id: string; name: string; _count: { customers: number } }
 interface LoanEntry {
   id: string; loanNumber: string; installmentAmount: number
@@ -43,14 +43,17 @@ export default function VillageBulkPostingPage() {
   const searchParams = useSearchParams()
   const businessId = params.businessId as string
   const preVillageId = searchParams.get('villageId')
+  const preDate = searchParams.get('date')
+  const preCompleted = searchParams.get('completed')
+  const preDetails = searchParams.get('details')
 
   const [agents, setAgents] = useState<Agent[]>([])
   const [villages, setVillages] = useState<Village[]>([])
   const [selectedVillage, setSelectedVillage] = useState(preVillageId || 'all')
   const [collectorId, setCollectorId] = useState('')
-  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(preDetails === '1')
   const [paymentMode, setPaymentMode] = useState('Cash')
-  const [showCompleted, setShowCompleted] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(preCompleted === '1')
   const [showDefaulters, setShowDefaulters] = useState(false)
   const [isHoliday, setIsHoliday] = useState(false)
   const [allRows, setAllRows] = useState<PaymentRow[]>([])
@@ -59,6 +62,7 @@ export default function VillageBulkPostingPage() {
   const [posting, setPosting] = useState(false)
   const [result, setResult] = useState<{ count: number; totalAmount: number } | null>(null)
   const [postingDate, setPostingDate] = useState(() => {
+    if (preDate) return preDate
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
@@ -96,7 +100,7 @@ export default function VillageBulkPostingPage() {
       fetch(`/api/b/${businessId}/users`).then(r => r.json()),
     ]).then(([vils, users]) => {
       if (Array.isArray(vils)) setVillages(vils)
-      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+      if (Array.isArray(users)) setAgents(users)
     }).catch(() => {})
   }, [businessId])
 
@@ -147,9 +151,6 @@ export default function VillageBulkPostingPage() {
       })
       setAllRows(paymentRows)
       setBulkPage(0)
-      // Set collector from first loan's agent
-      const firstAgent = customers.find(c => c.loans.some(l => l.agentId))?.loans.find(l => l.agentId)
-      if (firstAgent?.agentId) setCollectorId(firstAgent.agentId)
     } catch {
       setError('Network error loading location data')
       setAllRows([])
@@ -380,15 +381,23 @@ export default function VillageBulkPostingPage() {
                 </div>
 
                 <div>
-                  <label className="label text-xs">{t('payments.collected_by_question')}</label>
-                  {agents.length > 0 ? (
-                    <select className="input text-xs" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                      <option value="">Myself (logged-in employee)</option>
-                      {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
-                    </select>
-                  ) : (
-                    <p className="text-xs text-gray-400 py-2">No agents assigned.</p>
-                  )}
+                  <label className="label text-xs">{t('loans.agent')}</label>
+                  {(() => {
+                    const filtered = selectedVillage === 'all'
+                      ? agents
+                      : agents.filter(a => a.role === 'OWNER' || a.role === 'BUSINESS_ADMIN' || (a.role === 'AGENT' && a.villageAssignments?.some(va => va.village.id === selectedVillage)))
+                    return filtered.length > 0 ? (
+                      <select className="input text-xs" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                        <option value="">Myself (logged-in employee)</option>
+                        {filtered.map((a) => {
+                          const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Partner' : 'Agent'
+                          return <option key={a.id} value={a.id}>{a.fullName} ({roleLabel})</option>
+                        })}
+                      </select>
+                    ) : (
+                      <p className="text-xs text-gray-400 py-2">No agents assigned.</p>
+                    )
+                  })()}
                 </div>
 
                 <div>

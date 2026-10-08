@@ -9,14 +9,16 @@ import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Agent { id: string; fullName: string }
+interface DocData { id: string; filePath: string; originalName: string; mimeType: string }
 interface LoanData {
   id: string; loanNumber: string; loanAmount: number; amountGiven: number
   interestAmount: number; totalRepayable: number; installmentAmount: number
-  numberOfInstallments: number; collectionType: string; startDate: string
-  expectedEndDate: string; closedAt: string | null; writeOffReason: string | null
-  settlementReason: string | null; settlementAmount: number | null
+  numberOfInstallments: number; collectionType: string; interestModel: string
+  startDate: string; expectedEndDate: string; closedAt: string | null
+  writeOffReason: string | null; settlementReason: string | null; settlementAmount: number | null
   status: string; derivedStatus: string; notes: string | null; createdAt: string
   agent: Agent | null; totalPaid: number; outstanding: number
+  documents: DocData[]
 }
 interface Summary {
   totalLoans: number; activeLoans: number; completedLoans: number; defaulterLoans: number
@@ -28,7 +30,7 @@ interface Customer {
   altPhone: string | null; age: number | null; address: string | null
   guarantorName: string | null; guarantorPhone: string | null
   notes: string | null; photoPath: string | null; aadhaarLast4: string | null
-  jobType: string | null; status: string
+  jobType: string | null; latitude: number | null; longitude: number | null; status: string
   village: Village; loans: LoanData[]; summary: Summary
   createdAt: string; updatedAt: string
 }
@@ -392,6 +394,19 @@ function ContactSection({ customer }: { customer: Customer }) {
           {customer.guarantorName && <InfoRow label={t('customers.guarantor')} value={customer.guarantorName} />}
           {customer.guarantorPhone && <InfoRow label={t('customers.guarantor_phone')} value={customer.guarantorPhone} />}
           {customer.notes && <InfoRow label={t('customers.notes')} value={customer.notes} />}
+          {customer.latitude && customer.longitude && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">GPS Location</span>
+              <a
+                href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:underline font-medium text-right"
+              >
+                {customer.latitude.toFixed(6)}, {customer.longitude.toFixed(6)} ↗
+              </a>
+            </div>
+          )}
           <InfoRow label={t('common.created')} value={formatDateDisplay(customer.createdAt.slice(0, 10))} />
         </div>
       )}
@@ -477,8 +492,18 @@ function LoanCardWithPanel({
             </div>
 
             <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-              <span>{loan.collectionType} &middot; {formatPaiseShort(loan.installmentAmount)}/inst</span>
-              <span>Repayable: {formatPaiseShort(loan.totalRepayable)}</span>
+              <span>{loan.collectionType} · {loan.interestModel || 'ADDON'} · {loan.numberOfInstallments} inst × {formatPaiseShort(loan.installmentAmount)}</span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+              <span>Principal: {formatPaiseShort(loan.loanAmount)}</span>
+              <span>Interest: {formatPaiseShort(loan.interestAmount)}</span>
+              <span>Total: {formatPaiseShort(loan.totalRepayable)}</span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+              <span>Due: <span className="date-display">{formatDateDisplay(loan.expectedEndDate)}</span></span>
+              {loan.notes && <span className="text-gray-400 truncate max-w-[50%]" title={loan.notes}>📝 {loan.notes}</span>}
             </div>
 
             <div className="flex items-center justify-between text-xs mb-1">
@@ -501,6 +526,22 @@ function LoanCardWithPanel({
             <Link href={`/b/${businessId}/loans/${loan.id}/edit`} className="block w-full text-center text-xs font-medium py-1.5 px-2 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 transition-colors">
               Edit Loan
             </Link>
+          </div>
+        )}
+
+        {loan.documents && loan.documents.length > 0 && isExpanded && (
+          <div className="px-3 py-2 border-t border-gray-100 bg-gray-50" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Documents ({loan.documents.length})</p>
+            <div className="flex flex-wrap gap-1.5">
+              {loan.documents.map(doc => (
+                <a key={doc.id} href={doc.filePath} target="_blank" rel="noopener noreferrer"
+                  className="text-xs px-2 py-1 rounded bg-white border border-gray-200 text-primary-600 hover:bg-primary-50 truncate max-w-[200px]"
+                  title={doc.originalName}
+                >
+                  {doc.mimeType.startsWith('image/') ? '🖼' : '📄'} {doc.originalName}
+                </a>
+              ))}
+            </div>
           </div>
         )}
       </div>

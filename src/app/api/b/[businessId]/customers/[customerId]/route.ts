@@ -5,6 +5,7 @@ import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import { z } from 'zod'
+import crypto from 'crypto'
 import { phoneSchema } from '@/lib/validators'
 
 interface Props {
@@ -15,9 +16,11 @@ const updateCustomerSchema = z.object({
   customerId: z.string().optional(),
   fullName: z.string().min(2).optional(),
   age: z.number().int().min(18).max(100).optional(),
-  phone: phoneSchema.optional(),
+  phone: phoneSchema.optional().or(z.literal('')),
   altPhone: phoneSchema.optional().or(z.literal('')),
   address: z.string().optional(),
+  jobType: z.string().optional(),
+  aadhaar: z.string().regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits').optional().or(z.literal('')),
   guarantorName: z.string().optional(),
   guarantorPhone: phoneSchema.optional().or(z.literal('')),
   notes: z.string().optional(),
@@ -72,7 +75,9 @@ export async function GET(request: Request, { params }: Props) {
           status: true,
           notes: true,
           createdAt: true,
+          interestModel: true,
           agent: { select: { id: true, fullName: true } },
+          documents: { select: { id: true, filePath: true, originalName: true, mimeType: true } },
         },
       },
     },
@@ -160,6 +165,11 @@ export async function PATCH(request: Request, { params }: Props) {
   }
   if (parsed.data.altPhone !== undefined) data.altPhone = parsed.data.altPhone || null
   if (parsed.data.address !== undefined) data.address = parsed.data.address || null
+  if (parsed.data.jobType !== undefined) data.jobType = parsed.data.jobType || null
+  if (parsed.data.aadhaar) {
+    data.aadhaarHash = crypto.createHash('sha256').update(parsed.data.aadhaar).digest('hex')
+    data.aadhaarLast4 = parsed.data.aadhaar.slice(-4)
+  }
   if (parsed.data.guarantorName !== undefined) data.guarantorName = parsed.data.guarantorName || null
   if (parsed.data.guarantorPhone !== undefined) data.guarantorPhone = parsed.data.guarantorPhone || null
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes || null

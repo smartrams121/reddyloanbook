@@ -25,10 +25,14 @@ export async function GET(_request: Request, { params }: Props) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const segments = (await params).path
-  const safePath = segments.map(s => s.replace(/[^a-zA-Z0-9._-]/g, '')).join('/')
-  const filePath = path.join(getUploadBase(), safePath)
+  if (segments.some(s => s === '..' || s === '.' || s.includes('\0'))) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
+  }
 
-  if (!filePath.startsWith(getUploadBase())) {
+  const base = path.resolve(getUploadBase())
+  const filePath = path.resolve(base, ...segments)
+
+  if (!filePath.startsWith(base)) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
   }
 

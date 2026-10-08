@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 
-interface Agent { id: string; fullName: string; role: string }
+interface Agent { id: string; fullName: string; role: string; villageAssignments?: { village: { id: string } }[] }
 interface CustomerResult {
   id: string; customerId: string; fullName: string; phone: string
   village: { id: string; name: string }; status: string
@@ -101,7 +101,7 @@ export default function RecordPaymentPage() {
       fetch(`/api/b/${businessId}/users`).then(r => r.json()),
     ]).then(([custs, users]) => {
       if (Array.isArray(custs)) setCustomers(custs)
-      if (Array.isArray(users)) setAgents(users.filter((u: Agent) => u.role === 'AGENT'))
+      if (Array.isArray(users)) setAgents(users)
     }).catch(() => {})
   }, [businessId])
 
@@ -630,15 +630,24 @@ export default function RecordPaymentPage() {
 
                   {/* Agent Name */}
                   <div className="pt-2">
-                    <label className="label">{t('payments.agent_name')}</label>
-                    {agents.length > 0 ? (
-                      <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                        <option value="">Myself (logged-in employee)</option>
-                        {agents.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
-                      </select>
-                    ) : (
-                      <p className="text-sm text-gray-400 py-2">No agents assigned to this business.</p>
-                    )}
+                    <label className="label">{t('loans.agent')}</label>
+                    {(() => {
+                      const villageId = selectedCustomer?.village?.id
+                      const filtered = villageId
+                        ? agents.filter(a => a.role === 'OWNER' || a.role === 'BUSINESS_ADMIN' || (a.role === 'AGENT' && a.villageAssignments?.some(va => va.village.id === villageId)))
+                        : agents
+                      return filtered.length > 0 ? (
+                        <select className="input" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                          <option value="">Myself (logged-in employee)</option>
+                          {filtered.map((a) => {
+                            const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Partner' : 'Agent'
+                            return <option key={a.id} value={a.id}>{a.fullName} ({roleLabel})</option>
+                          })}
+                        </select>
+                      ) : (
+                        <p className="text-sm text-gray-400 py-2">No agents assigned.</p>
+                      )
+                    })()}
                   </div>
                 </div>}
               </div>

@@ -24,6 +24,11 @@ const updateLoanSchema = z.object({
   agentId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   statusOverride: z.enum(['ACTIVE', 'OVERDUE', 'DEFAULTER', 'COMPLETED']).optional().nullable(),
+  documents: z.array(z.object({
+    filePath: z.string(),
+    originalName: z.string(),
+    mimeType: z.string(),
+  })).optional(),
 })
 
 
@@ -41,8 +46,9 @@ export async function GET(request: Request, { params }: Props) {
   const loan = await prisma.loan.findFirst({
     where: { id: loanId, businessId },
     include: {
-      customer: { select: { id: true, fullName: true, customerId: true, phone: true } },
+      customer: { select: { id: true, fullName: true, customerId: true, phone: true, villageId: true } },
       agent: { select: { id: true, fullName: true } },
+      documents: { select: { id: true, filePath: true, originalName: true, mimeType: true } },
       schedule: { orderBy: { installmentNumber: 'asc' } },
     },
   })
@@ -175,14 +181,20 @@ export async function PATCH(request: Request, { params }: Props) {
     data.startDate = startDate
     data.expectedEndDate = expectedEndDate
 
-    // Transaction: update loan + replace schedule
+    // Transaction: update loan + replace schedule + documents
     const updated = await prisma.$transaction(async (tx) => {
       await tx.loanScheduleEntry.deleteMany({ where: { loanId } })
+      if (d.documents !== undefined) {
+        await tx.document.deleteMany({ where: { loanId } })
+      }
       const updatedLoan = await tx.loan.update({
         where: { id: loanId },
         data: {
           ...data,
           schedule: { create: schedule },
+          ...(d.documents !== undefined && d.documents.length > 0 ? {
+            documents: { create: d.documents.map(doc => ({ ...doc, type: 'LOAN_DOC', businessId })) },
+          } : {}),
         },
       })
       return updatedLoan
@@ -191,11 +203,23 @@ export async function PATCH(request: Request, { params }: Props) {
     return NextResponse.json({ id: updated.id, status: updated.status, loanNumber: updated.loanNumber })
   }
 
+  // Handle documents separately if no amount changes
+  if (d.documents !== undefined) {
+    await prisma.document.deleteMany({ where: { loanId } })
+    if (d.documents.length > 0) {
+      await prisma.document.createMany({
+        data: d.documents.map(doc => ({ ...doc, type: 'LOAN_DOC', loanId, businessId })),
+      })
+    }
+  }
+
   // Simple update (status/agent/notes only)
-  if (Object.keys(data).length === 0) {
+  if (Object.keys(data).length === 0 && d.documents === undefined) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
-  const updated = await prisma.loan.update({ where: { id: loanId }, data })
-  return NextResponse.json({ id: updated.id, status: updated.status })
+  if (Object.keys(data).length > 0) {
+    await prisma.loan.update({ where: { id: loanId }, data })
+  }
+  return NextResponse.json({ id: loanId, status: 'updated' })
 }
