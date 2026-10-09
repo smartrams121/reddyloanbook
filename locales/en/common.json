@@ -102,5 +102,13 @@
   "update": "Update",
   "posting": "Posting...",
   "collection_name": "Collection Name",
-  "collection": "Collection"
+  "collection": "Collection",
+  "maps": "Maps",
+  "call": "Call",
+  "pdf": "PDF",
+  "assign_collection": "Assign Collection",
+  "access_control": "Access Control",
+  "collector": "Collector",
+  "field_manager": "Field Manager",
+  "full_access": "Full Access"
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { type AgentPermissionGrid as GridType, PRESETS, DEFAULT_PRESET, applyCascades, detectPreset } from '@/lib/agent-permissions'
+import { useTranslation } from '@/lib/i18n'
 
 interface Props {
   value: GridType | null
@@ -25,6 +26,7 @@ function getDefault(): GridType {
 }
 
 export default function AgentPermissionGrid({ value, onChange, saving }: Props) {
+  const { t } = useTranslation()
   const [grid, setGrid] = useState<GridType>(value ? JSON.parse(JSON.stringify(value)) : getDefault())
   const [preset, setPreset] = useState(() => detectPreset(value ?? getDefault()))
 
@@ -75,10 +77,10 @@ export default function AgentPermissionGrid({ value, onChange, saving }: Props) 
   }
 
   const presetButtons = [
-    { key: 'COLLECTOR_ONLY', label: 'Collector' },
-    { key: 'FIELD_MANAGER', label: 'Field Manager' },
-    { key: 'FULL_ACCESS', label: 'Full Access' },
-    { key: 'CUSTOM', label: 'Custom' },
+    { key: 'COLLECTOR_ONLY', label: t('common.collector') },
+    { key: 'FIELD_MANAGER', label: t('common.field_manager') },
+    { key: 'FULL_ACCESS', label: t('common.full_access') },
+    { key: 'CUSTOM', label: t('common.custom') },
   ]
 
   return (

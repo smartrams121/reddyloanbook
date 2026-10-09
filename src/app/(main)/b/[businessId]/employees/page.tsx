@@ -259,7 +259,7 @@ export default function EmployeesAssignmentPage() {
 
                     {/* Access Control */}
                     <div>
-                      <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Access Control</p>
+                      <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">{t('common.access_control')}</p>
                       <AgentPermissionGrid
                         value={emp.permissions}
                         onChange={(grid) => savePermissions(emp.id, grid)}

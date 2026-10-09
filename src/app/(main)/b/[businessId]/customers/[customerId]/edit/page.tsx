@@ -292,13 +292,13 @@ export default function EditCustomerPage() {
                 if (e.target.value === '__new__') { setShowNewRelation(true); setFamilyRelation('') }
                 else { setFamilyRelation(e.target.value); setShowNewRelation(false) }
               }}>
-                <option value="">Select Family Member</option>
+                <option value="">{t('customers.select_family')}</option>
                 {relations.map(r => <option key={r} value={r}>{r}</option>)}
-                <option value="__new__">+ Add New</option>
+                <option value="__new__">{t('customers.add_new')}</option>
               </select>
             ) : (
               <div className="flex gap-1">
-                <input className="input flex-1 text-sm" value={customRelation} onChange={(e) => setCustomRelation(e.target.value)} placeholder="Relationship" />
+                <input className="input flex-1 text-sm" value={customRelation} onChange={(e) => setCustomRelation(e.target.value)} placeholder={t('customers.relationship')} />
                 <button type="button" onClick={() => {
                   const name = customRelation.trim()
                   if (name) { if (!relations.includes(name)) setRelations(prev => [...prev, name]); setFamilyRelation(name); setCustomRelation(''); setShowNewRelation(false) }
@@ -307,7 +307,7 @@ export default function EditCustomerPage() {
               </div>
             )}
           </div>
-          <input className="input text-sm" value={familyMemberName} onChange={(e) => setFamilyMemberName(e.target.value)} placeholder="Name of Relative" />
+          <input className="input text-sm" value={familyMemberName} onChange={(e) => setFamilyMemberName(e.target.value)} placeholder={t('customers.family_name')} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -354,11 +354,11 @@ export default function EditCustomerPage() {
         </div>
 
         <div>
-          <label className="label">Customer Location</label>
+          <label className="label">{t('customers.customer_location')}</label>
           {latitude && longitude ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-green-600 font-medium">Location captured</span>
-              <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Maps</a>
+              <span className="text-xs text-green-600 font-medium">{t('customers.location_captured')}</span>
+              <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">{t('common.maps')}</a>
               <button type="button" onClick={() => { setLatitude(null); setLongitude(null) }} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
             </div>
           ) : (
@@ -375,7 +375,7 @@ export default function EditCustomerPage() {
               }}
               className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              {locating ? 'Getting location...' : 'Capture Location'}
+              {locating ? t('customers.getting_location') : t('customers.capture_location')}
             </button>
           )}
         </div>

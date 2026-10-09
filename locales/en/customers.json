@@ -43,5 +43,15 @@
   "loan_history": "Loan History",
   "no_customers": "No customers found",
   "add_first_customer": "Add your first customer",
-  "additional_details": "Additional Details"
+  "additional_details": "Additional Details",
+  "select_family": "Select Family Member",
+  "family_name": "Name of Relative",
+  "family": "Family",
+  "customer_location": "Customer Location",
+  "location_captured": "Location captured",
+  "capture_location": "Capture Location",
+  "getting_location": "Getting location...",
+  "add_new": "+ Add New",
+  "add_new_job": "+ Add New Job Type",
+  "relationship": "Relationship"
 }

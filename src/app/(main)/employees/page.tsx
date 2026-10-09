@@ -306,11 +306,11 @@ export default function EmployeesPage() {
                             }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           >
-                            Assign Collection
+                            {t('common.assign_collection')}
                           </button>
                         ) : (
                           <div className="px-4 py-1">
-                            <p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Assign Collection</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-medium mb-1">{t('common.assign_collection')}</p>
                             {businesses.map(b => (
                               <button
                                 key={b.id}

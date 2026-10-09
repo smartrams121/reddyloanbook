@@ -133,9 +133,9 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
     { label: t('customers.aadhaar_last4'), value: customer.aadhaarLast4 ? `XXXX-XXXX-${customer.aadhaarLast4}` : '-' },
     { label: t('customers.guarantor'), value: customer.guarantorName || '-' },
     { label: t('customers.guarantor_phone'), value: customer.guarantorPhone || '-' },
-    { label: 'Family', value: customer.familyRelation ? `${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}` : '-' },
+    { label: t('customers.family'), value: customer.familyRelation ? `${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}` : '-' },
     { label: t('customers.notes'), value: customer.notes || '-' },
-    { label: 'Customer Location', value: customer.latitude && customer.longitude ? `${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}` : '-' },
+    { label: t('customers.customer_location'), value: customer.latitude && customer.longitude ? `${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}` : '-' },
     { label: t('customers.status'), value: s.customerStatus },
     { label: t('common.created'), value: new Date(customer.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
     { label: t('customers.photo'), value: customer.photoPath ? 'Uploaded' : '-' },
@@ -193,7 +193,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
           {rows.map((r, i) => (
             <div key={i} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
               <span className="text-xs text-gray-500">{r.label}</span>
-              {r.label === 'Customer Location' && customer.latitude && customer.longitude ? (
+              {r.label === t('customers.customer_location') && customer.latitude && customer.longitude ? (
                 <a
                   href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
                   target="_blank"
@@ -253,7 +253,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
-            Edit
+            {t('common.edit')}
           </a>
           {customer.latitude && customer.longitude && (
             <a
@@ -263,7 +263,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
-              Maps
+              {t('common.maps')}
             </a>
           )}
           {customer.phone && (
@@ -272,7 +272,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
-              Call
+              {t('common.call')}
             </a>
           )}
           <button
@@ -280,7 +280,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            PDF
+            {t('common.pdf')}
           </button>
         </div>
       </div>

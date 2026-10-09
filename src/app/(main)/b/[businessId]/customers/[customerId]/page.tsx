@@ -394,11 +394,11 @@ function ContactSection({ customer }: { customer: Customer }) {
           {customer.aadhaarLast4 && <InfoRow label={t('customers.aadhaar')} value={`XXXX XXXX ${customer.aadhaarLast4}`} />}
           {customer.guarantorName && <InfoRow label={t('customers.guarantor')} value={customer.guarantorName} />}
           {customer.guarantorPhone && <InfoRow label={t('customers.guarantor_phone')} value={customer.guarantorPhone} />}
-          {customer.familyRelation && <InfoRow label="Family" value={`${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}`} />}
+          {customer.familyRelation && <InfoRow label={t('customers.family')} value={`${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}`} />}
           {customer.notes && <InfoRow label={t('customers.notes')} value={customer.notes} />}
           {customer.latitude && customer.longitude && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Customer Location</span>
+              <span className="text-gray-500">{t('customers.customer_location')}</span>
               <a
                 href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
                 target="_blank"

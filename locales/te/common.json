@@ -102,5 +102,13 @@
   "update": "నవీకరించు",
   "posting": "పోస్ట్ చేస్తోంది...",
   "collection_name": "కలెక్షన్ పేరు",
-  "collection": "కలెక్షన్"
+  "collection": "కలెక్షన్",
+  "maps": "మ్యాప్స్",
+  "call": "కాల్",
+  "pdf": "PDF",
+  "assign_collection": "కలెక్షన్ నియమించు",
+  "access_control": "యాక్సెస్ నియంత్రణ",
+  "collector": "కలెక్టర్",
+  "field_manager": "ఫీల్డ్ మేనేజర్",
+  "full_access": "పూర్తి యాక్సెస్"
 }

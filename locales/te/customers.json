@@ -43,5 +43,15 @@
   "loan_history": "అప్పు చరిత్ర",
   "no_customers": "కస్టమర్లు కనుగొనబడలేదు",
   "add_first_customer": "మీ మొదటి కస్టమర్‌ను జోడించండి",
-  "additional_details": "అదనపు వివరాలు"
+  "additional_details": "అదనపు వివరాలు",
+  "select_family": "కుటుంబ సభ్యుడిని ఎంచుకోండి",
+  "family_name": "బంధువు పేరు",
+  "family": "కుటుంబం",
+  "customer_location": "కస్టమర్ స్థానం",
+  "location_captured": "స్థానం సేకరించబడింది",
+  "capture_location": "స్థానం సేకరించు",
+  "getting_location": "స్థానం పొందుతోంది...",
+  "add_new": "+ కొత్తది జోడించు",
+  "add_new_job": "+ కొత్త వృత్తి జోడించు",
+  "relationship": "బంధుత్వం"
 }
