@@ -149,6 +149,7 @@ export default function VillageBulkPostingPage() {
           }
         })
       })
+      paymentRows.sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
       setAllRows(paymentRows)
       setBulkPage(0)
     } catch {

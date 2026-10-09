@@ -168,7 +168,7 @@ export default function RecordPaymentPage() {
       )
     }
 
-    return list
+    return list.sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
   }, [customers, searchQuery, showCompleted, customerLoanCounts, eligibleCustomerIds])
 
   const checkExistingPayment = useCallback(async (loanId: string, date: string) => {
@@ -298,18 +298,19 @@ export default function RecordPaymentPage() {
           return next
         })
 
-        // Find next unpaid customer from filtered list
+        // Find next unpaid customer from filtered list, sorted by CID
         const pendingList = customers.filter(c => {
           if ((c._count?.loans || 0) === 0) return false
           if (c.id === currentId) return false
           if (eligibleCustomerIds && !eligibleCustomerIds.has(c.id)) return false
           const counts = customerLoanCounts.get(c.id)
           return counts ? counts.paid < counts.total : true
-        })
+        }).sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
         if (pendingList.length > 0) {
-          // Auto-select next customer
-          const nextCust = pendingList[0]
+          // Auto-select next CID after current
+          const currentCid = selectedCustomer?.customerId || ''
+          const nextCust = pendingList.find(c => c.customerId.localeCompare(currentCid, undefined, { numeric: true }) > 0) || pendingList[0]
           setSelectedCustomer(null)
           setSelectedLoan(null)
           setCustomerLoans([])

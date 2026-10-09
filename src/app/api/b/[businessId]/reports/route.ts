@@ -77,7 +77,7 @@ async function getCustomersReport(businessId: string, from: string, to: string, 
       loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true } },
       _count: { select: { loans: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { customerId: 'asc' },
   })
 
   const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
@@ -136,7 +136,7 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
       customer: { select: { customerId: true, fullName: true, phone: true, village: { select: { name: true } } } },
       agent: { select: { fullName: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { customer: { customerId: 'asc' } },
   })
 
   const loanIds = loans.map((l) => l.id)
@@ -486,7 +486,7 @@ async function getPaymentsReport(businessId: string, from: string, to: string) {
       },
       collector: { select: { fullName: true } },
     },
-    orderBy: { paymentDate: 'desc' },
+    orderBy: { loan: { customer: { customerId: 'asc' } } },
   })
 
   const rows = payments.map((p) => ({
@@ -644,7 +644,7 @@ async function getDailyCollectionReport(businessId: string, date: string, graceC
     })
     .filter(Boolean)
     .sort((a, b) => {
-      if (a!.paymentStatus === b!.paymentStatus) return a!.customerName.localeCompare(b!.customerName)
+      if (a!.paymentStatus === b!.paymentStatus) return a!.customerId.localeCompare(b!.customerId, undefined, { numeric: true })
       return a!.paymentStatus === 'Unpaid' ? -1 : 1
     })
 
