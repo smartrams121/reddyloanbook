@@ -25,9 +25,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Create TWA Project
         run: |
           mkdir -p twa-project/app/src/main/res/values
@@ -221,8 +218,9 @@ jobs:
           echo "Found APK: $APK"
 
           # Align and sign
-          ${ANDROID_HOME}/build-tools/35.0.0/zipalign -v 4 "$APK" /tmp/aligned.apk || cp "$APK" /tmp/aligned.apk
-          ${ANDROID_HOME}/build-tools/35.0.0/apksigner sign \
+          BT=$(ls -d ${ANDROID_HOME}/build-tools/*/ | tail -1)
+          ${BT}zipalign -v 4 "$APK" /tmp/aligned.apk || cp "$APK" /tmp/aligned.apk
+          ${BT}apksigner sign \
             --ks /tmp/keystore.jks \
             --ks-key-alias dailyfinance \
             --ks-pass pass:dailyfinance123 \
