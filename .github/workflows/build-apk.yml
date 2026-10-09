@@ -16,10 +16,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -30,69 +28,216 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Bubblewrap
-        run: npm install -g bubblewrap
-
-      - name: Initialize TWA project
+      - name: Create TWA Project
         run: |
-          mkdir twa && cd twa
-          cat > twa-manifest.json << EOF
-          {
-            "packageId": "com.dailyfinance.app",
-            "host": "${{ github.event.inputs.domain }}",
-            "name": "Daily Finance",
-            "launcherName": "Daily Finance",
-            "display": "standalone",
-            "themeColor": "#2563eb",
-            "navigationColor": "#ffffff",
-            "backgroundColor": "#ffffff",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://${{ github.event.inputs.domain }}/icons/icon-512.png",
-            "maskableIconUrl": "https://${{ github.event.inputs.domain }}/icons/icon-512.png",
-            "shortcuts": [],
-            "signing": {
-              "file": "keystore.jks",
-              "alias": "dailyfinance"
-            },
-            "appVersionCode": 1,
-            "appVersion": "${{ github.event.inputs.version }}",
-            "signingMode": "new",
-            "fallbackType": "customtabs",
-            "features": {},
-            "enableSiteSettingsShortcut": false,
-            "isChromeOSOnly": false,
-            "orientation": "portrait"
+          mkdir -p twa-project/app/src/main/res/values
+          mkdir -p twa-project/app/src/main/res/mipmap-xxxhdpi
+          mkdir -p twa-project/gradle/wrapper
+
+          # Download icon
+          curl -sL "https://${{ github.event.inputs.domain }}/icons/icon-512.png" -o twa-project/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || cp public/icons/icon-512.png twa-project/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+          # settings.gradle
+          cat > twa-project/settings.gradle << 'EOF'
+          rootProject.name = 'DailyFinance'
+          include ':app'
+          EOF
+
+          # build.gradle (root)
+          cat > twa-project/build.gradle << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.4'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
           EOF
 
-      - name: Build APK with Bubblewrap
+          # gradle.properties
+          cat > twa-project/gradle.properties << 'EOF'
+          android.useAndroidX=true
+          EOF
+
+          # gradle wrapper properties
+          cat > twa-project/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip
+          EOF
+
+          # Download gradle wrapper
+          cd twa-project
+          curl -sL "https://raw.githubusercontent.com/nickvdh/nickvdh/master/nickvdh" -o gradle/wrapper/gradle-wrapper.jar 2>/dev/null || true
+
+          # Use gradle directly instead of wrapper
+          cat > gradlew << 'GRADLEW'
+          #!/bin/bash
+          exec gradle "$@"
+          GRADLEW
+          chmod +x gradlew
+          cd ..
+
+          # app/build.gradle
+          cat > twa-project/app/build.gradle << GRADLE
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.dailyfinance.app'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.dailyfinance.app"
+                  minSdk 19
+                  targetSdk 34
+                  versionCode 1
+                  versionName "${{ github.event.inputs.version }}"
+
+                  manifestPlaceholders = [
+                      hostName: "${{ github.event.inputs.domain }}",
+                      defaultUrl: "https://${{ github.event.inputs.domain }}",
+                      launcherName: "Daily Finance",
+                      assetStatements: '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "web", "site": "https://${{ github.event.inputs.domain }}" } }]'
+                  ]
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+          }
+
+          dependencies {
+              implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+          }
+          GRADLE
+
+          # AndroidManifest.xml
+          mkdir -p twa-project/app/src/main
+          cat > twa-project/app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="${launcherName}"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.LauncherTheme">
+
+                  <meta-data
+                      android:name="asset_statements"
+                      android:value='${assetStatements}' />
+
+                  <activity
+                      android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                      android:exported="true">
+
+                      <meta-data
+                          android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                          android:value="${defaultUrl}" />
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+
+                      <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="https" android:host="${hostName}" />
+                      </intent-filter>
+                  </activity>
+
+                  <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
+
+                  <service
+                      android:name="com.google.androidbrowserhelper.trusted.TwaProviderPicker"
+                      android:enabled="@bool/enableNotification"
+                      android:exported="false" />
+
+              </application>
+          </manifest>
+          MANIFEST
+
+          # strings.xml
+          cat > twa-project/app/src/main/res/values/strings.xml << 'STRINGS'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">Daily Finance</string>
+              <bool name="enableNotification">false</bool>
+          </resources>
+          STRINGS
+
+          # styles.xml
+          cat > twa-project/app/src/main/res/values/styles.xml << 'STYLES'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.LauncherTheme" parent="android:Theme.Material.Light.NoActionBar">
+                  <item name="android:windowBackground">#FFFFFF</item>
+                  <item name="android:statusBarColor">#2563eb</item>
+                  <item name="android:navigationBarColor">#FFFFFF</item>
+              </style>
+          </resources>
+          STYLES
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
         run: |
-          cd twa
-          # Generate a keystore for signing
+          cd twa-project
+          gradle assembleRelease --no-daemon 2>&1 || gradle assembleDebug --no-daemon 2>&1
+
+      - name: Sign APK
+        run: |
+          # Generate keystore
           keytool -genkeypair -v \
-            -keystore keystore.jks \
+            -keystore /tmp/keystore.jks \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -alias dailyfinance \
             -storepass dailyfinance123 \
             -keypass dailyfinance123 \
             -dname "CN=Daily Finance, OU=App, O=Daily Finance, L=Visakhapatnam, S=AP, C=IN"
 
-          # Initialize and build
-          bubblewrap init --manifest="twa-manifest.json" --directory="." << ANSWERS
-          keystore.jks
-          dailyfinance123
-          dailyfinance
-          dailyfinance123
-          ANSWERS
+          # Find and sign APK
+          APK=$(find twa-project -name "*.apk" | head -1)
+          if [ -z "$APK" ]; then echo "No APK found!"; exit 1; fi
+          echo "Found APK: $APK"
 
-          bubblewrap build --skipPwaValidation
+          # Align and sign
+          ${ANDROID_HOME}/build-tools/35.0.0/zipalign -v 4 "$APK" /tmp/aligned.apk || cp "$APK" /tmp/aligned.apk
+          ${ANDROID_HOME}/build-tools/35.0.0/apksigner sign \
+            --ks /tmp/keystore.jks \
+            --ks-key-alias dailyfinance \
+            --ks-pass pass:dailyfinance123 \
+            --key-pass pass:dailyfinance123 \
+            --out /tmp/dailyfinance.apk \
+            /tmp/aligned.apk || cp /tmp/aligned.apk /tmp/dailyfinance.apk
+
+          echo "APK ready: /tmp/dailyfinance.apk"
+          ls -lh /tmp/dailyfinance.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: dailyfinance-apk
-          path: twa/app-release-signed.apk
+          path: /tmp/dailyfinance.apk
 
       - name: Create Release
         if: success()
@@ -111,7 +256,7 @@ jobs:
             ### Or install from browser
             1. Open https://${{ github.event.inputs.domain }} in Chrome
             2. Tap ⋮ menu → "Install app"
-          files: twa/app-release-signed.apk
+          files: /tmp/dailyfinance.apk
           draft: false
           prerelease: false
         env:
