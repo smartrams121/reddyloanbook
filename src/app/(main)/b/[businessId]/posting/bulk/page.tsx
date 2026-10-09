@@ -51,7 +51,7 @@ export default function VillageBulkPostingPage() {
   const [villages, setVillages] = useState<Village[]>([])
   const [selectedVillage, setSelectedVillage] = useState(preVillageId || 'all')
   const [collectorId, setCollectorId] = useState('')
-  const [detailsOpen, setDetailsOpen] = useState(preDetails === '1')
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [paymentMode, setPaymentMode] = useState('Cash')
   const [showCompleted, setShowCompleted] = useState(preCompleted === '1')
   const [showDefaulters, setShowDefaulters] = useState(false)
@@ -85,9 +85,10 @@ export default function VillageBulkPostingPage() {
   const statusFilteredRows = showDefaulters
     ? allRows.filter(r => r.status !== 'COMPLETED')
     : allRows.filter(r => r.status !== 'COMPLETED' && r.status !== 'DEFAULTER')
-  const filteredRows = showCompleted
+  const filteredRows = (showCompleted
     ? statusFilteredRows.filter(r => r.existingPaymentId)
     : statusFilteredRows.filter(r => !r.existingPaymentId)
+  ).sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
   const totalBulkPages = Math.ceil(filteredRows.length / BULK_PAGE_SIZE)
   const rows = filteredRows.slice(bulkPage * BULK_PAGE_SIZE, (bulkPage + 1) * BULK_PAGE_SIZE)
@@ -496,19 +497,13 @@ export default function VillageBulkPostingPage() {
                   <div key={`${row.loanId}`} className="card p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{idx + 1}.</span>
-                          <Link href={`/b/${businessId}/customers/${row.customerInternalId}`} className="text-sm font-semibold text-primary-600 hover:underline truncate">{row.customerName}</Link>
-                        </div>
-                        <div className="ml-7 space-y-0.5">
-                          <p className="text-xs text-gray-500">{row.phone} &middot; {row.loanNumber}</p>
-                          <div className="flex items-center gap-3 text-xs">
-                            <span className="text-gray-500">Inst: <span className="font-semibold text-gray-700">{formatPaiseShort(row.installmentAmount)}</span></span>
-                            <span className="text-gray-500">Out: <span className="font-semibold text-gray-900">{formatPaiseShort(row.outstanding)}</span></span>
-                            {row.existingPaymentId && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Paid {formatPaiseShort(row.existingAmountPaise || 0)}</span>
-                            )}
-                          </div>
+                        <Link href={`/b/${businessId}/customers/${row.customerInternalId}`} className="text-sm font-semibold text-primary-600 hover:underline truncate">{row.customerId} · {row.customerName}</Link>
+                        <div className="flex items-center gap-3 text-xs mt-0.5">
+                          <span className="text-gray-500">Inst: <span className="font-semibold text-gray-700">{formatPaiseShort(row.installmentAmount)}</span></span>
+                          <span className="text-gray-500">Out: <span className="font-semibold text-gray-900">{formatPaiseShort(row.outstanding)}</span></span>
+                          {row.existingPaymentId && (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Paid {formatPaiseShort(row.existingAmountPaise || 0)}</span>
+                          )}
                         </div>
                       </div>
 

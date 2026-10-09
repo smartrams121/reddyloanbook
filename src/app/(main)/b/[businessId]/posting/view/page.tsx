@@ -360,7 +360,7 @@ export default function ViewPaymentsPage() {
             return (
               <>
                 <Link
-                  href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1&details=1&collector=self`}
+                  href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1&collector=self`}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
                 >
                   Paid: {paidCount}
