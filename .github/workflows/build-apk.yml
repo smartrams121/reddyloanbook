@@ -179,6 +179,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           validate-wrappers: false
+          gradle-version: '8.4'
 
       - name: Build APK
         run: |
