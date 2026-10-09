@@ -118,6 +118,16 @@ export default function LoginPage() {
               {t('auth.sign_up')}
             </Link>
           </p>
+
+          <a
+            href="https://github.com/smartrams121/reddyloanbook/releases/download/v1.0.0/dailyfinance.apk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 mt-4 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 2.234a.767.767 0 0 0-1.055.278l-1.26 2.156A8.855 8.855 0 0 0 12 4.003a8.87 8.87 0 0 0-3.208.665L7.532 2.512a.767.767 0 1 0-1.333.757L7.4 5.372A8.904 8.904 0 0 0 3 12.997h18a8.904 8.904 0 0 0-4.4-7.625l1.201-2.103a.767.767 0 0 0-.278-1.055ZM8.5 10.498a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm7 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM3 13.997v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7H3Z"/></svg>
+            Download App for Android
+          </a>
         </div>
       </div>
     </div>
