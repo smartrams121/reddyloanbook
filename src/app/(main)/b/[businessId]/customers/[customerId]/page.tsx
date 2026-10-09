@@ -29,6 +29,7 @@ interface Customer {
   id: string; customerId: string; fullName: string; phone: string
   altPhone: string | null; age: number | null; address: string | null
   guarantorName: string | null; guarantorPhone: string | null
+  familyRelation: string | null; familyMemberName: string | null
   notes: string | null; photoPath: string | null; aadhaarLast4: string | null
   jobType: string | null; latitude: number | null; longitude: number | null; status: string
   village: Village; loans: LoanData[]; summary: Summary
@@ -393,10 +394,11 @@ function ContactSection({ customer }: { customer: Customer }) {
           {customer.aadhaarLast4 && <InfoRow label={t('customers.aadhaar')} value={`XXXX XXXX ${customer.aadhaarLast4}`} />}
           {customer.guarantorName && <InfoRow label={t('customers.guarantor')} value={customer.guarantorName} />}
           {customer.guarantorPhone && <InfoRow label={t('customers.guarantor_phone')} value={customer.guarantorPhone} />}
+          {customer.familyRelation && <InfoRow label="Family" value={`${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}`} />}
           {customer.notes && <InfoRow label={t('customers.notes')} value={customer.notes} />}
           {customer.latitude && customer.longitude && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">GPS Location</span>
+              <span className="text-gray-500">Customer Location</span>
               <a
                 href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
                 target="_blank"

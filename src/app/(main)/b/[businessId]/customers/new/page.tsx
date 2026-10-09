@@ -53,6 +53,14 @@ export default function NewCustomerPage() {
   const [showNewJobType, setShowNewJobType] = useState(false)
   const [additionalOpen, setAdditionalOpen] = useState(false)
 
+  const [familyRelation, setFamilyRelation] = useState('')
+  const [familyMemberName, setFamilyMemberName] = useState('')
+  const [customRelation, setCustomRelation] = useState('')
+  const [showNewRelation, setShowNewRelation] = useState(false)
+
+  const DEFAULT_RELATIONS = ['Husband', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Mother', 'Father', 'Father-in-law', 'Mother-in-law', 'Son-in-law', 'Daughter-in-law']
+  const [relations, setRelations] = useState<string[]>(DEFAULT_RELATIONS)
+
   async function checkCustomerId(id: string) {
     if (!id.trim()) return
     setCustomerIdStatus('loading')
@@ -75,7 +83,15 @@ export default function NewCustomerPage() {
     fetch(`/api/b/${businessId}/villages`)
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setVillages(data)
+        if (Array.isArray(data)) {
+          const sorted = data.sort((a: Village, b: Village) => a.name.localeCompare(b.name))
+          setVillages(sorted)
+          if (sorted.length === 1) {
+            setVillageId(sorted[0].id)
+          } else if (sorted.length > 1) {
+            try { const last = localStorage.getItem(`lastVillage_${businessId}`); if (last && sorted.some((v: Village) => v.id === last)) setVillageId(last) } catch {}
+          }
+        }
       })
       .catch(() => {})
 
@@ -114,6 +130,10 @@ export default function NewCustomerPage() {
     setNotes('')
     setPhotoPath('')
     setPhotoPreview('')
+    setFamilyRelation('')
+    setFamilyMemberName('')
+    setCustomRelation('')
+    setShowNewRelation(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -212,6 +232,8 @@ export default function NewCustomerPage() {
       if (jobType) body.jobType = jobType
       if (guarantorName) body.guarantorName = guarantorName
       if (guarantorPhone) body.guarantorPhone = guarantorPhone
+      if (familyRelation) body.familyRelation = familyRelation
+      if (familyMemberName) body.familyMemberName = familyMemberName
       if (notes) body.notes = notes
       if (latitude) body.latitude = latitude
       if (longitude) body.longitude = longitude
@@ -233,6 +255,8 @@ export default function NewCustomerPage() {
         }
         return
       }
+
+      try { localStorage.setItem(`lastVillage_${businessId}`, villageId) } catch {}
 
       if (action === 'continue') {
         setSuccess(`${fullName} created (${data.customerId}). Add next customer.`)
@@ -349,6 +373,32 @@ export default function NewCustomerPage() {
           )}
         </div>
 
+        {/* Family Reference — single row */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            {!showNewRelation ? (
+              <select className="input text-sm" value={familyRelation} onChange={(e) => {
+                if (e.target.value === '__new__') { setShowNewRelation(true); setFamilyRelation('') }
+                else { setFamilyRelation(e.target.value); setShowNewRelation(false) }
+              }}>
+                <option value="">Select Family Member</option>
+                {relations.map(r => <option key={r} value={r}>{r}</option>)}
+                <option value="__new__">+ Add New</option>
+              </select>
+            ) : (
+              <div className="flex gap-1">
+                <input className="input flex-1 text-sm" value={customRelation} onChange={(e) => setCustomRelation(e.target.value)} placeholder="Relationship" />
+                <button type="button" onClick={() => {
+                  const name = customRelation.trim()
+                  if (name) { if (!relations.includes(name)) setRelations(prev => [...prev, name]); setFamilyRelation(name); setCustomRelation(''); setShowNewRelation(false) }
+                }} className="text-xs px-2 py-1 rounded bg-primary-50 text-primary-700">Add</button>
+                <button type="button" onClick={() => { setShowNewRelation(false); setCustomRelation('') }} className="text-xs px-2 py-1 text-gray-400">×</button>
+              </div>
+            )}
+          </div>
+          <input className="input text-sm" value={familyMemberName} onChange={(e) => setFamilyMemberName(e.target.value)} placeholder="Name of Relative" />
+        </div>
+
         {/* Additional Details — collapsed by default */}
         <div className="card">
           <button type="button" onClick={() => setAdditionalOpen(!additionalOpen)} className="w-full p-4 flex items-center justify-between">
@@ -449,7 +499,7 @@ export default function NewCustomerPage() {
             {latitude && longitude ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-green-600 font-medium">Location captured</span>
-                <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">View on Map</a>
+                <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Maps</a>
                 <button type="button" onClick={() => { setLatitude(null); setLongitude(null) }} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
               </div>
             ) : (

@@ -30,7 +30,7 @@ export default function VillageList({ villages, businessId, canAdd, canEdit }: P
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 15)
+  const [pageSize, setPageSize] = useState(0)
 
   const showAllPages = pageSize === 0
   const totalPages = showAllPages ? 1 : Math.ceil(villages.length / pageSize)

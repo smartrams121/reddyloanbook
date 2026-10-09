@@ -26,6 +26,12 @@ export default function EditCustomerPage() {
   const [guarantorPhone, setGuarantorPhone] = useState('')
   const [jobType, setJobType] = useState('')
   const [aadhaar, setAadhaar] = useState('')
+  const [familyRelation, setFamilyRelation] = useState('')
+  const [familyMemberName, setFamilyMemberName] = useState('')
+  const [customRelation, setCustomRelation] = useState('')
+  const [showNewRelation, setShowNewRelation] = useState(false)
+  const DEFAULT_RELATIONS = ['Husband', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Mother', 'Father', 'Father-in-law', 'Mother-in-law', 'Son-in-law', 'Daughter-in-law']
+  const [relations, setRelations] = useState<string[]>(DEFAULT_RELATIONS)
   const [notes, setNotes] = useState('')
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
@@ -47,7 +53,7 @@ export default function EditCustomerPage() {
       fetch(`/api/b/${businessId}/villages`).then((r) => r.json()),
     ])
       .then(([cust, villageData]) => {
-        if (Array.isArray(villageData)) setVillages(villageData)
+        if (Array.isArray(villageData)) setVillages(villageData.sort((a: {name:string}, b: {name:string}) => a.name.localeCompare(b.name)))
         if (cust && cust.id) {
           setCustId(cust.customerId)
           setOriginalCustId(cust.customerId)
@@ -61,6 +67,11 @@ export default function EditCustomerPage() {
           setGuarantorPhone(cust.guarantorPhone || '')
           setJobType(cust.jobType || '')
           setAadhaar(cust.aadhaarLast4 ? `XXXXXXXX${cust.aadhaarLast4}` : '')
+          setFamilyRelation(cust.familyRelation || '')
+          setFamilyMemberName(cust.familyMemberName || '')
+          if (cust.familyRelation && !DEFAULT_RELATIONS.includes(cust.familyRelation)) {
+            setRelations(prev => [...prev, cust.familyRelation])
+          }
           setNotes(cust.notes || '')
           if (cust.latitude) setLatitude(cust.latitude)
           if (cust.longitude) setLongitude(cust.longitude)
@@ -127,6 +138,8 @@ export default function EditCustomerPage() {
         jobType,
         guarantorName,
         guarantorPhone,
+        familyRelation,
+        familyMemberName,
         notes,
         latitude,
         longitude,
@@ -271,6 +284,32 @@ export default function EditCustomerPage() {
           </select>
         </div>
 
+        {/* Family Reference — single row */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            {!showNewRelation ? (
+              <select className="input text-sm" value={familyRelation} onChange={(e) => {
+                if (e.target.value === '__new__') { setShowNewRelation(true); setFamilyRelation('') }
+                else { setFamilyRelation(e.target.value); setShowNewRelation(false) }
+              }}>
+                <option value="">Select Family Member</option>
+                {relations.map(r => <option key={r} value={r}>{r}</option>)}
+                <option value="__new__">+ Add New</option>
+              </select>
+            ) : (
+              <div className="flex gap-1">
+                <input className="input flex-1 text-sm" value={customRelation} onChange={(e) => setCustomRelation(e.target.value)} placeholder="Relationship" />
+                <button type="button" onClick={() => {
+                  const name = customRelation.trim()
+                  if (name) { if (!relations.includes(name)) setRelations(prev => [...prev, name]); setFamilyRelation(name); setCustomRelation(''); setShowNewRelation(false) }
+                }} className="text-xs px-2 py-1 rounded bg-primary-50 text-primary-700">Add</button>
+                <button type="button" onClick={() => { setShowNewRelation(false); setCustomRelation('') }} className="text-xs px-2 py-1 text-gray-400">×</button>
+              </div>
+            )}
+          </div>
+          <input className="input text-sm" value={familyMemberName} onChange={(e) => setFamilyMemberName(e.target.value)} placeholder="Name of Relative" />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">{t('customers.age')}</label>
@@ -319,7 +358,7 @@ export default function EditCustomerPage() {
           {latitude && longitude ? (
             <div className="flex items-center gap-2">
               <span className="text-xs text-green-600 font-medium">Location captured</span>
-              <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">View on Map</a>
+              <a href={`https://www.google.com/maps?q=${latitude},${longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Maps</a>
               <button type="button" onClick={() => { setLatitude(null); setLongitude(null) }} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
             </div>
           ) : (

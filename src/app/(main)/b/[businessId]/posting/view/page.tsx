@@ -46,7 +46,7 @@ export default function ViewPaymentsPage() {
   const [villageId, setVillageId] = useState('')
   const [collectorId, setCollectorId] = useState('')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [pageSize, setPageSize] = useState(0)
   const [sortField, setSortField] = useState('paymentDate')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
@@ -135,7 +135,7 @@ export default function ViewPaymentsPage() {
       case 'receipt': va = a.receiptNumber; vb = b.receiptNumber; break
     }
     if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va
-    return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
+    return sortDir === 'asc' ? String(va).localeCompare(String(vb), undefined, { numeric: true }) : String(vb).localeCompare(String(va), undefined, { numeric: true })
   })
 
   const loanFiltered = selectedLoanNumber

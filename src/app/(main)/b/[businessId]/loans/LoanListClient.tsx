@@ -339,7 +339,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 15)
+  const [pageSize, setPageSize] = useState(0)
   const [sortField, setSortField] = useState<string>('customer')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
@@ -368,7 +368,7 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
       case 'status': va = a.status; vb = b.status; break
     }
     if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va
-    return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
+    return sortDir === 'asc' ? String(va).localeCompare(String(vb), undefined, { numeric: true }) : String(vb).localeCompare(String(va), undefined, { numeric: true })
   })
 
   const showAll = pageSize === 0

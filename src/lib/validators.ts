@@ -74,6 +74,8 @@ export const createCustomerSchema = z.object({
   jobType: z.string().optional(),
   guarantorName: z.string().optional(),
   guarantorPhone: phoneSchema.optional().or(z.literal('')),
+  familyRelation: z.string().optional(),
+  familyMemberName: z.string().optional(),
   notes: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),

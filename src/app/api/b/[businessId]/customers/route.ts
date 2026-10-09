@@ -141,6 +141,8 @@ export async function POST(request: Request, { params }: Props) {
           jobType: parsed.data.jobType || null,
           guarantorName: parsed.data.guarantorName || null,
           guarantorPhone: parsed.data.guarantorPhone || null,
+          familyRelation: parsed.data.familyRelation || null,
+          familyMemberName: parsed.data.familyMemberName || null,
           notes: parsed.data.notes || null,
           latitude: parsed.data.latitude || null,
           longitude: parsed.data.longitude || null,

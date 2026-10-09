@@ -23,6 +23,8 @@ const updateCustomerSchema = z.object({
   aadhaar: z.string().regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits').optional().or(z.literal('')),
   guarantorName: z.string().optional(),
   guarantorPhone: phoneSchema.optional().or(z.literal('')),
+  familyRelation: z.string().optional(),
+  familyMemberName: z.string().optional(),
   notes: z.string().optional(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
@@ -170,6 +172,8 @@ export async function PATCH(request: Request, { params }: Props) {
   }
   if (parsed.data.guarantorName !== undefined) data.guarantorName = parsed.data.guarantorName || null
   if (parsed.data.guarantorPhone !== undefined) data.guarantorPhone = parsed.data.guarantorPhone || null
+  if (parsed.data.familyRelation !== undefined) data.familyRelation = parsed.data.familyRelation || null
+  if (parsed.data.familyMemberName !== undefined) data.familyMemberName = parsed.data.familyMemberName || null
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes || null
   if (parsed.data.latitude !== undefined) data.latitude = parsed.data.latitude ?? null
   if (parsed.data.longitude !== undefined) data.longitude = parsed.data.longitude ?? null

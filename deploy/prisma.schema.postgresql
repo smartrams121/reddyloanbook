@@ -210,10 +210,12 @@ model Customer {
   aadhaarLast4   String?
   photoPath      String?
   jobType        String?
-  guarantorName  String?
-  guarantorPhone String?
-  notes          String?
-  latitude       Float?
+  guarantorName    String?
+  guarantorPhone   String?
+  familyRelation   String?
+  familyMemberName String?
+  notes            String?
+  latitude         Float?
   longitude      Float?
   status         String   @default("ACTIVE")
 
