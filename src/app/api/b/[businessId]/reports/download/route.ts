@@ -212,12 +212,22 @@ async function generatePDF(
 
   let y = tableTop
 
+  function drawCellBorders(yPos: number, height: number) {
+    let x = margin
+    columns.forEach((_col, i) => {
+      doc.rect(x, yPos, scaledWidths[i], height).stroke('#CCCCCC')
+      x += scaledWidths[i]
+    })
+  }
+
   function drawHeaderRow(yPos: number) {
-    doc.rect(margin, yPos, usableWidth, headerHeight).fill('#FD5108')
     let x = margin
     doc.fontSize(fontSize).font('Helvetica-Bold').fillColor('#FFFFFF')
     columns.forEach((col, i) => {
-      doc.text(col.label, x + 4, yPos + 6, { width: scaledWidths[i] - 8, ellipsis: true })
+      doc.rect(x, yPos, scaledWidths[i], headerHeight).fill('#FD5108')
+      doc.rect(x, yPos, scaledWidths[i], headerHeight).stroke('#E04800')
+      doc.fillColor('#FFFFFF')
+      doc.text(col.label, x + 4, yPos + 7, { width: scaledWidths[i] - 8, ellipsis: true })
       x += scaledWidths[i]
     })
     return yPos + headerHeight
@@ -240,7 +250,7 @@ async function generatePDF(
       doc.fillColor('#333333')
     }
 
-    doc.rect(margin, y, usableWidth, rowHeight).stroke('#EEEEEE')
+    drawCellBorders(y, rowHeight)
 
     let x = margin
     doc.fontSize(fontSize)

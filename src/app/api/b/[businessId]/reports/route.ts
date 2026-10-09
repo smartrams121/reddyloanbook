@@ -112,15 +112,17 @@ async function getCustomersReport(businessId: string, from: string, to: string, 
     to,
     count: rows.length,
     columns: [
-      { key: 'customerId', label: 'Customer ID' },
-      { key: 'fullName', label: 'Name' },
+      { key: 'seq', label: '#' },
+      { key: 'customerId', label: 'CID' },
+      { key: 'fullName', label: 'Customer' },
       { key: 'phone', label: 'Phone' },
+      { key: 'age', label: 'Age' },
       { key: 'village', label: 'Location' },
       { key: 'status', label: 'Status' },
       { key: 'totalLoans', label: 'Total Loans' },
       { key: 'createdAt', label: 'Registered On' },
     ],
-    rows,
+    rows: rows.map((r, i) => ({ seq: i + 1, ...r })),
   })
 }
 
@@ -185,11 +187,14 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
     to,
     count: rows.length,
     columns: [
-      { key: 'loanNumber', label: 'Loan #' },
+      { key: 'seq', label: '#' },
       { key: 'customerId', label: 'CID' },
       { key: 'customerName', label: 'Customer' },
+      { key: 'loanNumber', label: 'Loan #' },
       { key: 'village', label: 'Location' },
+      { key: 'collectionType', label: 'Type' },
       { key: 'loanAmount', label: 'Principal (₹)' },
+      { key: 'interestAmount', label: 'Interest (₹)' },
       { key: 'totalRepayable', label: 'Repayable (₹)' },
       { key: 'installmentAmount', label: 'Installment (₹)' },
       { key: 'numberOfInstallments', label: '# Installments' },
@@ -200,7 +205,7 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
       { key: 'status', label: 'Status' },
       { key: 'agent', label: 'Agent' },
     ],
-    rows,
+    rows: rows.map((r, i) => ({ seq: i + 1, ...r })),
   })
 }
 
@@ -328,7 +333,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
         },
       },
     },
-    orderBy: { fullName: 'asc' },
+    orderBy: { customerId: 'asc' },
   })
 
   const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
@@ -372,8 +377,9 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
     to,
     count: rows.length,
     columns: [
-      { key: 'customerId', label: 'Customer ID' },
-      { key: 'fullName', label: 'Name' },
+      { key: 'seq', label: '#' },
+      { key: 'customerId', label: 'CID' },
+      { key: 'fullName', label: 'Customer' },
       { key: 'phone', label: 'Phone' },
       { key: 'status', label: 'Status' },
       { key: 'activeLoans', label: 'Active Loans' },
@@ -383,7 +389,7 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
       { key: 'collected', label: 'Collected (₹)' },
       { key: 'pending', label: 'Pending (₹)' },
     ],
-    rows,
+    rows: rows.map((r, i) => ({ seq: i + 1, ...r })),
   })
 }
 
@@ -508,17 +514,18 @@ async function getPaymentsReport(businessId: string, from: string, to: string) {
     to,
     count: rows.length,
     columns: [
+      { key: 'seq', label: '#' },
+      { key: 'customerId', label: 'CID' },
+      { key: 'customerName', label: 'Customer' },
+      { key: 'loanNumber', label: 'Loan #' },
       { key: 'receiptNumber', label: 'Receipt #' },
       { key: 'paymentDate', label: 'Date' },
-      { key: 'customerName', label: 'Customer' },
-      { key: 'customerId', label: 'Customer ID' },
       { key: 'village', label: 'Location' },
-      { key: 'loanNumber', label: 'Loan #' },
       { key: 'amount', label: 'Amount (₹)' },
       { key: 'collectedBy', label: 'Collected By' },
       { key: 'note', label: 'Note' },
     ],
-    rows,
+    rows: rows.map((r, i) => ({ seq: i + 1, ...r })),
   })
 }
 
@@ -532,12 +539,12 @@ async function getPaySlipsReport(businessId: string, date: string) {
       village: { select: { name: true } },
       loans: {
         select: {
-          id: true, amountGiven: true, installmentAmount: true,
+          id: true, loanNumber: true, amountGiven: true, installmentAmount: true,
           totalRepayable: true, expectedEndDate: true, collectionType: true,
         },
       },
     },
-    orderBy: { fullName: 'asc' },
+    orderBy: { customerId: 'asc' },
   })
 
   const loanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
@@ -553,11 +560,7 @@ async function getPaySlipsReport(businessId: string, date: string) {
   const [dy, dm, dd] = date.split('-')
   const formattedDate = `${dd}/${dm}/${dy}`
 
-  const sorted = [...customers].sort((a, b) => {
-    const vCmp = a.village.name.localeCompare(b.village.name)
-    if (vCmp !== 0) return vCmp
-    return a.fullName.localeCompare(b.fullName)
-  })
+  const sorted = [...customers].sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
   const rows = sorted.flatMap((c) =>
     c.loans
@@ -568,6 +571,7 @@ async function getPaySlipsReport(businessId: string, date: string) {
       .map((l) => ({
         customerId: c.customerId,
         customerName: c.fullName,
+        loanNumber: l.loanNumber,
         location: c.village.name,
         loanAmount: l.amountGiven / 100,
         outstanding: (l.totalRepayable - (paidMap.get(l.id) || 0)) / 100,
@@ -583,8 +587,10 @@ async function getPaySlipsReport(businessId: string, date: string) {
     to: date,
     count: rows.length,
     columns: [
-      { key: 'customerId', label: 'Customer ID' },
-      { key: 'customerName', label: 'Name' },
+      { key: 'seq', label: '#' },
+      { key: 'customerId', label: 'CID' },
+      { key: 'customerName', label: 'Customer' },
+      { key: 'loanNumber', label: 'Loan #' },
       { key: 'location', label: 'Location' },
       { key: 'loanAmount', label: 'Loan Amount (₹)' },
       { key: 'outstanding', label: 'Outstanding (₹)' },
@@ -592,7 +598,7 @@ async function getPaySlipsReport(businessId: string, date: string) {
       { key: 'collectionDate', label: 'Collection Date' },
       { key: 'paid', label: 'Paid' },
     ],
-    rows,
+    rows: rows.map((r, i) => ({ seq: i + 1, ...r })),
   })
 }
 
@@ -667,16 +673,18 @@ async function getDailyCollectionReport(businessId: string, date: string, graceC
       pct: totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0,
     },
     columns: [
-      { key: 'customerName', label: 'Customer' },
+      { key: 'seq', label: '#' },
       { key: 'customerId', label: 'CID' },
+      { key: 'customerName', label: 'Customer' },
       { key: 'loanNumber', label: 'Loan #' },
       { key: 'location', label: 'Location' },
       { key: 'installment', label: 'Installment (₹)' },
       { key: 'paidToday', label: 'Paid Today (₹)' },
       { key: 'outstanding', label: 'Outstanding (₹)' },
       { key: 'agent', label: 'Agent' },
-      { key: 'paymentStatus', label: 'Status' },
+      { key: 'loanStatus', label: 'Loan Status' },
+      { key: 'paymentStatus', label: 'Payment Status' },
     ],
-    rows,
+    rows: rows.map((r, i) => ({ seq: i + 1, ...r })),
   })
 }
