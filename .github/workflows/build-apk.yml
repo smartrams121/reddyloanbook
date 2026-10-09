@@ -1,0 +1,118 @@
+name: Build Android APK (TWA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'App domain (e.g. dailyfinance.duckdns.org)'
+        required: true
+        default: 'dailyfinance.duckdns.org'
+      version:
+        description: 'Version name (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap
+        run: npm install -g @nickvdh/bubblewrap
+
+      - name: Initialize TWA project
+        run: |
+          mkdir twa && cd twa
+          cat > twa-manifest.json << EOF
+          {
+            "packageId": "com.dailyfinance.app",
+            "host": "${{ github.event.inputs.domain }}",
+            "name": "Daily Finance",
+            "launcherName": "Daily Finance",
+            "display": "standalone",
+            "themeColor": "#2563eb",
+            "navigationColor": "#ffffff",
+            "backgroundColor": "#ffffff",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://${{ github.event.inputs.domain }}/icons/icon-512.png",
+            "maskableIconUrl": "https://${{ github.event.inputs.domain }}/icons/icon-512.png",
+            "shortcuts": [],
+            "signing": {
+              "file": "keystore.jks",
+              "alias": "dailyfinance"
+            },
+            "appVersionCode": 1,
+            "appVersion": "${{ github.event.inputs.version }}",
+            "signingMode": "new",
+            "fallbackType": "customtabs",
+            "features": {},
+            "enableSiteSettingsShortcut": false,
+            "isChromeOSOnly": false,
+            "orientation": "portrait"
+          }
+          EOF
+
+      - name: Build APK with Bubblewrap
+        run: |
+          cd twa
+          # Generate a keystore for signing
+          keytool -genkeypair -v \
+            -keystore keystore.jks \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias dailyfinance \
+            -storepass dailyfinance123 \
+            -keypass dailyfinance123 \
+            -dname "CN=Daily Finance, OU=App, O=Daily Finance, L=Visakhapatnam, S=AP, C=IN"
+
+          # Initialize and build
+          bubblewrap init --manifest="twa-manifest.json" --directory="." << ANSWERS
+          keystore.jks
+          dailyfinance123
+          dailyfinance
+          dailyfinance123
+          ANSWERS
+
+          bubblewrap build --skipPwaValidation
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dailyfinance-apk
+          path: twa/app-release-signed.apk
+
+      - name: Create Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Daily Finance v${{ github.event.inputs.version }}
+          body: |
+            ## Daily Finance Android App v${{ github.event.inputs.version }}
+
+            ### Install on Android
+            1. Download `dailyfinance.apk` below
+            2. Open the file on your Android phone
+            3. Tap "Install" (allow "Install from unknown sources" if prompted)
+
+            ### Or install from browser
+            1. Open https://${{ github.event.inputs.domain }} in Chrome
+            2. Tap ⋮ menu → "Install app"
+          files: twa/app-release-signed.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
