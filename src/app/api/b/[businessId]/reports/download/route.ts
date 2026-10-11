@@ -159,8 +159,22 @@ async function generateXLSX(
 
 const TELUGU_REGEX = /[ఀ-౿]/
 
-function hasTeluguChars(text: string): boolean {
-  return TELUGU_REGEX.test(text)
+function splitMixedText(text: string): { text: string; telugu: boolean }[] {
+  const segments: { text: string; telugu: boolean }[] = []
+  let current = ''
+  let currentTelugu = false
+
+  for (const char of text) {
+    const isTelugu = TELUGU_REGEX.test(char)
+    if (current && isTelugu !== currentTelugu) {
+      segments.push({ text: current, telugu: currentTelugu })
+      current = ''
+    }
+    current += char
+    currentTelugu = isTelugu
+  }
+  if (current) segments.push({ text: current, telugu: currentTelugu })
+  return segments
 }
 
 async function generatePDF(
@@ -210,8 +224,26 @@ async function generatePDF(
   const fontTelugu = hasNotoTelugu ? 'NotoTelugu' : fontRegular
 
   function pickFont(text: string, bold?: boolean): string {
-    if (hasTeluguChars(text)) return fontTelugu
+    if (TELUGU_REGEX.test(text)) return fontTelugu
     return bold ? fontBold : fontRegular
+  }
+
+  function drawMixedText(doc: PDFKit.PDFDocument, text: string, x: number, y: number, options: { width: number; ellipsis?: boolean }) {
+    const segments = splitMixedText(text)
+    if (segments.length <= 1 || !segments.some(s => s.telugu)) {
+      doc.font(pickFont(text)).text(text, x, y, options)
+      return
+    }
+    let cx = x
+    const maxWidth = options.width
+    for (const seg of segments) {
+      const f = seg.telugu ? fontTelugu : fontRegular
+      doc.font(f)
+      const w = doc.widthOfString(seg.text)
+      if (cx + w > x + maxWidth) break
+      doc.text(seg.text, cx, y, { width: maxWidth - (cx - x), lineBreak: false })
+      cx += w
+    }
   }
 
   const chunks: Buffer[] = []
@@ -282,11 +314,10 @@ async function generatePDF(
     drawCellBorders(y, rowHeight)
 
     let x = margin
-    doc.fontSize(fontSize)
+    doc.fontSize(fontSize).fillColor('#333333')
     columns.forEach((col, i) => {
       const val = String(row[col.key] ?? '')
-      doc.font(pickFont(val)).fillColor('#333333')
-      doc.text(val, x + 4, y + 5, { width: scaledWidths[i] - 8, ellipsis: true })
+      drawMixedText(doc, val, x + 4, y + 5, { width: scaledWidths[i] - 8, ellipsis: true })
       x += scaledWidths[i]
     })
 

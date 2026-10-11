@@ -136,7 +136,15 @@ export async function GET(request: Request, { params }: Props) {
   ]
 
   for (const [label, value] of infoRows) {
-    doc.font(pick(value)).text(`${label}: ${value}`)
+    if (/[ఀ-౿]/.test(value)) {
+      doc.font(fR).text(`${label}: `, { continued: true })
+      doc.font(fT).text(value.replace(/[a-zA-Z0-9\s.,()-]/g, ''), { continued: true })
+      const latin = value.replace(/[ఀ-౿]/g, '').trim()
+      if (latin) doc.font(fR).text(` ${latin}`)
+      else doc.text('')
+    } else {
+      doc.font(fR).text(`${label}: ${value}`)
+    }
   }
 
   doc.moveDown(0.8)
