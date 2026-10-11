@@ -87,8 +87,8 @@ export async function GET(request: Request, { params }: Props) {
   })
 
   const fp = path.join(process.cwd(), 'public', 'fonts')
-  const hasNoto = fs.existsSync(path.join(fp, 'NotoSans.ttf'))
-  const hasTe = fs.existsSync(path.join(fp, 'NotoSansTelugu.ttf'))
+  const hasNoto = false // Variable fonts crash fontkit — use Helvetica until static TTFs available
+  const hasTe = false
   if (hasNoto) doc.registerFont('NotoSans', path.join(fp, 'NotoSans.ttf'))
   if (hasTe) doc.registerFont('NotoTelugu', path.join(fp, 'NotoSansTelugu.ttf'))
   const fR = hasNoto ? 'NotoSans' : 'Helvetica'

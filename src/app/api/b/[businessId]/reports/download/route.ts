@@ -174,8 +174,8 @@ async function generatePDF(
   const entityLabel = entity.charAt(0).toUpperCase() + entity.slice(1)
 
   const fontPath = path.join(process.cwd(), 'public', 'fonts')
-  const hasNotoSans = fs.existsSync(path.join(fontPath, 'NotoSans.ttf'))
-  const hasNotoTelugu = fs.existsSync(path.join(fontPath, 'NotoSansTelugu.ttf'))
+  const hasNotoSans = false // Variable fonts crash fontkit — use Helvetica until static TTFs available
+  const hasNotoTelugu = false
 
   const colWidths = columns.map((c) => {
     let max = c.label.length
