@@ -545,7 +545,6 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">#</th>
                         {columns.map((col) => (
                           <th key={col.key} className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             {col.label}
@@ -556,7 +555,6 @@ export default function ReportsPage() {
                     <tbody className="divide-y divide-gray-100">
                       {pageRows.map((row, idx) => (
                         <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50/50' : ''}>
-                          <td className="px-3 py-2 text-gray-400 text-xs">{startIdx + idx + 1}</td>
                           {columns.map((col) => (
                             <td key={col.key} className="px-3 py-2 text-gray-700 whitespace-nowrap">
                               {formatCell(col.key, row[col.key])}

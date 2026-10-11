@@ -77,8 +77,9 @@ async function getCustomersReport(businessId: string, from: string, to: string, 
       loans: { select: { id: true, expectedEndDate: true, totalRepayable: true, collectionType: true, numberOfInstallments: true, statusOverride: true, statusOverrideDate: true } },
       _count: { select: { loans: true } },
     },
-    orderBy: { customerId: 'asc' },
   })
+
+  customers.sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
   const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
   const paidSums = allLoanIds.length > 0
@@ -138,8 +139,9 @@ async function getLoansReport(businessId: string, from: string, to: string, stat
       customer: { select: { customerId: true, fullName: true, phone: true, village: { select: { name: true } } } },
       agent: { select: { fullName: true } },
     },
-    orderBy: { customer: { customerId: 'asc' } },
   })
+
+  loans.sort((a, b) => a.customer.customerId.localeCompare(b.customer.customerId, undefined, { numeric: true }))
 
   const loanIds = loans.map((l) => l.id)
   const paidSums = loanIds.length > 0
@@ -333,8 +335,9 @@ async function getVillageCustomersReport(businessId: string, villageId: string, 
         },
       },
     },
-    orderBy: { customerId: 'asc' },
   })
+
+  customers.sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
   const allLoanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
   const paidSumsAll = allLoanIds.length > 0
@@ -492,8 +495,9 @@ async function getPaymentsReport(businessId: string, from: string, to: string) {
       },
       collector: { select: { fullName: true } },
     },
-    orderBy: { loan: { customer: { customerId: 'asc' } } },
   })
+
+  payments.sort((a, b) => a.loan.customer.customerId.localeCompare(b.loan.customer.customerId, undefined, { numeric: true }))
 
   const rows = payments.map((p) => ({
     receiptNumber: p.receiptNumber,
@@ -544,8 +548,9 @@ async function getPaySlipsReport(businessId: string, date: string) {
         },
       },
     },
-    orderBy: { customerId: 'asc' },
   })
+
+  customers.sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
   const loanIds = customers.flatMap((c) => c.loans.map((l) => l.id))
   const paidSums = loanIds.length > 0
