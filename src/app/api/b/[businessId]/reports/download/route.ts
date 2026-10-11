@@ -174,8 +174,8 @@ async function generatePDF(
   const entityLabel = entity.charAt(0).toUpperCase() + entity.slice(1)
 
   const fontPath = path.join(process.cwd(), 'public', 'fonts')
-  const hasNotoSans = false // Variable fonts crash fontkit — use Helvetica until static TTFs available
-  const hasNotoTelugu = false
+  const hasNotoSans = fs.existsSync(path.join(fontPath, 'NotoSans-Regular.ttf'))
+  const hasNotoTelugu = fs.existsSync(path.join(fontPath, 'NotoSansTelugu-Regular.ttf'))
 
   const colWidths = columns.map((c) => {
     let max = c.label.length
@@ -198,14 +198,15 @@ async function generatePDF(
   })
 
   if (hasNotoSans) {
-    doc.registerFont('NotoSans', path.join(fontPath, 'NotoSans.ttf'))
+    doc.registerFont('NotoSans', path.join(fontPath, 'NotoSans-Regular.ttf'))
+    doc.registerFont('NotoSans-Bold', path.join(fontPath, 'NotoSans-Bold.ttf'))
   }
   if (hasNotoTelugu) {
-    doc.registerFont('NotoTelugu', path.join(fontPath, 'NotoSansTelugu.ttf'))
+    doc.registerFont('NotoTelugu', path.join(fontPath, 'NotoSansTelugu-Regular.ttf'))
   }
 
   const fontRegular = hasNotoSans ? 'NotoSans' : 'Helvetica'
-  const fontBold = hasNotoSans ? 'NotoSans' : 'Helvetica-Bold'
+  const fontBold = hasNotoSans ? 'NotoSans-Bold' : 'Helvetica-Bold'
   const fontTelugu = hasNotoTelugu ? 'NotoTelugu' : fontRegular
 
   function pickFont(text: string, bold?: boolean): string {
