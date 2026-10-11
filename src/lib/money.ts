@@ -57,6 +57,23 @@ function formatIndianNumber(numStr: string): string {
   return result
 }
 
+export function formatPaiseAbbr(paise: number): { short: string; full: string } {
+  const rupees = paiseToRupees(paise)
+  const isNegative = rupees < 0
+  const abs = Math.abs(rupees)
+  const sign = isNegative ? '-' : ''
+
+  const full = formatPaiseShort(paise)
+
+  if (abs < 100000) return { short: full, full }
+  if (abs < 10000000) {
+    const lakhs = abs / 100000
+    return { short: `${sign}₹${lakhs.toFixed(2).replace(/\.?0+$/, '')}L`, full }
+  }
+  const crores = abs / 10000000
+  return { short: `${sign}₹${crores.toFixed(2).replace(/\.?0+$/, '')}Cr`, full }
+}
+
 export function parseRupeesInput(input: string): number | null {
   const cleaned = input.replace(/[₹,\s]/g, '')
   const num = parseFloat(cleaned)

@@ -100,15 +100,15 @@
   }
 
   .stat-card {
-    @apply card p-4;
+    @apply card p-3 overflow-hidden;
   }
 
   .stat-value {
-    @apply text-2xl font-bold text-gray-900;
+    @apply font-bold text-gray-900;
   }
 
   .stat-label {
-    @apply text-sm text-gray-500 mt-1;
+    @apply text-xs text-gray-500 mt-0.5;
   }
 }
 
