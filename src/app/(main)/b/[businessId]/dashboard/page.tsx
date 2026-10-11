@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
-import { formatPaiseShort, formatPaiseAbbr } from '@/lib/money'
+import AmountDisplay from '@/components/ui/AmountDisplay'
 import { todayIST, formatDateISO, formatDateDisplay, parseISODate, addDays } from '@/lib/date'
 import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import { Role } from '@/lib/constants'
@@ -234,19 +234,18 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
 
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3 mb-3">
-        {[
-          { value: totalLoanAmount, label: <><T k="dashboard.total_loan_amount" /> ({activeLoans.length})</> },
-          { value: totalRepayable, label: <T k="dashboard.repayable" /> },
-          { value: totalOutstanding, label: <T k="dashboard.outstanding" /> },
-        ].map((s, i) => {
-          const { short, full } = formatPaiseAbbr(s.value)
-          return (
-            <div key={i} className="stat-card">
-              <div className="stat-value" title={full}>{short}</div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          )
-        })}
+        <div className="stat-card">
+          <AmountDisplay paise={totalLoanAmount} className="stat-value" />
+          <div className="stat-label"><T k="dashboard.total_loan_amount" /> ({activeLoans.length})</div>
+        </div>
+        <div className="stat-card">
+          <AmountDisplay paise={totalRepayable} className="stat-value" />
+          <div className="stat-label"><T k="dashboard.repayable" /></div>
+        </div>
+        <div className="stat-card">
+          <AmountDisplay paise={totalOutstanding} className="stat-value" />
+          <div className="stat-label"><T k="dashboard.outstanding" /></div>
+        </div>
       </div>
       <div className="grid grid-cols-3 gap-3 mb-6">
         <Link href={`/b/${businessId}/customers?status=ACTIVE,OVERDUE,DEFAULTER`} className="stat-card hover:border-primary-300 transition-colors block">
@@ -276,19 +275,15 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         </h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-lg font-bold text-gray-400" title={formatPaiseShort(periodExpected)}>{formatPaiseAbbr(periodExpected).short}</div>
+            <AmountDisplay paise={periodExpected} className="text-lg font-bold text-gray-400" />
             <div className="text-xs text-gray-500"><T k="dashboard.expected" />{expectedLoanCount > 0 ? ` (${expectedLoanCount})` : ''}</div>
           </div>
           <div>
-            <div className={`text-lg font-bold ${periodCollected >= periodExpected ? 'text-success-600' : 'text-warning-600'}`} title={formatPaiseShort(periodCollected)}>
-              {formatPaiseAbbr(periodCollected).short}
-            </div>
+            <AmountDisplay paise={periodCollected} className={`text-lg font-bold ${periodCollected >= periodExpected ? 'text-success-600' : 'text-warning-600'}`} />
             <div className="text-xs text-gray-500"><T k="dashboard.collected" />{collectedCount > 0 ? ` (${collectedCount})` : ''}</div>
           </div>
           <div>
-            <div className="text-lg font-bold text-primary-600" title={formatPaiseShort(newLoanAmount)}>
-              {formatPaiseAbbr(newLoanAmount).short}
-            </div>
+            <AmountDisplay paise={newLoanAmount} className="text-lg font-bold text-primary-600" />
             <div className="text-xs text-gray-500"><T k="dashboard.new_loans" />{newLoanCount > 0 ? ` (${newLoanCount})` : ''}</div>
           </div>
           <div>
