@@ -5,6 +5,8 @@ import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import ExcelJS from 'exceljs'
 import PDFDocument from 'pdfkit'
+import path from 'path'
+import fs from 'fs'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -155,6 +157,12 @@ async function generateXLSX(
   })
 }
 
+const TELUGU_REGEX = /[ఀ-౿]/
+
+function hasTeluguChars(text: string): boolean {
+  return TELUGU_REGEX.test(text)
+}
+
 async function generatePDF(
   businessName: string,
   entity: string,
@@ -164,6 +172,10 @@ async function generatePDF(
   rows: Record<string, unknown>[]
 ) {
   const entityLabel = entity.charAt(0).toUpperCase() + entity.slice(1)
+
+  const fontPath = path.join(process.cwd(), 'public', 'fonts')
+  const hasNotoSans = fs.existsSync(path.join(fontPath, 'NotoSans.ttf'))
+  const hasNotoTelugu = fs.existsSync(path.join(fontPath, 'NotoSansTelugu.ttf'))
 
   const colWidths = columns.map((c) => {
     let max = c.label.length
@@ -185,6 +197,22 @@ async function generatePDF(
     bufferPages: true,
   })
 
+  if (hasNotoSans) {
+    doc.registerFont('NotoSans', path.join(fontPath, 'NotoSans.ttf'))
+  }
+  if (hasNotoTelugu) {
+    doc.registerFont('NotoTelugu', path.join(fontPath, 'NotoSansTelugu.ttf'))
+  }
+
+  const fontRegular = hasNotoSans ? 'NotoSans' : 'Helvetica'
+  const fontBold = hasNotoSans ? 'NotoSans' : 'Helvetica-Bold'
+  const fontTelugu = hasNotoTelugu ? 'NotoTelugu' : fontRegular
+
+  function pickFont(text: string, bold?: boolean): string {
+    if (hasTeluguChars(text)) return fontTelugu
+    return bold ? fontBold : fontRegular
+  }
+
   const chunks: Buffer[] = []
   doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
@@ -196,10 +224,10 @@ async function generatePDF(
   const scale = totalColWidth > usableWidth ? usableWidth / totalColWidth : 1
   const scaledWidths = colWidths.map((w) => w * scale)
 
-  doc.fontSize(16).font('Helvetica-Bold').fillColor('#333333')
+  doc.fontSize(16).font(pickFont(businessName, true)).fillColor('#333333')
     .text(`${businessName} — ${entityLabel} Report`, margin, margin)
 
-  doc.fontSize(9).font('Helvetica').fillColor('#666666')
+  doc.fontSize(9).font(fontRegular).fillColor('#666666')
     .text(
       `Period: ${formatDD(from)} to ${formatDD(to)}  |  Total: ${rows.length} records  |  Generated: ${new Date().toLocaleDateString('en-IN')}`,
       margin, doc.y + 4
@@ -222,11 +250,11 @@ async function generatePDF(
 
   function drawHeaderRow(yPos: number) {
     let x = margin
-    doc.fontSize(fontSize).font('Helvetica-Bold').fillColor('#FFFFFF')
+    doc.fontSize(fontSize).font(fontBold).fillColor('#FFFFFF')
     columns.forEach((col, i) => {
       doc.rect(x, yPos, scaledWidths[i], headerHeight).fill('#FD5108')
       doc.rect(x, yPos, scaledWidths[i], headerHeight).stroke('#E04800')
-      doc.fillColor('#FFFFFF')
+      doc.fillColor('#FFFFFF').font(fontBold)
       doc.text(col.label, x + 4, yPos + 7, { width: scaledWidths[i] - 8, ellipsis: true })
       x += scaledWidths[i]
     })
@@ -235,14 +263,14 @@ async function generatePDF(
 
   y = drawHeaderRow(y)
 
-  doc.font('Helvetica').fillColor('#333333')
+  doc.font(fontRegular).fillColor('#333333')
 
   rows.forEach((row, idx) => {
     if (y + rowHeight > pageHeight - margin - 20) {
       doc.addPage()
       y = margin
       y = drawHeaderRow(y)
-      doc.font('Helvetica').fillColor('#333333')
+      doc.font(fontRegular).fillColor('#333333')
     }
 
     if (idx % 2 === 1) {
@@ -256,6 +284,7 @@ async function generatePDF(
     doc.fontSize(fontSize)
     columns.forEach((col, i) => {
       const val = String(row[col.key] ?? '')
+      doc.font(pickFont(val)).fillColor('#333333')
       doc.text(val, x + 4, y + 5, { width: scaledWidths[i] - 8, ellipsis: true })
       x += scaledWidths[i]
     })
@@ -263,7 +292,7 @@ async function generatePDF(
     y += rowHeight
   })
 
-  doc.fontSize(7).font('Helvetica-Oblique').fillColor('#999999')
+  doc.fontSize(7).font(fontRegular).fillColor('#999999')
     .text('Internal Use Only', margin, y + 16, { align: 'center', width: usableWidth })
 
   doc.end()

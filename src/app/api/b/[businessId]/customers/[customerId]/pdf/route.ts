@@ -7,6 +7,7 @@ import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/l
 import PDFDocument from 'pdfkit'
 import { readFile } from 'fs/promises'
 import path from 'path'
+import fs from 'fs'
 
 interface Props {
   params: Promise<{ businessId: string; customerId: string }>
@@ -85,10 +86,20 @@ export async function GET(request: Request, { params }: Props) {
     doc.on('end', () => resolve(Buffer.concat(chunks)))
   })
 
+  const fp = path.join(process.cwd(), 'public', 'fonts')
+  const hasNoto = fs.existsSync(path.join(fp, 'NotoSans.ttf'))
+  const hasTe = fs.existsSync(path.join(fp, 'NotoSansTelugu.ttf'))
+  if (hasNoto) doc.registerFont('NotoSans', path.join(fp, 'NotoSans.ttf'))
+  if (hasTe) doc.registerFont('NotoTelugu', path.join(fp, 'NotoSansTelugu.ttf'))
+  const fR = hasNoto ? 'NotoSans' : 'Helvetica'
+  const fB = hasNoto ? 'NotoSans' : 'Helvetica-Bold'
+  const fT = hasTe ? 'NotoTelugu' : fR
+  const pick = (t: string, bold?: boolean) => /[ఀ-౿]/.test(t) ? fT : bold ? fB : fR
+
   // Header
-  doc.fontSize(16).font('Helvetica-Bold').text(business?.name || 'Customer Details', { align: 'center' })
+  doc.fontSize(16).font(pick(business?.name || '', true)).text(business?.name || 'Customer Details', { align: 'center' })
   doc.moveDown(0.3)
-  doc.fontSize(10).font('Helvetica').text(`Customer: ${customer.fullName} (${customer.customerId})`, { align: 'center' })
+  doc.fontSize(10).font(pick(customer.fullName)).text(`Customer: ${customer.fullName} (${customer.customerId})`, { align: 'center' })
   doc.moveDown(1)
 
   // Customer photo (passport size: 35mm × 45mm ≈ 99 × 127 pt)
@@ -106,9 +117,9 @@ export async function GET(request: Request, { params }: Props) {
   }
 
   // Customer info
-  doc.fontSize(11).font('Helvetica-Bold').text('Customer Information')
+  doc.fontSize(11).font(fB).text('Customer Information')
   doc.moveDown(0.3)
-  doc.fontSize(9).font('Helvetica')
+  doc.fontSize(9).font(fR)
 
   const infoRows: [string, string][] = [
     ['Name', customer.fullName],
@@ -125,15 +136,15 @@ export async function GET(request: Request, { params }: Props) {
   ]
 
   for (const [label, value] of infoRows) {
-    doc.text(`${label}: ${value}`)
+    doc.font(pick(value)).text(`${label}: ${value}`)
   }
 
   doc.moveDown(0.8)
 
   // Financial summary
-  doc.fontSize(11).font('Helvetica-Bold').text('Financial Summary')
+  doc.fontSize(11).font(fB).text('Financial Summary')
   doc.moveDown(0.3)
-  doc.fontSize(9).font('Helvetica')
+  doc.fontSize(9).font(fR)
   doc.text(`Total Lent: ${fmtPaise(totalLent)}`)
   doc.text(`Total Repayable: ${fmtPaise(totalRepayable)}`)
   doc.text(`Total Paid: ${fmtPaise(totalPaid)}`)
@@ -144,13 +155,13 @@ export async function GET(request: Request, { params }: Props) {
 
   // Loans
   if (loansWithPaid.length > 0) {
-    doc.fontSize(11).font('Helvetica-Bold').text(`Loans (${loansWithPaid.length})`)
+    doc.fontSize(11).font(fB).text(`Loans (${loansWithPaid.length})`)
     doc.moveDown(0.4)
 
     for (const l of loansWithPaid) {
       if (doc.y > 700) doc.addPage()
-      doc.fontSize(9).font('Helvetica-Bold').text(`${l.loanNumber} — ${l.derivedStatus}`)
-      doc.font('Helvetica').fontSize(8)
+      doc.fontSize(9).font(fB).text(`${l.loanNumber} — ${l.derivedStatus}`)
+      doc.font(fR).fontSize(8)
       doc.text(`  Lent: ${fmtPaise(l.amountGiven)}  |  Repayable: ${fmtPaise(l.totalRepayable)}  |  Paid: ${fmtPaise(l.totalPaid)}  |  Due: ${fmtPaise(l.outstanding)}`)
       doc.text(`  ${l.collectionType}  |  ${fmtDate(l.startDate)} → ${fmtDate(l.expectedEndDate)}${l.agent ? `  |  Agent: ${l.agent.fullName}` : ''}`)
       doc.moveDown(0.4)
