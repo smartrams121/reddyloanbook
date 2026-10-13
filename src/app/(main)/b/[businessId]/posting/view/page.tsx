@@ -230,25 +230,70 @@ export default function ViewPaymentsPage() {
         </Link>
       </div>
 
+      {/* Customer Search */}
+      <div className="mb-4">
+        {selectedCustomer ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500">Customer:</span>
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-primary-100 text-primary-700">
+              {selectedCustomer.fullName} ({selectedCustomer.customerId})
+              <button onClick={() => { setSelectedCustomer(null); setSelectedLoanNumber('') }} className="hover:text-primary-900">×</button>
+            </span>
+            {customerLoanNumbers.length > 1 && (
+              <>
+                <span className="text-xs text-gray-500">Loan:</span>
+                <select value={selectedLoanNumber} onChange={(e) => { setSelectedLoanNumber(e.target.value); setPage(1) }} className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600">
+                  <option value="">All Loans ({customerLoanNumbers.length})</option>
+                  {customerLoanNumbers.map(ln => <option key={ln} value={ln}>{ln}</option>)}
+                </select>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="relative">
+            <input
+              type="text"
+              className="input py-2.5 pl-10"
+              placeholder="Search customer by name, phone, or ID..."
+              value={customerQuery}
+              onChange={(e) => setCustomerQuery(e.target.value)}
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            {filteredCusts.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
+                {filteredCusts.map(c => (
+                  <button key={c.id} onClick={() => { setSelectedCustomer({ id: c.id, fullName: c.fullName, customerId: c.customerId }); setCustomerQuery(''); setPage(1) }} className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                    <span className="text-xs font-medium text-gray-900">{c.fullName}</span>
+                    <span className="text-[10px] text-gray-500 ml-2">{c.customerId} · {c.phone} · {c.village?.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="card p-3 mb-4 space-y-3">
         {/* Date presets */}
         <div className="flex flex-wrap gap-2">
           {[
-            { key: 'today', label: t('common.today') },
-            { key: 'yesterday', label: t('common.yesterday') },
-            { key: '7d', label: `7 ${t('common.days')}` },
-            { key: '15d', label: `15 ${t('common.days')}` },
-            { key: '30d', label: `30 ${t('common.days')}` },
-            { key: 'all', label: t('common.all') },
-            { key: 'custom', label: t('common.custom') },
+            { key: 'today', label: t('common.today'), mobile: true },
+            { key: 'yesterday', label: t('common.yesterday'), mobile: true },
+            { key: '7d', label: `7 ${t('common.days')}`, mobile: false },
+            { key: '15d', label: `15 ${t('common.days')}`, mobile: false },
+            { key: '30d', label: `30 ${t('common.days')}`, mobile: false },
+            { key: 'all', label: t('common.all'), mobile: true },
+            { key: 'custom', label: t('common.custom'), mobile: true },
           ].map(p => (
             <button
               key={p.key}
               onClick={() => selectPreset(p.key)}
               className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
                 preset === p.key ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              } ${!p.mobile ? 'hidden md:inline-flex' : ''}`}
             >
               {p.label}
             </button>
@@ -301,50 +346,6 @@ export default function ViewPaymentsPage() {
             )}
           </div>
         )}
-        {/* Customer Search */}
-        <div>
-          {selectedCustomer ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-500">Customer:</span>
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-primary-100 text-primary-700">
-                {selectedCustomer.fullName} ({selectedCustomer.customerId})
-                <button onClick={() => { setSelectedCustomer(null); setSelectedLoanNumber('') }} className="hover:text-primary-900">×</button>
-              </span>
-              {customerLoanNumbers.length > 1 && (
-                <>
-                  <span className="text-xs text-gray-500">Loan:</span>
-                  <select value={selectedLoanNumber} onChange={(e) => { setSelectedLoanNumber(e.target.value); setPage(1) }} className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600">
-                    <option value="">All Loans ({customerLoanNumbers.length})</option>
-                    {customerLoanNumbers.map(ln => <option key={ln} value={ln}>{ln}</option>)}
-                  </select>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="relative">
-              <input
-                type="text"
-                className="input text-xs py-1.5 pl-8"
-                placeholder="Search customer by name, phone, or ID..."
-                value={customerQuery}
-                onChange={(e) => setCustomerQuery(e.target.value)}
-              />
-              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
-              {filteredCusts.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
-                  {filteredCusts.map(c => (
-                    <button key={c.id} onClick={() => { setSelectedCustomer({ id: c.id, fullName: c.fullName, customerId: c.customerId }); setCustomerQuery(''); setPage(1) }} className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                      <span className="text-xs font-medium text-gray-900">{c.fullName}</span>
-                      <span className="text-[10px] text-gray-500 ml-2">{c.customerId} · {c.phone} · {c.village?.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Payments Table */}

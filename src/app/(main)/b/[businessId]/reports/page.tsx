@@ -225,13 +225,13 @@ export default function ReportsPage() {
     }
   }
 
-  const presets: { value: RangePreset; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'today', label: 'Today' },
-    { value: 'yesterday', label: 'Yesterday' },
-    { value: '7d', label: 'Last 7 Days' },
-    { value: '30d', label: '1 Month' },
-    { value: 'custom', label: 'Custom' },
+  const presets: { value: RangePreset; label: string; mobile?: boolean }[] = [
+    { value: 'all', label: 'All', mobile: true },
+    { value: 'today', label: 'Today', mobile: true },
+    { value: 'yesterday', label: 'Yesterday', mobile: true },
+    { value: '7d', label: 'Last 7 Days', mobile: false },
+    { value: '30d', label: '1 Month', mobile: false },
+    { value: 'custom', label: 'Custom', mobile: true },
   ]
 
   const allEntities: { value: Entity; label: string }[] = [
@@ -277,7 +277,7 @@ export default function ReportsPage() {
                       preset === p.value
                         ? 'bg-primary-600 text-white border-primary-600'
                         : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                    }`}
+                    } ${p.mobile === false ? 'hidden md:inline-flex' : ''}`}
                   >
                     {p.label}
                   </button>

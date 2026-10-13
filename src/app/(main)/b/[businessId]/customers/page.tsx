@@ -152,10 +152,12 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       {/* Filters */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1 items-center">
         <FilterChip href={buildCustomerUrl('')} active={activeStatuses.length === 0 && !filters.village} label="All" />
-        <FilterChip href={buildCustomerUrl('ACTIVE')} active={activeStatuses.includes('ACTIVE')} label="Active" activeClass="bg-success-600 text-white" />
-        <FilterChip href={buildCustomerUrl('OVERDUE')} active={activeStatuses.includes('OVERDUE')} label="Overdue" activeClass="bg-red-600 text-white" />
-        <FilterChip href={buildCustomerUrl('DEFAULTER')} active={activeStatuses.includes('DEFAULTER')} label="Defaulter" activeClass="bg-red-600 text-white" />
-        <FilterChip href={buildCustomerUrl('COMPLETED')} active={activeStatuses.includes('COMPLETED')} label="Completed" activeClass="bg-blue-600 text-white" />
+        <span className="hidden md:contents">
+          <FilterChip href={buildCustomerUrl('ACTIVE')} active={activeStatuses.includes('ACTIVE')} label="Active" activeClass="bg-success-600 text-white" />
+          <FilterChip href={buildCustomerUrl('OVERDUE')} active={activeStatuses.includes('OVERDUE')} label="Overdue" activeClass="bg-red-600 text-white" />
+          <FilterChip href={buildCustomerUrl('DEFAULTER')} active={activeStatuses.includes('DEFAULTER')} label="Defaulter" activeClass="bg-red-600 text-white" />
+          <FilterChip href={buildCustomerUrl('COMPLETED')} active={activeStatuses.includes('COMPLETED')} label="Completed" activeClass="bg-blue-600 text-white" />
+        </span>
         <FilterChip href={buildCustomerUrl('NO LOANS')} active={activeStatuses.includes('NO LOANS')} label="No Loans" activeClass="bg-gray-400 text-white" />
         {villages.map((v) => (
           <FilterChip
