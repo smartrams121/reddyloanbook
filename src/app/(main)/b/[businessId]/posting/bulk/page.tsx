@@ -346,7 +346,7 @@ export default function VillageBulkPostingPage() {
 
           {/* Details — collapsed by default */}
           {selectedVillage && (
-            <div className="mb-5 card">
+            <div className="mb-5 card overflow-hidden">
               <button type="button" onClick={() => setDetailsOpen(!detailsOpen)} className="w-full p-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('common.details')}</h2>
                 <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ export default function VillageBulkPostingPage() {
                   <svg className={`w-4 h-4 text-gray-400 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                 </div>
               </button>
-              {detailsOpen && <div className="px-4 pb-4 space-y-4">
+              {detailsOpen && <div className="px-3 sm:px-4 pb-4 space-y-4">
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                   <div>
                     <label className="label text-xs">{t('payments.posting_date')} *</label>
@@ -389,7 +389,7 @@ export default function VillageBulkPostingPage() {
                       ? agents
                       : agents.filter(a => a.role === 'OWNER' || a.role === 'BUSINESS_ADMIN' || (a.role === 'AGENT' && a.villageAssignments?.some(va => va.village.id === selectedVillage)))
                     return filtered.length > 0 ? (
-                      <select className="input text-xs" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
+                      <select className="input text-xs min-w-0 w-full" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
                         <option value="">Myself (logged-in employee)</option>
                         {filtered.map((a) => {
                           const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Partner' : 'Agent'

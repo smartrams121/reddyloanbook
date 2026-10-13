@@ -7,7 +7,7 @@ import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Agent { id: string; fullName: string; role: string; villageAssignments?: { village: { id: string } }[] }
-interface CustomerResult { id: string; customerId: string; fullName: string; phone: string; village: { id: string; name: string }; status: string }
+interface CustomerResult { id: string; customerId: string; fullName: string; phone: string; village: { id: string; name: string }; status: string; _count?: { loans: number } }
 interface BusinessSettings { collectionType: string; defaultCollectionDay: string | null; collectionDays: string; repaymentMultiplierDailyWeekly: number; repaymentMultiplierMonthly: number }
 interface ActiveLoan { id: string; loanNumber: string; loanAmount: number; totalRepayable: number; status: string; startDate: string }
 interface DocAttachment { filePath: string; originalName: string; mimeType: string; previewUrl?: string }
@@ -218,13 +218,21 @@ export default function NewLoanPage() {
   }
 
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers
-    const q = searchQuery.toLowerCase()
-    return customers.filter(c =>
-      c.fullName.toLowerCase().includes(q) ||
-      c.phone.includes(q) ||
-      c.customerId.toLowerCase().includes(q)
-    )
+    let list = searchQuery.trim()
+      ? customers.filter(c => {
+          const q = searchQuery.toLowerCase()
+          return c.fullName.toLowerCase().includes(q) || c.phone.includes(q) || c.customerId.toLowerCase().includes(q)
+        })
+      : [...customers]
+
+    list.sort((a, b) => {
+      const aHasLoans = (a._count?.loans || 0) > 0 ? 1 : 0
+      const bHasLoans = (b._count?.loans || 0) > 0 ? 1 : 0
+      if (aHasLoans !== bHasLoans) return aHasLoans - bHasLoans
+      return a.customerId.localeCompare(b.customerId, undefined, { numeric: true })
+    })
+
+    return list
   }, [customers, searchQuery])
 
   function handlePrincipalChange(val: string) {
