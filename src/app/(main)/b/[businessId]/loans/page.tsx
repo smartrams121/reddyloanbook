@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess, getAccessibleVillageIds } from '@/lib/scope'
 import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 import SearchBox from '../customers/SearchBox'
 import CsvBulkLoanUpload from './CsvBulkLoanUpload'
@@ -142,7 +143,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
       <SearchBox initialQuery={filters.search || ''} />
 
       {/* Status Filters */}
-      <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+      <div className="flex gap-2 mb-3 overflow-x-auto pb-1 items-center">
         {STATUS_FILTERS.map((f) => {
           const active = f.key === '' ? activeStatuses.length === 0 : activeStatuses.includes(f.key)
           return (
@@ -159,6 +160,7 @@ export default async function LoansPage({ params, searchParams }: Props) {
             </Link>
           )
         })}
+        <div className="ml-auto"><RefreshButton /></div>
       </div>
 
       {/* Loan List with Bulk Actions */}

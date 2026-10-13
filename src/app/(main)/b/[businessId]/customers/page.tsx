@@ -9,6 +9,7 @@ import Link from 'next/link'
 import SearchBox from './SearchBox'
 import CustomerList from './CustomerList'
 import CsvBulkUpload from './CsvBulkUpload'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -149,7 +150,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
       <SearchBox initialQuery={filters.search || ''} />
 
       {/* Filters */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 items-center">
         <FilterChip href={buildCustomerUrl('')} active={activeStatuses.length === 0 && !filters.village} label="All" />
         <FilterChip href={buildCustomerUrl('ACTIVE')} active={activeStatuses.includes('ACTIVE')} label="Active" activeClass="bg-success-600 text-white" />
         <FilterChip href={buildCustomerUrl('OVERDUE')} active={activeStatuses.includes('OVERDUE')} label="Overdue" activeClass="bg-red-600 text-white" />
@@ -164,6 +165,7 @@ export default async function CustomersPage({ params, searchParams }: Props) {
             label={v.name}
           />
         ))}
+        <div className="ml-auto"><RefreshButton /></div>
       </div>
 
       {/* Customer List */}

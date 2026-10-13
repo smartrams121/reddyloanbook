@@ -10,6 +10,7 @@ import Link from 'next/link'
 import DateFilter from './DateFilter'
 import { T } from '@/lib/i18n'
 import AutoRefresh from '@/components/AutoRefresh'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -225,11 +226,14 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <AutoRefresh />
       {/* Business Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">{business.name}</h1>
-        <p className="text-sm text-gray-500">
-          {business.city} &middot; {business.collectionType} &middot; {formatDateDisplay(today)}
-        </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{business.name}</h1>
+          <p className="text-sm text-gray-500">
+            {business.city} &middot; {business.collectionType} &middot; {formatDateDisplay(today)}
+          </p>
+        </div>
+        <RefreshButton />
       </div>
 
       {/* Stats Grid */}
