@@ -385,7 +385,7 @@ export default function AppShell({ user, children }: AppShellProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-20 md:pb-4">
+      <main className="flex-1 pb-28 md:pb-4">
         {children}
       </main>
 
