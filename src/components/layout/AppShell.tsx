@@ -385,7 +385,7 @@ export default function AppShell({ user, children }: AppShellProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-36 md:pb-4">
+      <main className="flex-1 pb-24 md:pb-4">
         {children}
       </main>
 
@@ -454,25 +454,23 @@ function MobileBottomNav({
   ].filter(i => i.show)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden no-print" style={{ paddingBottom: 'env(safe-area-inset-bottom, 4px)' }}>
-      <div className="mx-3 mb-1 bg-white rounded-2xl shadow-[0_-2px_16px_rgba(0,0,0,0.1)] border border-gray-100">
-        <div className="flex items-center justify-around h-14">
-          {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 min-w-[56px] rounded-xl transition-colors ${
-                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500'
-                }`}
-              >
-                <item.icon active={isActive} />
-                <span className="text-[10px] font-semibold">{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden no-print bg-white border-t border-gray-100 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 4px)' }}>
+      <div className="flex items-center justify-around h-14">
+        {navItems.map((item) => {
+          const isActive = pathname.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 min-w-[56px] rounded-xl transition-colors ${
+                isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-400'
+              }`}
+            >
+              <item.icon active={isActive} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </Link>
+          )
+        })}
       </div>
     </nav>
   )
