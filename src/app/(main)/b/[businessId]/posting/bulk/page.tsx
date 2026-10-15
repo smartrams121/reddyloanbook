@@ -244,7 +244,7 @@ export default function VillageBulkPostingPage() {
       const res = await fetch(`/api/b/${businessId}/payments/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payments, paymentDate: postingDate, collectorId: collectorId || undefined, note: paymentMode }),
+        body: JSON.stringify({ payments, paymentDate: postingDate, collectorId: collectorId || agents.find(a => a.role === 'OWNER')?.id || undefined, note: paymentMode }),
       })
       const data = await res.json()
       if (!res.ok) {

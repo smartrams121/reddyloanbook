@@ -415,7 +415,8 @@ export default function NewLoanPage() {
       if (ct === 'WEEKLY' && settings?.defaultCollectionDay) {
         body.collectionDay = settings.defaultCollectionDay
       }
-      if (agentId) body.agentId = agentId
+      const effectiveAgentId = agentId || agents.find(a => a.role === 'OWNER')?.id || ''
+      if (effectiveAgentId) body.agentId = effectiveAgentId
       if (notes) body.notes = notes
       if (renewFromLoanId) body.renewFromLoanId = renewFromLoanId
       if (documents.length > 0) {

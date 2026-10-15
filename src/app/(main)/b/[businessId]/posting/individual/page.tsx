@@ -279,7 +279,7 @@ export default function RecordPaymentPage() {
           loanId: selectedLoan.id,
           amount: amountPaise,
           paymentDate: postingDate,
-          collectorId: collectorId || undefined,
+          collectorId: collectorId || agents.find(a => a.role === 'OWNER')?.id || undefined,
           note: note || undefined,
           ...(existingPaymentId ? { existingPaymentId } : {}),
         }),
