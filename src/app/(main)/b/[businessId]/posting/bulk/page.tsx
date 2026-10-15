@@ -541,7 +541,7 @@ export default function VillageBulkPostingPage() {
               </div>
 
               {/* Summary & Submit */}
-              <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-3 pb-4 mb-8 md:mb-0 -mx-4 px-4">
+              <div className="fixed bottom-20 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 pt-3 pb-4 px-4 z-30">
                 <div className="flex items-center justify-between mb-3 text-sm">
                   <span className="text-gray-500">
                     {filledRows.length} of {rows.length} payments entered
