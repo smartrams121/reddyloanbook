@@ -93,7 +93,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 no-print" style={{ background: 'linear-gradient(to right, #1e40af, #2563eb)' }}>
+      <header className="sticky top-0 z-40 no-print" style={{ background: 'linear-gradient(to right, #3b5998, #4a90d9)' }}>
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2">
             {/* Hamburger — All Features menu */}
@@ -454,24 +454,25 @@ function MobileBottomNav({
   ].filter(i => i.show)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden no-print" style={{ background: 'linear-gradient(to right, #1e40af, #2563eb)', paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
-      <div className="flex items-center justify-around h-14">
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 min-w-[44px] min-h-[44px] relative ${
-                isActive ? 'text-white' : 'text-white/50'
-              }`}
-            >
-              {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-white rounded-full" />}
-              <item.icon active={isActive} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          )
-        })}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden no-print" style={{ paddingBottom: 'env(safe-area-inset-bottom, 4px)' }}>
+      <div className="mx-3 mb-1 bg-white rounded-2xl shadow-[0_-2px_16px_rgba(0,0,0,0.1)] border border-gray-100">
+        <div className="flex items-center justify-around h-14">
+          {navItems.map((item) => {
+            const isActive = pathname.startsWith(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 min-w-[56px] rounded-xl transition-colors ${
+                  isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500'
+                }`}
+              >
+                <item.icon active={isActive} />
+                <span className="text-[10px] font-semibold">{item.label}</span>
+              </Link>
+            )
+          })}
+        </div>
       </div>
     </nav>
   )

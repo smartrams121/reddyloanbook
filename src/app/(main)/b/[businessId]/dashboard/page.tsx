@@ -329,17 +329,6 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href={`/b/${businessId}/posting`} className="btn-primary text-center">
-          <T k="dashboard.record_payment" />
-        </Link>
-        {(user.role === Role.OWNER || user.role === Role.BUSINESS_ADMIN) && (
-          <Link href={`/b/${businessId}/customers/new`} className="btn-secondary text-center">
-            <T k="dashboard.new_customer" />
-          </Link>
-        )}
-      </div>
     </div>
   )
 }
