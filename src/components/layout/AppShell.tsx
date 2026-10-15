@@ -93,25 +93,25 @@ export default function AppShell({ user, children }: AppShellProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 no-print">
+      <header className="sticky top-0 z-40 no-print" style={{ background: 'linear-gradient(to right, #1e40af, #2563eb)' }}>
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2">
             {/* Hamburger — All Features menu */}
             <button
               onClick={() => setNavOpen(!navOpen)}
-              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 -ml-2 rounded-lg hover:bg-white/10 transition-colors"
               aria-label="All Features"
             >
-              <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
 
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                 <span className="text-white text-sm font-bold">₹</span>
               </div>
-              <span className="font-semibold text-gray-900 hidden sm:block">{user.organizationName || t('common.app_name')}</span>
+              <span className="font-semibold text-white hidden sm:block">{user.organizationName || t('common.app_name')}</span>
             </Link>
           </div>
 
@@ -120,7 +120,7 @@ export default function AppShell({ user, children }: AppShellProps) {
             {activeBusinessId && (
               <div className="flex items-center gap-1 mr-2">
                 {/* 1. Dashboard (desktop only) */}
-                <Link href={`/b/${activeBusinessId}/dashboard`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-primary-600 hover:bg-primary-50 transition-colors" title="Dashboard">
+                <Link href={`/b/${activeBusinessId}/dashboard`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Dashboard">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
                   </svg>
@@ -128,7 +128,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 </Link>
                 {/* 2. Customers (mobile + desktop) */}
                 {can('view_customer') && (
-                <Link href={`/b/${activeBusinessId}/customers`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title="Customers">
+                <Link href={`/b/${activeBusinessId}/customers`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Customers">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                   </svg>
@@ -137,7 +137,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 )}
                 {/* 3. Loans (mobile + desktop) */}
                 {can('view_loan') && (
-                <Link href={`/b/${activeBusinessId}/loans`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Loans">
+                <Link href={`/b/${activeBusinessId}/loans`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Loans">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
                   </svg>
@@ -146,7 +146,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 )}
                 {/* 4. Payments (mobile + desktop) */}
                 {can('view_payments') && (
-                <Link href={`/b/${activeBusinessId}/posting/view`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors" title="View Payments">
+                <Link href={`/b/${activeBusinessId}/posting/view`} className="flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="View Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
@@ -155,7 +155,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 )}
                 {/* 5. New Payment (desktop only) */}
                 {can('view_record_payment') && (
-                <Link href={`/b/${activeBusinessId}/posting/individual`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors" title="New Payment">
+                <Link href={`/b/${activeBusinessId}/posting/individual`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="New Payment">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
@@ -164,7 +164,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 )}
                 {/* 6. Bulk Payments (desktop only) */}
                 {can('view_bulk_payment') && (
-                <Link href={`/b/${activeBusinessId}/posting/bulk`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title="Bulk Payments">
+                <Link href={`/b/${activeBusinessId}/posting/bulk`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Bulk Payments">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.243 1.007-2.25 2.25-2.25" />
                   </svg>
@@ -172,7 +172,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 </Link>
                 )}
                 {/* 7. Locations (desktop only) */}
-                <Link href={`/b/${activeBusinessId}/villages`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-cyan-600 hover:bg-cyan-50 transition-colors" title="Locations">
+                <Link href={`/b/${activeBusinessId}/villages`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Locations">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
@@ -181,7 +181,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 </Link>
                 {/* 8. Employees (desktop only, owner/admin) */}
                 {isOwnerOrAdmin && (
-                <Link href={`/b/${activeBusinessId}/employees`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors" title="Employees">
+                <Link href={`/b/${activeBusinessId}/employees`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Employees">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                   </svg>
@@ -190,7 +190,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 )}
                 {/* 9. Reports (desktop only) */}
                 {can('view_own_collection_report') && (
-                <Link href={`/b/${activeBusinessId}/reports`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors" title="Reports">
+                <Link href={`/b/${activeBusinessId}/reports`} className="hidden md:flex flex-col items-center px-2 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Reports">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
@@ -203,13 +203,13 @@ export default function AppShell({ user, children }: AppShellProps) {
             {/* Business switcher for owners — right side */}
             {user.role === Role.OWNER && businesses.length > 0 && (
               <select
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 text-gray-700 max-w-[140px]"
+                className="text-xs border border-white/30 rounded-lg px-2 py-1.5 bg-white/10 text-white max-w-[140px]"
                 value={activeBusinessId || ''}
                 onChange={(e) => handleBusinessSwitch(e.target.value)}
               >
-                <option value="">{t('dashboard.select_collection')}</option>
+                <option value="" className="text-gray-700">{t('dashboard.select_collection')}</option>
                 {businesses.map((biz) => (
-                  <option key={biz.id} value={biz.id}>
+                  <option key={biz.id} value={biz.id} className="text-gray-700">
                     {biz.name}
                   </option>
                 ))}
@@ -218,12 +218,12 @@ export default function AppShell({ user, children }: AppShellProps) {
 
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold">
                 {user.fullName.charAt(0).toUpperCase()}
               </div>
-              <span className="text-sm text-gray-700 hidden sm:block">{user.fullName}</span>
+              <span className="text-sm text-white hidden sm:block">{user.fullName}</span>
             </button>
           </div>
         </div>
@@ -454,20 +454,21 @@ function MobileBottomNav({
   ].filter(i => i.show)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 md:hidden no-print safe-bottom">
-      <div className="flex items-center justify-around h-16">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden no-print" style={{ background: 'linear-gradient(to right, #1e40af, #2563eb)', paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+      <div className="flex items-center justify-around h-14">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-lg min-w-[44px] min-h-[44px] ${
-                isActive ? 'text-primary-600' : 'text-gray-500'
+              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 min-w-[44px] min-h-[44px] relative ${
+                isActive ? 'text-white' : 'text-white/50'
               }`}
             >
+              {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-white rounded-full" />}
               <item.icon active={isActive} />
-              <span className="text-xs font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           )
         })}
@@ -503,7 +504,7 @@ function BulkIcon({ active }: { active: boolean }) {
 function ReportsIcon({ active }: { active: boolean }) {
   return (
     <svg className="w-7 h-7" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   )
 }
