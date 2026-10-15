@@ -120,11 +120,12 @@
 
 @media (max-width: 767px) {
   input[type="date"] {
-    width: 100%;
+    max-width: 100%;
     min-width: 0;
-    font-size: 14px;
-    padding: 8px 12px;
+    font-size: 16px;
+    padding: 6px 8px;
     box-sizing: border-box;
+    -webkit-appearance: none;
   }
 
   .date-display {
