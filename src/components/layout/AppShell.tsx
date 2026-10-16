@@ -246,7 +246,7 @@ export default function AppShell({ user, children }: AppShellProps) {
               {t('profile.profile_settings')}
             </Link>
             <div className="border-t border-gray-100 my-1" />
-            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Help</p>
+            <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('common.help')}</p>
             <Link
               href="/contact-us"
               onClick={() => setMenuOpen(false)}
@@ -278,7 +278,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setNavOpen(false)} />
           <nav className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl overflow-y-auto flex flex-col">
             <div className="flex items-center justify-between px-4 h-14 border-b border-gray-200">
-              <span className="font-semibold text-gray-900">All Features</span>
+              <span className="font-semibold text-gray-900">{t('common.all_features')}</span>
               <button onClick={() => setNavOpen(false)} className="p-1 rounded hover:bg-gray-100">
                 <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -334,30 +334,30 @@ export default function AppShell({ user, children }: AppShellProps) {
                 <NavSection title={t('profile.role_owner')}>
                   <NavLink href="/businesses/new" icon="➕" label={t('dashboard.new_collection')} active={pathname === '/businesses/new'} />
                   <NavLink href="/employees" icon="👤" label={t('common.manage_employees')} active={pathname.startsWith('/employees')} />
-                  <NavLink href="/password-resets" icon="🔑" label="Employee Password Management" active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
+                  <NavLink href="/password-resets" icon="🔑" label={t('common.employee_password_mgmt')} active={pathname.startsWith('/password-resets')} badge={pendingResetCount} />
                 </NavSection>
               )}
 
               {/* If no business selected, prompt */}
               {!activeBusinessId && user.role !== Role.PLATFORM_ADMIN && (
                 <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-gray-500 mb-2">Select a collection from the top-right dropdown to see all features.</p>
+                  <p className="text-sm text-gray-500 mb-2">{t('common.select_collection_dropdown')}</p>
                 </div>
               )}
 
               {/* Platform Admin links */}
               {user.role === Role.PLATFORM_ADMIN && (
-                <NavSection title="Platform Admin">
-                  <NavLink href="/admin/owners" icon="👥" label="Organizations" active={pathname.startsWith('/admin/owners')} />
-                  <NavLink href="/admin/registration-requests" icon="📋" label="Registration Requests" active={pathname.startsWith('/admin/registration-requests')} badge={pendingRegCount} />
-                  <NavLink href="/admin/password-resets" icon="🔑" label="Password Resets" active={pathname.startsWith('/admin/password-resets')} badge={pendingResetCount} />
-                  <NavLink href="/admin/platform-settings" icon="⚙️" label="Platform Settings" active={pathname.startsWith('/admin/platform-settings')} />
-                  <NavLink href="/profile" icon="👤" label="My Profile" active={pathname === '/profile'} />
+                <NavSection title={t('common.platform_admin')}>
+                  <NavLink href="/admin/owners" icon="👥" label={t('common.organizations')} active={pathname.startsWith('/admin/owners')} />
+                  <NavLink href="/admin/registration-requests" icon="📋" label={t('common.registration_requests')} active={pathname.startsWith('/admin/registration-requests')} badge={pendingRegCount} />
+                  <NavLink href="/admin/password-resets" icon="🔑" label={t('common.password_resets')} active={pathname.startsWith('/admin/password-resets')} badge={pendingResetCount} />
+                  <NavLink href="/admin/platform-settings" icon="⚙️" label={t('common.platform_settings')} active={pathname.startsWith('/admin/platform-settings')} />
+                  <NavLink href="/profile" icon="👤" label={t('common.my_profile')} active={pathname === '/profile'} />
                 </NavSection>
               )}
 
               {/* Help section */}
-              <NavSection title="Help">
+              <NavSection title={t('common.help')}>
                 <NavLink href="/contact-us" icon="📞" label={t('profile.contact_us')} active={pathname === '/contact-us'} />
                 <NavLink href="/faq" icon="❓" label={t('profile.faq')} active={pathname === '/faq'} />
               </NavSection>
@@ -443,14 +443,15 @@ function MobileBottomNav({
   user: AuthUser
   pathname: string
 }) {
+  const { t } = useTranslation()
   const base = `/b/${businessId}`
   const mCan = (action: Action) => hasPermission(user, action, businessId)
 
   const navItems = [
-    { href: `${base}/dashboard`, label: 'Home', icon: HomeIcon, show: true },
-    { href: `${base}/posting/individual`, label: 'Pay', icon: CollectIcon, show: mCan('view_record_payment') },
-    { href: `${base}/posting/bulk`, label: 'Bulk', icon: BulkIcon, show: mCan('view_bulk_payment') },
-    { href: `${base}/reports`, label: 'Reports', icon: ReportsIcon, show: mCan('view_own_collection_report') },
+    { href: `${base}/dashboard`, label: t('common.home'), icon: HomeIcon, show: true },
+    { href: `${base}/posting/individual`, label: t('common.pay'), icon: CollectIcon, show: mCan('view_record_payment') },
+    { href: `${base}/posting/bulk`, label: t('common.bulk'), icon: BulkIcon, show: mCan('view_bulk_payment') },
+    { href: `${base}/reports`, label: t('reports.reports'), icon: ReportsIcon, show: mCan('view_own_collection_report') },
   ].filter(i => i.show)
 
   return (

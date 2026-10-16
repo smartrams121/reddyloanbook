@@ -36,5 +36,16 @@
   "collected": "సేకరించింది",
   "in_hand": "చేతిలో ఉంది",
   "deficit": "లోటు",
-  "collected_pct": "{pct}% సేకరించింది"
+  "collected_pct": "{pct}% సేకరించింది",
+  "paid": "చెల్లించారు",
+  "unpaid": "చెల్లించలేదు",
+  "yesterdays_collection": "నిన్నటి కలెక్షన్",
+  "last_7_days": "గత 7 రోజులు",
+  "last_30_days": "గత 30 రోజులు",
+  "status_active": "యాక్టివ్",
+  "status_overdue": "గడువు మించింది",
+  "status_defaulter": "ఎగవేతదారుడు",
+  "status_completed": "పూర్తయింది",
+  "select_collection_prompt": "నిర్వహించడానికి కుడి ఎగువ డ్రాప్‌డౌన్ నుండి కలెక్షన్ ఎంచుకోండి",
+  "today_suffix": "ఈరోజు"
 }

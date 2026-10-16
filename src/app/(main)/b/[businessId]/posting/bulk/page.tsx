@@ -308,13 +308,13 @@ export default function VillageBulkPostingPage() {
               </svg>
             </div>
             <h2 className="text-lg font-bold text-gray-900 mb-1">{t('payments.bulk_payment_recorded')}</h2>
-            <p className="text-sm text-gray-500 mb-2">Location: <span className="font-semibold text-gray-700">{villageName}</span></p>
+            <p className="text-sm text-gray-500 mb-2">{t('customers.location')}: <span className="font-semibold text-gray-700">{villageName}</span></p>
             <p className="text-3xl font-bold text-success-600 mb-2">{formatPaiseShort(result.totalAmount)}</p>
-            <p className="text-sm text-gray-500">{result.count} payment{result.count > 1 ? 's' : ''} posted</p>
+            <p className="text-sm text-gray-500">{result.count} {t('common.payments_entered')}</p>
           </div>
           <div className="flex gap-3">
             <button onClick={handleNewCollection} className="btn-primary flex-1">
-              Collect Again ({villageName})
+              {t('common.collect_again')} ({villageName})
             </button>
             <button onClick={handleReset} className="btn-secondary flex-1">
               {t('payments.select_location')}
@@ -368,7 +368,7 @@ export default function VillageBulkPostingPage() {
                       required
                     />
                     {postingDate !== todayStr && (
-                      <p className="text-[10px] text-amber-600 mt-1">Backdated</p>
+                      <p className="text-[10px] text-amber-600 mt-1">{t('common.backdated')}</p>
                     )}
                   </div>
                   <div>
@@ -390,14 +390,14 @@ export default function VillageBulkPostingPage() {
                       : agents.filter(a => a.role === 'OWNER' || a.role === 'BUSINESS_ADMIN' || (a.role === 'AGENT' && a.villageAssignments?.some(va => va.village.id === selectedVillage)))
                     return filtered.length > 0 ? (
                       <select className="input text-xs min-w-0 w-full" value={collectorId} onChange={(e) => setCollectorId(e.target.value)}>
-                        <option value="">Myself (logged-in employee)</option>
+                        <option value="">{t('common.myself_collector')}</option>
                         {filtered.map((a) => {
-                          const roleLabel = a.role === 'OWNER' ? 'Owner' : a.role === 'BUSINESS_ADMIN' ? 'Partner' : 'Agent'
+                          const roleLabel = a.role === 'OWNER' ? t('common.owner') : a.role === 'BUSINESS_ADMIN' ? t('common.partner') : t('common.agent')
                           return <option key={a.id} value={a.id}>{a.fullName} ({roleLabel})</option>
                         })}
                       </select>
                     ) : (
-                      <p className="text-xs text-gray-400 py-2">No agents assigned.</p>
+                      <p className="text-xs text-gray-400 py-2">{t('common.no_agents_assigned')}</p>
                     )
                   })()}
                 </div>
@@ -415,7 +415,7 @@ export default function VillageBulkPostingPage() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                     <span className="text-xs text-gray-600">{t('payments.payment_completed')}</span>
-                    <span className="text-xs text-gray-400">({showCompleted ? `${rows.length} paid` : `${rows.length} pending`})</span>
+                    <span className="text-xs text-gray-400">({rows.length} {showCompleted ? t('payments.paid') : t('common.pending')})</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={showDefaulters} onChange={(e) => { setShowDefaulters(e.target.checked); setBulkPage(0) }} className="w-4 h-4 rounded border-gray-300 text-red-600" />
@@ -451,7 +451,7 @@ export default function VillageBulkPostingPage() {
             <>
               <div className="text-sm text-gray-500 mb-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span>Showing {bulkPage * BULK_PAGE_SIZE + 1}–{Math.min((bulkPage + 1) * BULK_PAGE_SIZE, filteredRows.length)} of {filteredRows.length} in {villageName}</span>
+                  <span>{t('common.showing_range', { from: String(bulkPage * BULK_PAGE_SIZE + 1), to: String(Math.min((bulkPage + 1) * BULK_PAGE_SIZE, filteredRows.length)), total: String(filteredRows.length) })} - {villageName}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -472,15 +472,15 @@ export default function VillageBulkPostingPage() {
                       disabled={bulkPage === 0}
                       className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      Prev 10
+                      {t('common.prev_10')}
                     </button>
-                    <span className="text-xs text-gray-500">Page {bulkPage + 1} of {totalBulkPages}</span>
+                    <span className="text-xs text-gray-500">{t('common.page_x_of_y', { x: String(bulkPage + 1), y: String(totalBulkPages) })}</span>
                     <button
                       onClick={() => setBulkPage(p => Math.min(totalBulkPages - 1, p + 1))}
                       disabled={bulkPage >= totalBulkPages - 1}
                       className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      Next 10
+                      {t('common.next_10')}
                     </button>
                     <button
                       onClick={() => loadVillageData(selectedVillage)}
@@ -499,10 +499,10 @@ export default function VillageBulkPostingPage() {
                       <div className="min-w-0 flex-1">
                         <Link href={`/b/${businessId}/customers/${row.customerInternalId}`} className="text-sm font-semibold text-primary-600 hover:underline truncate">{row.customerId} · {row.customerName}</Link>
                         <div className="flex items-center gap-3 text-xs mt-0.5">
-                          <span className="text-gray-500">Inst: <span className="font-semibold text-gray-700">{formatPaiseShort(row.installmentAmount)}</span></span>
-                          <span className="text-gray-500">Out: <span className="font-semibold text-gray-900">{formatPaiseShort(row.outstanding)}</span></span>
+                          <span className="text-gray-500">{t('common.inst')}: <span className="font-semibold text-gray-700">{formatPaiseShort(row.installmentAmount)}</span></span>
+                          <span className="text-gray-500">{t('common.out')}: <span className="font-semibold text-gray-900">{formatPaiseShort(row.outstanding)}</span></span>
                           {row.existingPaymentId && (
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Paid {formatPaiseShort(row.existingAmountPaise || 0)}</span>
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">{t('payments.paid')} {formatPaiseShort(row.existingAmountPaise || 0)}</span>
                           )}
                         </div>
                       </div>
@@ -544,10 +544,10 @@ export default function VillageBulkPostingPage() {
               <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-3 pb-4 -mx-4 px-4">
                 <div className="flex items-center justify-between mb-3 text-sm">
                   <span className="text-gray-500">
-                    {filledRows.length} of {rows.length} payments entered
+                    {filledRows.length} {t('common.of')} {rows.length} {t('common.payments_entered')}
                   </span>
                   <span className="font-bold text-gray-900">
-                    Total: {formatPaiseShort(totalEnteredPaise)}
+                    {t('common.total')}: {formatPaiseShort(totalEnteredPaise)}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -556,7 +556,7 @@ export default function VillageBulkPostingPage() {
                     disabled={posting || filledRows.length === 0}
                     className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
                   >
-                    {posting ? 'Posting...' : `Submit ${filledRows.length}`}
+                    {posting ? t('common.posting') : `${t('common.submit')} ${filledRows.length}`}
                   </button>
                   <button
                     onClick={handleSubmitAndNext}

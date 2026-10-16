@@ -223,10 +223,10 @@ export default function ViewPaymentsPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t('payments.view_payments')}</h1>
-          <p className="text-sm text-gray-500">{loanFiltered.length} payments · {formatPaiseShort(totalAmount)}</p>
+          <p className="text-sm text-gray-500">{loanFiltered.length} {t('payments.payments')} · {formatPaiseShort(totalAmount)}</p>
         </div>
         <Link href={`/b/${businessId}/posting`} className="text-sm text-primary-600 hover:underline">
-          ← Back
+          ← {t('common.back')}
         </Link>
       </div>
 
@@ -234,16 +234,16 @@ export default function ViewPaymentsPage() {
       <div className="mb-4">
         {selectedCustomer ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500">Customer:</span>
+            <span className="text-xs text-gray-500">{t('customers.customer_name')}:</span>
             <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-primary-100 text-primary-700">
               {selectedCustomer.fullName} ({selectedCustomer.customerId})
               <button onClick={() => { setSelectedCustomer(null); setSelectedLoanNumber('') }} className="hover:text-primary-900">×</button>
             </span>
             {customerLoanNumbers.length > 1 && (
               <>
-                <span className="text-xs text-gray-500">Loan:</span>
+                <span className="text-xs text-gray-500">{t('loans.loan_short')}:</span>
                 <select value={selectedLoanNumber} onChange={(e) => { setSelectedLoanNumber(e.target.value); setPage(1) }} className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600">
-                  <option value="">All Loans ({customerLoanNumbers.length})</option>
+                  <option value="">{t('common.all')} ({customerLoanNumbers.length})</option>
                   {customerLoanNumbers.map(ln => <option key={ln} value={ln}>{ln}</option>)}
                 </select>
               </>
@@ -254,7 +254,7 @@ export default function ViewPaymentsPage() {
             <input
               type="text"
               className="input py-2.5 pl-10"
-              placeholder="Search customer by name, phone, or ID..."
+              placeholder={t('payments.search_customers')}
               value={customerQuery}
               onChange={(e) => setCustomerQuery(e.target.value)}
             />
@@ -325,7 +325,7 @@ export default function ViewPaymentsPage() {
               <div>
                 <label className="label text-xs">{t('customers.location')}</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setVillageId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!villageId ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+                  <button onClick={() => setVillageId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!villageId ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('common.all')}</button>
                   {villages.map(v => (
                     <button key={v.id} onClick={() => setVillageId(villageId === v.id ? '' : v.id)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${villageId === v.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{v.name}</button>
                   ))}
@@ -337,7 +337,7 @@ export default function ViewPaymentsPage() {
               <div>
                 <label className="label text-xs">{t('payments.collected_by')}</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setCollectorId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!collectorId ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+                  <button onClick={() => setCollectorId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!collectorId ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('common.all')}</button>
                   {employees.map(e => (
                     <button key={e.id} onClick={() => setCollectorId(collectorId === e.id ? '' : e.id)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${collectorId === e.id ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{e.fullName}</button>
                   ))}
@@ -371,16 +371,16 @@ export default function ViewPaymentsPage() {
                   href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1&collector=self`}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
                 >
-                  Paid: {paidCount}
+                  {t('payments.paid')}: {paidCount}
                 </Link>
                 <Link
                   href={`/b/${businessId}/posting/bulk`}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
                 >
-                  Unpaid: {unpaidCount}
+                  {t('dashboard.unpaid')}: {unpaidCount}
                 </Link>
                 <span className="text-xs text-gray-500">
-                  Expected: {formatPaiseShort(totalExpected)} · Collected: {formatPaiseShort(totalCollected)} · {pct}%
+                  {t('dashboard.expected')}: {formatPaiseShort(totalExpected)} · {t('dashboard.collected')}: {formatPaiseShort(totalCollected)} · {pct}%
                 </span>
               </>
             )
@@ -429,7 +429,7 @@ export default function ViewPaymentsPage() {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-gray-200 bg-gray-50">
-                <td className="py-2 px-2 font-semibold text-gray-700" colSpan={4}>Total ({loanFiltered.length})</td>
+                <td className="py-2 px-2 font-semibold text-gray-700" colSpan={4}>{t('common.total')} ({loanFiltered.length})</td>
                 <td className="py-2 px-3 text-right font-bold text-green-700">{formatPaiseShort(totalAmount)}</td>
                 <td className="hidden md:table-cell" colSpan={3}></td>
               </tr>
@@ -446,20 +446,20 @@ export default function ViewPaymentsPage() {
               {showAll ? `All ${payments.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, payments.length)} of ${payments.length}`}
             </span>
             <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600">
-              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? 'All' : s}</option>)}
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 0 ? t('common.all') : s}</option>)}
             </select>
           </div>
           {totalPages > 1 && <div className="flex gap-1">
-            <button onClick={() => setPage(1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">First</button>
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
+            <button onClick={() => setPage(1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">{t('common.first')}</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">{t('common.prev')}</button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1).map((p, idx, arr) => (
               <span key={p}>
                 {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
                 <button onClick={() => setPage(p)} className={`px-2.5 py-1 text-xs rounded border transition-colors ${p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
               </span>
             ))}
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
-            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Last</button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">{t('common.next')}</button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">{t('common.last')}</button>
           </div>}
         </div>
       )}

@@ -2,19 +2,21 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslation } from '@/lib/i18n'
 
-const PRESETS = [
-  { key: 'today', label: 'Today' },
-  { key: 'yesterday', label: 'Yesterday' },
-  { key: '7d', label: '7 Days' },
-  { key: '30d', label: '1 Month' },
-  { key: 'custom', label: 'Custom' },
+const PRESET_KEYS = [
+  { key: 'today', labelKey: 'common.today' },
+  { key: 'yesterday', labelKey: 'common.yesterday' },
+  { key: '7d', labelKey: 'common.seven_days' },
+  { key: '30d', labelKey: 'common.one_month' },
+  { key: 'custom', labelKey: 'common.custom' },
 ] as const
 
 interface Village { id: string; name: string }
 interface Employee { id: string; name: string }
 
 export default function DateFilter({ villages, employees }: { villages?: Village[]; employees?: Employee[] }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -67,7 +69,7 @@ export default function DateFilter({ villages, employees }: { villages?: Village
   return (
     <div className="mb-6">
       <div className="flex flex-wrap gap-2 mb-2">
-        {PRESETS.map((p) => (
+        {PRESET_KEYS.map((p) => (
           <button
             key={p.key}
             onClick={() => selectPreset(p.key)}
@@ -77,7 +79,7 @@ export default function DateFilter({ villages, employees }: { villages?: Village
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {p.label}
+            {t(p.labelKey)}
           </button>
         ))}
       </div>
@@ -87,22 +89,22 @@ export default function DateFilter({ villages, employees }: { villages?: Village
           {/* Date Range */}
           <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto] md:items-end md:gap-2">
             <div>
-              <label className="text-xs text-gray-500 block mb-1">From</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('common.from')}</label>
               <input type="date" className="input w-full min-w-0 text-sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">To</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('common.to')}</label>
               <input type="date" className="input w-full min-w-0 text-sm" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
             <button onClick={applyFilters} disabled={!fromDate || !toDate} className="btn-primary text-sm px-4 py-2 disabled:opacity-50">
-              Apply
+              {t('common.apply')}
             </button>
           </div>
 
           {/* Village Filter */}
           {villages && villages.length > 0 && (
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Village</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('common.village')}</label>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => router.push(`${pathname}?${buildParams({ villages: [] })}`)}
@@ -110,7 +112,7 @@ export default function DateFilter({ villages, employees }: { villages?: Village
                     selectedVillages.length === 0 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  All
+                  {t('common.all')}
                 </button>
                 {villages.map((v) => (
                   <button
@@ -130,7 +132,7 @@ export default function DateFilter({ villages, employees }: { villages?: Village
           {/* Employee Filter */}
           {employees && employees.length > 0 && (
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Employee</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('common.employee')}</label>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => router.push(`${pathname}?${buildParams({ employees: [] })}`)}
@@ -138,7 +140,7 @@ export default function DateFilter({ villages, employees }: { villages?: Village
                     selectedEmployees.length === 0 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  All
+                  {t('common.all')}
                 </button>
                 {employees.map((e) => (
                   <button

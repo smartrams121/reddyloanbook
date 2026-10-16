@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import { useTranslation } from '@/lib/i18n'
 
 interface Column { key: string; label: string }
 
@@ -34,6 +35,7 @@ function formatDD(iso: string) {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation()
   const params = useParams()
   const businessId = params.businessId as string
 
@@ -226,22 +228,22 @@ export default function ReportsPage() {
   }
 
   const presets: { value: RangePreset; label: string; mobile?: boolean }[] = [
-    { value: 'all', label: 'All', mobile: true },
-    { value: 'today', label: 'Today', mobile: true },
-    { value: 'yesterday', label: 'Yesterday', mobile: true },
-    { value: '7d', label: 'Last 7 Days', mobile: false },
-    { value: '30d', label: '1 Month', mobile: false },
-    { value: 'custom', label: 'Custom', mobile: true },
+    { value: 'all', label: t('common.all'), mobile: true },
+    { value: 'today', label: t('common.today'), mobile: true },
+    { value: 'yesterday', label: t('common.yesterday'), mobile: true },
+    { value: '7d', label: t('dashboard.last_7_days'), mobile: false },
+    { value: '30d', label: t('common.one_month'), mobile: false },
+    { value: 'custom', label: t('common.custom'), mobile: true },
   ]
 
   const allEntities: { value: Entity; label: string }[] = [
-    { value: 'customers', label: 'Customers' },
-    { value: 'loans', label: 'Loans' },
-    { value: 'payments', label: 'Payments' },
-    { value: 'villages', label: 'Locations' },
-    { value: 'employees', label: 'Employees' },
-    { value: 'payslips', label: 'Pay Slips' },
-    { value: 'daily_collection', label: 'Daily Collection Summary' },
+    { value: 'customers', label: t('common.customers_label') },
+    { value: 'loans', label: t('common.loans_label') },
+    { value: 'payments', label: t('common.payments_label') },
+    { value: 'villages', label: t('common.locations') },
+    { value: 'employees', label: t('common.employees') },
+    { value: 'payslips', label: t('common.pay_slips') },
+    { value: 'daily_collection', label: t('common.daily_collection_summary') },
   ]
 
   const entities = userRole === 'AGENT'
@@ -252,8 +254,8 @@ export default function ReportsPage() {
 
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Reports</h1>
-      <p className="text-sm text-gray-500 mb-6">Generate and download business reports</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('reports.reports')}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t('common.generate_download')}</p>
 
       {/* Filters */}
       <div className="card p-4 space-y-4 mb-6">
@@ -261,12 +263,12 @@ export default function ReportsPage() {
         <div>
           {entity === 'payslips' ? (
             <>
-              <label className="label">Collection Date</label>
+              <label className="label">{t('common.collection_date')}</label>
               <input type="date" className="input min-w-0 max-w-xs" value={payslipDate} onChange={(e) => setPayslipDate(e.target.value)} />
             </>
           ) : (
             <>
-              <label className="label">Date Range</label>
+              <label className="label">{t('reports.date_range')}</label>
               <div className="flex flex-wrap gap-2">
                 {presets.map((p) => (
                   <button
@@ -287,11 +289,11 @@ export default function ReportsPage() {
               {preset === 'custom' && (
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3 mt-3">
                   <div>
-                    <label className="text-xs text-gray-500">From</label>
+                    <label className="text-xs text-gray-500">{t('common.from')}</label>
                     <input type="date" className="input w-full min-w-0" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">To</label>
+                    <label className="text-xs text-gray-500">{t('common.to')}</label>
                     <input type="date" className="input w-full min-w-0" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
                   </div>
                 </div>
@@ -302,7 +304,7 @@ export default function ReportsPage() {
 
         {/* Entity */}
         <div>
-          <label className="label">Report Type</label>
+          <label className="label">{t('common.report_type')}</label>
           <select
             className="input"
             value={entity}
@@ -317,15 +319,15 @@ export default function ReportsPage() {
         {/* Payment Status filter — shown when entity is Daily Collection Summary */}
         {entity === 'daily_collection' && (
           <div>
-            <label className="label">Payment Status</label>
+            <label className="label">{t('common.payment_status')}</label>
             <select
               className="input"
               value={collectionStatusFilter}
               onChange={(e) => { setCollectionStatusFilter(e.target.value as 'all' | 'paid' | 'unpaid'); setViewed(false) }}
             >
-              <option value="all">All</option>
-              <option value="paid">Paid</option>
-              <option value="unpaid">Unpaid</option>
+              <option value="all">{t('common.all')}</option>
+              <option value="paid">{t('payments.paid')}</option>
+              <option value="unpaid">{t('dashboard.unpaid')}</option>
             </select>
           </div>
         )}
@@ -333,7 +335,7 @@ export default function ReportsPage() {
         {/* Status multi-select — shown when entity is Loans */}
         {entity === 'loans' && (
           <div>
-            <label className="label">Status Filter</label>
+            <label className="label">{t('common.status_filter')}</label>
             <div className="relative" ref={statusDropdownRef}>
               <button
                 type="button"
@@ -342,7 +344,7 @@ export default function ReportsPage() {
               >
                 <span className={selectedStatuses.size === 0 ? 'text-gray-400' : 'text-gray-900'}>
                   {selectedStatuses.size === 0
-                    ? 'All Statuses'
+                    ? t('common.all_statuses')
                     : Array.from(selectedStatuses).map(s => s.replace(/_/g, ' ')).join(', ')}
                 </span>
                 <svg className={`w-4 h-4 text-gray-400 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -381,7 +383,7 @@ export default function ReportsPage() {
                       onClick={() => { setSelectedStatuses(new Set()); setViewed(false) }}
                       className="w-full text-left px-3 py-2 text-xs text-primary-600 hover:bg-gray-50 border-t border-gray-100"
                     >
-                      Clear all
+                      {t('common.clear_all')}
                     </button>
                   )}
                 </div>
@@ -419,19 +421,19 @@ export default function ReportsPage() {
         {/* Village selector — shown when entity is Villages */}
         {entity === 'villages' && (
           <div>
-            <label className="label">Select Location</label>
+            <label className="label">{t('common.select_location')}</label>
             <select
               className="input"
               value={villageId}
               onChange={(e) => { setVillageId(e.target.value); setViewed(false) }}
             >
-              <option value="">All Locations (Summary)</option>
+              <option value="">{t('common.all_locations_summary')}</option>
               {villages.map((v) => (
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
             <p className="text-[10px] text-gray-400 mt-1">
-              {villageId ? 'Shows customers in the selected location' : 'Shows location-wise summary'}
+              {villageId ? t('common.shows_customers_location') : t('common.shows_location_summary')}
             </p>
           </div>
         )}
@@ -449,7 +451,7 @@ export default function ReportsPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Loading...
+                {t('common.loading')}
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
@@ -457,7 +459,7 @@ export default function ReportsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                 </svg>
-                View
+                {t('common.view')}
               </span>
             )}
           </button>
@@ -471,7 +473,7 @@ export default function ReportsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H6.75a2.25 2.25 0 0 0-2.25 2.25v16.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V14.25Z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            PDF
+            {t('common.pdf')}
           </button>
 
           <button
@@ -491,7 +493,7 @@ export default function ReportsPage() {
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] transition-colors disabled:opacity-50"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-            {sharing ? '...' : 'Share PDF'}
+            {sharing ? '...' : t('common.share_pdf')}
           </button>
 
           <button
@@ -500,7 +502,7 @@ export default function ReportsPage() {
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] transition-colors disabled:opacity-50"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-            {sharing ? '...' : 'Share Excel'}
+            {sharing ? '...' : t('common.share_excel')}
           </button>
         </div>
 
@@ -518,20 +520,20 @@ export default function ReportsPage() {
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <span className="text-sm font-semibold text-gray-900">
-                  {entity === 'payslips' ? 'Pay Slips' : entity.charAt(0).toUpperCase() + entity.slice(1)} Report
+                  {allEntities.find(e => e.value === entity)?.label} {t('common.report')}
                 </span>
                 <span className="text-xs text-gray-500 ml-2">
                   {formatDD(rangeFrom)}{rangeFrom !== rangeTo ? ` – ${formatDD(rangeTo)}` : ''}
                 </span>
               </div>
               <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-                {count} records
+                {count} {t('common.records')}
               </span>
             </div>
 
             {rows.length === 0 ? (
               <div className="px-4 py-12 text-center text-gray-400 text-sm">
-                No records found for the selected period.
+                {t('common.no_records_found')}
               </div>
             ) : (
               <>
@@ -564,7 +566,7 @@ export default function ReportsPage() {
                 {totalPages > 1 && (
                   <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
                     <p className="text-xs text-gray-500">
-                      Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, rows.length)} of {rows.length}
+                      {t('common.showing_range', { from: String(startIdx + 1), to: String(Math.min(startIdx + PAGE_SIZE, rows.length)), total: String(rows.length) })}
                     </p>
                     <div className="flex items-center gap-1">
                       <button
@@ -572,7 +574,7 @@ export default function ReportsPage() {
                         disabled={page === 1}
                         className="px-2.5 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Prev
+                        {t('common.prev')}
                       </button>
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                         <button
@@ -588,7 +590,7 @@ export default function ReportsPage() {
                         disabled={page === totalPages}
                         className="px-2.5 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Next
+                        {t('common.next')}
                       </button>
                     </div>
                   </div>

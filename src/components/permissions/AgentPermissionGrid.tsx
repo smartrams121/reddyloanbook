@@ -10,13 +10,13 @@ interface Props {
   saving?: boolean
 }
 
-const OBJECTS: { key: string; label: string; sub: string; verbs: string[] }[] = [
-  { key: 'customers', label: 'Customers', sub: 'View / manage customers', verbs: ['view', 'create', 'edit', 'delete'] },
-  { key: 'loans', label: 'Loans', sub: 'View / manage loans', verbs: ['view', 'create', 'edit', 'delete'] },
-  { key: 'payments', label: 'Payments', sub: 'View payment history', verbs: ['view'] },
-  { key: 'record_payment', label: 'Record Payment', sub: 'Post individual payments', verbs: ['view', 'create', 'edit'] },
-  { key: 'bulk_payment', label: 'Bulk Payment', sub: 'Post village batch payments', verbs: ['view', 'create', 'edit'] },
-  { key: 'reports', label: 'Reports', sub: 'View & download reports', verbs: ['view'] },
+const OBJECT_DEFS: { key: string; labelKey: string; subKey: string; verbs: string[] }[] = [
+  { key: 'customers', labelKey: 'common.customers_label', subKey: 'common.view_manage_customers', verbs: ['view', 'create', 'edit', 'delete'] },
+  { key: 'loans', labelKey: 'common.loans_label', subKey: 'common.view_manage_loans', verbs: ['view', 'create', 'edit', 'delete'] },
+  { key: 'payments', labelKey: 'common.payments_label', subKey: 'common.view_payment_history', verbs: ['view'] },
+  { key: 'record_payment', labelKey: 'common.record_payment_label', subKey: 'common.post_individual_payments', verbs: ['view', 'create', 'edit'] },
+  { key: 'bulk_payment', labelKey: 'common.bulk_payment_label', subKey: 'common.post_village_batch', verbs: ['view', 'create', 'edit'] },
+  { key: 'reports', labelKey: 'reports.reports', subKey: 'common.view_download_reports', verbs: ['view'] },
 ]
 
 const ALL_VERBS = ['view', 'create', 'edit', 'delete']
@@ -68,7 +68,7 @@ export default function AgentPermissionGrid({ value, onChange, saving }: Props) 
   }
 
   function hasVerb(obj: string, verb: string): boolean {
-    return OBJECTS.find(o => o.key === obj)?.verbs.includes(verb) ?? false
+    return OBJECT_DEFS.find(o => o.key === obj)?.verbs.includes(verb) ?? false
   }
 
   function getCellValue(obj: string, verb: string): boolean {
@@ -109,18 +109,18 @@ export default function AgentPermissionGrid({ value, onChange, saving }: Props) 
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b">
-              <th className="py-2 text-left text-gray-500 font-semibold uppercase tracking-wide text-[10px]">Object</th>
+              <th className="py-2 text-left text-gray-500 font-semibold uppercase tracking-wide text-[10px]">{t('common.permissions_object')}</th>
               {ALL_VERBS.map(v => (
-                <th key={v} className="py-2 text-center text-gray-500 font-semibold uppercase tracking-wide text-[10px] w-14">{v}</th>
+                <th key={v} className="py-2 text-center text-gray-500 font-semibold uppercase tracking-wide text-[10px] w-14">{t(`common.${v}`)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {OBJECTS.map(obj => (
+            {OBJECT_DEFS.map(obj => (
               <tr key={obj.key} className="border-b border-gray-100">
                 <td className="py-2.5 pr-2">
-                  <span className="text-sm font-medium text-gray-900">{obj.label}</span>
-                  <span className="block text-[10px] text-gray-400">{obj.sub}</span>
+                  <span className="text-sm font-medium text-gray-900">{t(obj.labelKey)}</span>
+                  <span className="block text-[10px] text-gray-400">{t(obj.subKey)}</span>
                 </td>
                 {ALL_VERBS.map(verb => (
                   <td key={verb} className="py-2.5 text-center">
@@ -155,7 +155,7 @@ export default function AgentPermissionGrid({ value, onChange, saving }: Props) 
       {/* Info note */}
       <div className="flex gap-2 p-2.5 rounded-lg bg-amber-50 text-amber-700 text-[11px] leading-relaxed">
         <span className="shrink-0">⚠</span>
-        <span>Turning off <strong>View</strong> hides the object from navigation and blocks API access. Payments View controls Record + Bulk Payment visibility.</span>
+        <span>{t('common.permissions_warning')}</span>
       </div>
     </div>
   )

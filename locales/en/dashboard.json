@@ -36,5 +36,16 @@
   "collected": "Collected",
   "in_hand": "In Hand",
   "deficit": "deficit",
-  "collected_pct": "{pct}% collected"
+  "collected_pct": "{pct}% collected",
+  "paid": "Paid",
+  "unpaid": "Unpaid",
+  "yesterdays_collection": "Yesterday's Collection",
+  "last_7_days": "Last 7 Days",
+  "last_30_days": "Last 30 Days",
+  "status_active": "Active",
+  "status_overdue": "Overdue",
+  "status_defaulter": "Defaulter",
+  "status_completed": "Completed",
+  "select_collection_prompt": "Select a collection from the top-right dropdown to manage it",
+  "today_suffix": "today"
 }

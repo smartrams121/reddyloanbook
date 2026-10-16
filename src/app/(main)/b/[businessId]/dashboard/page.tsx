@@ -24,24 +24,24 @@ function getDateRange(range: string | undefined, from: string | undefined, to: s
   switch (range) {
     case 'yesterday': {
       const d = formatDateISO(addDays(todayDate, -1))
-      return { start: d, end: d, label: "Yesterday's Collection" }
+      return { start: d, end: d, labelKey: 'dashboard.yesterdays_collection' }
     }
     case '7d': {
       const start = formatDateISO(addDays(todayDate, -6))
-      return { start, end: today, label: 'Last 7 Days' }
+      return { start, end: today, labelKey: 'dashboard.last_7_days' }
     }
     case '30d': {
       const start = formatDateISO(addDays(todayDate, -29))
-      return { start, end: today, label: 'Last 30 Days' }
+      return { start, end: today, labelKey: 'dashboard.last_30_days' }
     }
     case 'custom': {
       if (from && to) {
         return { start: from, end: to, label: `${formatDateDisplay(from)} – ${formatDateDisplay(to)}` }
       }
-      return { start: today, end: today, label: "Today's Collection" }
+      return { start: today, end: today, labelKey: 'dashboard.todays_collection' }
     }
     default:
-      return { start: today, end: today, label: "Today's Collection" }
+      return { start: today, end: today, labelKey: 'dashboard.todays_collection' }
   }
 }
 
@@ -268,7 +268,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       {/* Collection Section */}
       <div className="card p-4 mb-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          {dateRange.label}
+          {dateRange.label || <T k={dateRange.labelKey!} />}
         </h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -289,11 +289,11 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
           </div>
           <Link href={`/b/${businessId}/posting/view`} className="hover:opacity-80 transition-opacity">
             <div className="text-lg font-bold text-green-600">{paidLoanCount}</div>
-            <div className="text-xs text-gray-500">Paid</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.paid" /></div>
           </Link>
           <Link href={`/b/${businessId}/posting/bulk`} className="hover:opacity-80 transition-opacity">
             <div className="text-lg font-bold text-red-600">{unpaidLoanCount}</div>
-            <div className="text-xs text-gray-500">Unpaid</div>
+            <div className="text-xs text-gray-500"><T k="dashboard.unpaid" /></div>
           </Link>
         </div>
         {periodExpected > 0 && (
@@ -305,7 +305,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
               />
             </div>
             <div className="text-xs text-gray-400 mt-1">
-              {Math.round((periodCollected / periodExpected) * 100)}% collected
+              <T k="dashboard.collected_pct" params={{ pct: String(Math.round((periodCollected / periodExpected) * 100)) }} />
             </div>
           </div>
         )}
@@ -315,10 +315,10 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       <div className="card p-4 mb-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3"><T k="loans.loans" /></h2>
         <div className="flex items-center gap-3 text-sm flex-wrap">
-          <Link href={`/b/${businessId}/loans?status=ACTIVE`} className="badge-success hover:opacity-80 transition-opacity">{loanStatusCounts.ACTIVE} Active</Link>
-          <Link href={`/b/${businessId}/loans?status=OVERDUE`} className="bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.OVERDUE} Overdue</Link>
-          <Link href={`/b/${businessId}/loans?status=DEFAULTER`} className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.DEFAULTER} Defaulter</Link>
-          <Link href={`/b/${businessId}/loans?status=COMPLETED`} className="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.COMPLETED} Completed</Link>
+          <Link href={`/b/${businessId}/loans?status=ACTIVE`} className="badge-success hover:opacity-80 transition-opacity">{loanStatusCounts.ACTIVE} <T k="dashboard.status_active" /></Link>
+          <Link href={`/b/${businessId}/loans?status=OVERDUE`} className="bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.OVERDUE} <T k="dashboard.status_overdue" /></Link>
+          <Link href={`/b/${businessId}/loans?status=DEFAULTER`} className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.DEFAULTER} <T k="dashboard.status_defaulter" /></Link>
+          <Link href={`/b/${businessId}/loans?status=COMPLETED`} className="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity">{loanStatusCounts.COMPLETED} <T k="dashboard.status_completed" /></Link>
         </div>
       </div>
 

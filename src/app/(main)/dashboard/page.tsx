@@ -103,9 +103,9 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <AutoRefresh />
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome, {user.fullName}</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-1"><T k="dashboard.welcome" />, {user.fullName}</h1>
       <p className="text-sm text-gray-500 mb-6">
-        {businesses.length} collection{businesses.length !== 1 ? 's' : ''} &middot; Select a collection from the top-right dropdown to manage it
+        {businesses.length} <T k="dashboard.collection" />{businesses.length !== 1 ? 's' : ''} &middot; <T k="dashboard.select_collection_prompt" />
       </p>
 
       {/* Today's Totals */}
@@ -142,11 +142,11 @@ export default async function DashboardPage() {
             >
               <div>
                 <h3 className="font-semibold text-gray-900">{business.name}</h3>
-                <p className="text-xs text-gray-500">{business.city} &middot; {customerCount} customers</p>
+                <p className="text-xs text-gray-500">{business.city} &middot; {customerCount} <T k="dashboard.customers" /></p>
               </div>
               <div className="text-right">
                 <div className="text-sm font-bold text-gray-900">{formatPaiseShort(totalOutstanding)}</div>
-                <div className="text-xs text-success-600">+{formatPaiseShort(todayCollection)} today</div>
+                <div className="text-xs text-success-600">+{formatPaiseShort(todayCollection)} <T k="dashboard.today_suffix" /></div>
               </div>
             </Link>
           </div>
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
 
         {businesses.length === 0 && (
           <div className="card p-8 text-center">
-            <p className="text-gray-500 mb-4">No businesses registered yet.</p>
+            <p className="text-gray-500 mb-4"><T k="dashboard.no_businesses" /></p>
             <Link href="/businesses/new" className="btn-primary">
               <T k="dashboard.register_first_collection" />
             </Link>
