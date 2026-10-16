@@ -506,7 +506,7 @@ function LoanCardWithPanel({
 
             <div className="flex items-center justify-between text-xs mb-1">
               <span className="text-success-600 font-semibold">Paid: {formatPaiseShort(loan.totalPaid)}</span>
-              <span className="text-gray-900 font-semibold">Due: {formatPaiseShort(loan.outstanding)}</span>
+              <span className="text-gray-900 font-semibold">Out: {formatPaiseShort(loan.outstanding)}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -608,7 +608,7 @@ function PaymentPanel({ businessId, customerId, loan }: { businessId: string; cu
                   <th className="text-right py-1.5 px-1.5 font-medium">Amount</th>
                   <th className="text-left py-1.5 px-1.5 font-medium">Agent</th>
                   <th className="text-left py-1.5 px-1.5 font-medium hidden sm:table-cell">Note</th>
-                  <th className="text-right py-1.5 px-1.5 font-medium">Balance</th>
+                  <th className="text-right py-1.5 px-1.5 font-medium">Outstanding</th>
                 </tr>
               </thead>
               <tbody>
@@ -754,7 +754,7 @@ function CombinedPaymentTable({ businessId, customerId, loans }: { businessId: s
                   <th className="text-left py-2 px-2 font-medium">Receipt</th>
                   <th className="text-left py-2 px-2 font-medium">Agent</th>
                   <th className="text-left py-2 px-2 font-medium hidden sm:table-cell">Note</th>
-                  <th className="text-right py-2 px-2 font-medium">Balance</th>
+                  <th className="text-right py-2 px-2 font-medium">Outstanding</th>
                 </tr>
               </thead>
               <tbody>

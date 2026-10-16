@@ -323,7 +323,7 @@ export default function ViewPaymentsPage() {
 
             {villages.length > 0 && (
               <div>
-                <label className="label text-xs">{t('customers.village')}</label>
+                <label className="label text-xs">{t('customers.location')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setVillageId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!villageId ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                   {villages.map(v => (
@@ -335,7 +335,7 @@ export default function ViewPaymentsPage() {
 
             {employees.length > 0 && (
               <div>
-                <label className="label text-xs">{t('common.employee')}</label>
+                <label className="label text-xs">{t('payments.collected_by')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setCollectorId('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!collectorId ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                   {employees.map(e => (
@@ -403,12 +403,12 @@ export default function ViewPaymentsPage() {
               <tr className="border-b text-left text-gray-500 bg-gray-50">
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>{t('common.receipt')}{sortIcon('receipt')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>{t('loans.loan_number_short')}{sortIcon('loanNumber')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>{t('customers.customers')}{sortIcon('customer')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>{t('customers.customer_name')}{sortIcon('customer')}</th>
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('cid')}>{t('customers.cid')}{sortIcon('cid')}</th>
                 <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('amount')}>{t('common.amount')}{sortIcon('amount')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('paymentDate')}>{t('common.date')}{sortIcon('paymentDate')}</th>
-                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>{t('customers.village')}{sortIcon('village')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('collector')}>{t('loans.agent')}{sortIcon('collector')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>{t('customers.location')}{sortIcon('village')}</th>
+                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('collector')}>{t('payments.collected_by')}{sortIcon('collector')}</th>
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>{t('common.mode')}{sortIcon('mode')}</th>
               </tr>
             </thead>

@@ -383,7 +383,7 @@ export default function VillageBulkPostingPage() {
                 </div>
 
                 <div>
-                  <label className="label text-xs">{t('loans.agent')}</label>
+                  <label className="label text-xs">{t('payments.collected_by')}</label>
                   {(() => {
                     const filtered = selectedVillage === 'all'
                       ? agents

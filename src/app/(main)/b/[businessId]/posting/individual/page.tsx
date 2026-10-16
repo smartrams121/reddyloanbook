@@ -631,7 +631,7 @@ export default function RecordPaymentPage() {
 
                   {/* Agent Name */}
                   <div className="pt-2">
-                    <label className="label">{t('loans.agent')}</label>
+                    <label className="label">{t('payments.collected_by')}</label>
                     {(() => {
                       const villageId = selectedCustomer?.village?.id
                       const filtered = villageId

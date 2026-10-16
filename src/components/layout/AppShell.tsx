@@ -448,7 +448,7 @@ function MobileBottomNav({
 
   const navItems = [
     { href: `${base}/dashboard`, label: 'Home', icon: HomeIcon, show: true },
-    { href: `${base}/posting/individual`, label: 'Collect', icon: CollectIcon, show: mCan('view_record_payment') },
+    { href: `${base}/posting/individual`, label: 'Pay', icon: CollectIcon, show: mCan('view_record_payment') },
     { href: `${base}/posting/bulk`, label: 'Bulk', icon: BulkIcon, show: mCan('view_bulk_payment') },
     { href: `${base}/reports`, label: 'Reports', icon: ReportsIcon, show: mCan('view_own_collection_report') },
   ].filter(i => i.show)

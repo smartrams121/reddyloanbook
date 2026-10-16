@@ -186,11 +186,11 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
         {/* Summary */}
         <div className="px-4 py-3 bg-gray-50 grid grid-cols-2 gap-2">
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">{t('customers.total_loans')}</p>
+            <p className="text-[10px] text-gray-500 uppercase">{t('dashboard.total_lent')}</p>
             <p className="text-sm font-bold text-gray-900">{formatPaiseShort(s.totalLent)}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase">{t('customers.total_loan_amount')}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Total Repayable</p>
             <p className="text-sm font-bold text-gray-900">{formatPaiseShort(s.totalRepayable)}</p>
           </div>
           <div className="text-center">
@@ -249,7 +249,7 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
                   </div>
                   <div className="flex justify-between text-gray-500">
                     <span>Paid: {formatPaiseShort(l.totalPaid)}</span>
-                    <span>Due: {formatPaiseShort(l.outstanding)}</span>
+                    <span>Out: {formatPaiseShort(l.outstanding)}</span>
                   </div>
                   <div className="text-gray-400">
                     {l.collectionType} · {formatDateDisplay(l.startDate)} → {formatDateDisplay(l.expectedEndDate)}
