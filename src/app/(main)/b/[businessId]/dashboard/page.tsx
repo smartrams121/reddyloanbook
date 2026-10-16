@@ -149,9 +149,9 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   const hasEmployeeFilter = selectedEmployeeIds.length > 0
   const employeeIdSet = new Set(selectedEmployeeIds)
 
-  // Range-active loans: started before range end, not completed, optionally filtered by village
+  // Range-active loans: started before range end, not completed (includes Active, Overdue, Defaulter)
   const rangeActiveLoans = loansWithStatus.filter(
-    (l) => l.startDate <= dateRange.end && (l.derivedStatus === 'ACTIVE' || l.derivedStatus === 'OVERDUE')
+    (l) => l.startDate <= dateRange.end && l.derivedStatus !== 'COMPLETED'
       && (!hasVillageFilter || villageIdSet.has(l.customer.villageId))
   )
 
@@ -161,9 +161,9 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
       && (!hasVillageFilter || villageIdSet.has(l.customer.villageId))
   ).length
 
-  // Range payments with village info for village breakdown + collection metrics
+  // Range payments with village info for village breakdown + collection metrics (exclude ₹0)
   const rangePaymentsDetail = await prisma.payment.findMany({
-    where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
+    where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false, amount: { gt: 0 } },
     select: { amount: true, collectorId: true, loan: { select: { customerId: true, customer: { select: { villageId: true } } } } },
   })
 
@@ -184,17 +184,10 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         return !loan || true // new loans don't have village easily, include all if no filter
       })
     : rangeNewLoans
-  // Paid/Unpaid loan counts for the range
-  const paidLoanIds = new Set(rangePaymentsDetail.map(p => p.loan?.customerId ? p.loan.customerId : ''))
-  const rangePaidLoans = rangePaymentsDetail.map(p => p.loan)
-  const paidLoanIdSet = new Set<string>()
-  // Get unique loan IDs that received payments in the range
-  const rangePaymentsByLoan = await prisma.payment.findMany({
-    where: { businessId, paymentDate: { gte: dateRange.start, lte: dateRange.end }, isDeleted: false },
-    select: { loanId: true },
-    distinct: ['loanId'],
-  })
-  const paidLoanCount = rangePaymentsByLoan.length
+  // Paid/Unpaid loan counts for the range (using filtered payments, matching View Payments logic)
+  const paidLoanIdSet = new Set(filteredPayments.map(p => p.loan?.customerId).filter(Boolean))
+  const rangeActiveLoanCustomerIds = new Set(rangeActiveLoans.map(l => l.customerId))
+  const paidLoanCount = [...paidLoanIdSet].filter(cid => rangeActiveLoanCustomerIds.has(cid)).length
   const unpaidLoanCount = Math.max(0, rangeActiveLoans.length - paidLoanCount)
 
   const newLoanAmount = rangeNewLoans.reduce((sum, l) => sum + l.amountGiven, 0)
