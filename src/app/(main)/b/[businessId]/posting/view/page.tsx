@@ -404,7 +404,7 @@ export default function ViewPaymentsPage() {
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('receipt')}>{t('common.receipt')}{sortIcon('receipt')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loanNumber')}>{t('loans.loan_number_short')}{sortIcon('loanNumber')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('customer')}>{t('customers.customers')}{sortIcon('customer')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('cid')}>{t('customers.cid')}{sortIcon('cid')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('cid')}>{t('customers.cid')}{sortIcon('cid')}</th>
                 <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('amount')}>{t('common.amount')}{sortIcon('amount')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('paymentDate')}>{t('common.date')}{sortIcon('paymentDate')}</th>
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>{t('customers.village')}{sortIcon('village')}</th>
@@ -418,7 +418,7 @@ export default function ViewPaymentsPage() {
                   <td className="py-2 px-2 text-gray-400 font-mono text-[10px] hidden md:table-cell">{p.receiptNumber}</td>
                   <td className="py-2 px-2 text-gray-500 font-mono text-[10px] md:text-xs">{p.loan.loanNumber}</td>
                   <td className="py-2 px-2"><Link href={`/b/${businessId}/customers/${p.loan.customer.id}`} className="font-medium text-primary-600 hover:underline text-[11px] md:text-xs">{p.loan.customer.fullName}</Link></td>
-                  <td className="py-2 px-2 text-gray-500 font-mono text-[10px]">{p.loan.customer.customerId}</td>
+                  <td className="py-2 px-2 text-gray-500 font-mono text-[10px] hidden md:table-cell">{p.loan.customer.customerId}</td>
                   <td className="py-2 px-2 text-right font-semibold text-green-700 text-[10px] md:text-xs">{formatPaiseShort(p.amount)}</td>
                   <td className="py-2 px-2 text-gray-500 text-[10px] md:text-xs date-display">{formatDateDisplay(p.paymentDate)}</td>
                   <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
