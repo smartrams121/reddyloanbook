@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
 import { formatDateDisplay } from '@/lib/date'
@@ -380,6 +380,7 @@ const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
 export default function LoanListClient({ loans, businessId, isAdminOrOwner = true }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t } = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -391,6 +392,12 @@ export default function LoanListClient({ loans, businessId, isAdminOrOwner = tru
 
   const [viewLoan, setViewLoan] = useState<LoanDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
+
+  useEffect(() => {
+    const viewId = searchParams.get('view')
+    if (viewId) openViewLoan(viewId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [payments, setPayments] = useState<PaymentRecord[] | null>(null)
   const [paymentsLoan, setPaymentsLoan] = useState<{ loanNumber: string; totalRepayable: number } | null>(null)
   const [paymentsLoading, setPaymentsLoading] = useState(false)

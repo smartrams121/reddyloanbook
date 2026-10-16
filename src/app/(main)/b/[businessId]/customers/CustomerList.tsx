@@ -482,8 +482,8 @@ export default function CustomerList({ customers, businessId, canCreate, canEdit
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('fullName')}>{t('customers.customer_name')}{sortIcon('fullName')}</th>
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('phone')}>{t('customers.phone')}{sortIcon('phone')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('village')}>{t('customers.location')}{sortIcon('village')}</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('status')}>{t('customers.status')}{sortIcon('status')}</th>
-                <th className="py-2 px-2 text-right hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('loans')}>Loans{sortIcon('loans')}</th>
+                <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('status')}>{t('customers.status')}{sortIcon('status')}</th>
+                <th className="py-2 px-2 text-right cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('loans')}>Loans{sortIcon('loans')}</th>
               </tr>
             </thead>
             <tbody>
@@ -505,7 +505,7 @@ export default function CustomerList({ customers, businessId, canCreate, canEdit
                   </td>
                   <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{c.phone || '-'}</td>
                   <td className="py-2 px-2 text-gray-500 text-[10px] md:text-xs">{c.village.name}</td>
-                  <td className="py-2 px-3">
+                  <td className="py-2 px-3 hidden md:table-cell">
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                       c.status === 'ACTIVE' ? 'bg-success-50 text-success-700' :
                       c.status === 'OVERDUE' ? 'bg-red-50 text-red-700' :
@@ -515,7 +515,7 @@ export default function CustomerList({ customers, businessId, canCreate, canEdit
                       'bg-gray-100 text-gray-500'
                     }`}>{c.status}</span>
                   </td>
-                  <td className="py-2 px-3 text-right text-gray-500 hidden md:table-cell">{c._count.loans}</td>
+                  <td className="py-2 px-3 text-right text-gray-500 text-[10px] md:text-xs">{c._count.loans}</td>
                 </tr>
               ))}
             </tbody>

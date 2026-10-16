@@ -74,6 +74,7 @@ export default function CustomerDetailPage() {
   const [selectedLoans, setSelectedLoans] = useState<Set<string>>(new Set())
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
   const [showPaymentTable, setShowPaymentTable] = useState(false)
+  const [showPhoto, setShowPhoto] = useState(false)
   const [userRole, setUserRole] = useState<string>('')
 
   const loadCustomer = useCallback(() => {
@@ -158,13 +159,24 @@ export default function CustomerDetailPage() {
 
       {/* ─── Section 1: Customer Summary Header ─── */}
       <div className="flex items-start gap-4 mb-4">
-        <div className="w-[105px] h-[135px] rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-2 border-gray-200">
+        <div
+          className={`w-[105px] h-[135px] rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-2 border-gray-200 ${customer.photoPath ? 'cursor-pointer' : ''}`}
+          onClick={() => customer.photoPath && setShowPhoto(true)}
+        >
           {customer.photoPath ? (
             <img src={customer.photoPath} alt={customer.fullName} className="w-full h-full object-cover" />
           ) : (
             customer.fullName.charAt(0).toUpperCase()
           )}
         </div>
+
+        {/* Photo Fullscreen */}
+        {showPhoto && customer.photoPath && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setShowPhoto(false)}>
+            <button className="absolute top-4 right-4 text-white text-3xl font-bold hover:text-gray-300" onClick={() => setShowPhoto(false)}>×</button>
+            <img src={customer.photoPath} alt={customer.fullName} className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-gray-900">{customer.fullName}</h1>
@@ -295,72 +307,56 @@ export default function CustomerDetailPage() {
       {/* Bottom spacer when action bar is visible */}
       {canDownload && selectedLoans.size > 0 && <div className="h-16" />}
 
-      {/* ─── Section 4: Download Action Bar ─── */}
-      {canDownload && selectedLoans.size > 0 && (
+      {/* ─── Section 4: Loan Action Bar ─── */}
+      {selectedLoans.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">
               {selectedLoans.size} loan{selectedLoans.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex items-center gap-2">
-              {postableSelected.length > 0 && (
+              {selectedLoans.size === 1 && (
+                <>
+                  <button
+                    onClick={() => router.push(`/b/${businessId}/loans?view=${Array.from(selectedLoans)[0]}`)}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors"
+                  >
+                    {t('common.view')}
+                  </button>
+                  {postableSelected.length > 0 && (
+                    <button
+                      onClick={handleRecordPayment}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                    >
+                      {t('payments.new_payment')}
+                    </button>
+                  )}
+                  {isAdminOrOwner && (
+                    <button
+                      onClick={() => router.push(`/b/${businessId}/loans/${Array.from(selectedLoans)[0]}/edit`)}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                    >
+                      {t('common.edit')}
+                    </button>
+                  )}
+                </>
+              )}
+              {isAdminOrOwner && (
                 <button
-                  onClick={handleRecordPayment}
-                  className="px-3 py-2 text-sm font-medium rounded-lg border border-success-300 bg-success-50 text-success-700 hover:bg-success-100 flex items-center gap-1.5"
+                  onClick={async () => {
+                    if (!confirm(`Delete ${selectedLoans.size} loan(s)? This cannot be undone.`)) return
+                    const ids = Array.from(selectedLoans)
+                    const res = await fetch(`/api/b/${businessId}/loans/bulk`, {
+                      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ loanIds: ids }),
+                    })
+                    if (res.ok) { setSelectedLoans(new Set()); router.refresh() }
+                  }}
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  {postableSelected.length === 1 ? 'New Payment' : 'Bulk Posting'}
+                  {t('common.delete')}
                 </button>
               )}
-              <button
-                onClick={() => { setShowPaymentTable(!showPaymentTable); setShowDownloadMenu(false) }}
-                className={`px-3 py-2 text-sm font-medium rounded-lg border flex items-center gap-1.5 ${showPaymentTable ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-                View
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-                  className="btn-primary px-4 py-2 text-sm flex items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                  Download
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </button>
-                {showDownloadMenu && (
-                  <div className="absolute bottom-full right-0 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-56 z-50">
-                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase">Selected Loans</p>
-                    <button onClick={() => handleDownload('xlsx', 'selected')} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      Excel (.xlsx)
-                    </button>
-                    <button onClick={() => handleDownload('pdf', 'selected')} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      PDF (Print)
-                    </button>
-                    {customer.loans.length > 1 && (
-                      <>
-                        <hr className="my-1 border-gray-100" />
-                        <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase">All Loans Combined</p>
-                        <button onClick={() => handleDownload('xlsx', 'all')} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Excel (.xlsx)
-                        </button>
-                        <button onClick={() => handleDownload('pdf', 'all')} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          PDF (Print)
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
