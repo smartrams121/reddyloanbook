@@ -187,7 +187,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
   // Paid/Unpaid loan counts for the range (using filtered payments, matching View Payments logic)
   const paidLoanIdSet = new Set(filteredPayments.map(p => p.loan?.customerId).filter(Boolean))
   const rangeActiveLoanCustomerIds = new Set(rangeActiveLoans.map(l => l.customerId))
-  const paidLoanCount = [...paidLoanIdSet].filter(cid => rangeActiveLoanCustomerIds.has(cid)).length
+  const paidLoanCount = Array.from(paidLoanIdSet).filter(cid => rangeActiveLoanCustomerIds.has(cid)).length
   const unpaidLoanCount = Math.max(0, rangeActiveLoans.length - paidLoanCount)
 
   const newLoanAmount = rangeNewLoans.reduce((sum, l) => sum + l.amountGiven, 0)
