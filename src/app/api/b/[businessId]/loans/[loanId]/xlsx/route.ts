@@ -162,7 +162,7 @@ export async function GET(_request: Request, { params }: Props) {
   return new NextResponse(new Uint8Array(buffer as ArrayBuffer), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="Loan-${loan.loanNumber}-${c.fullName}.xlsx"`,
+      'Content-Disposition': `attachment; filename="${encodeURIComponent('Loan-' + loan.loanNumber + '-' + c.fullName)}.xlsx"`,
     },
   })
 }

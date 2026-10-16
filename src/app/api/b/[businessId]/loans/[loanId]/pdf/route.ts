@@ -132,7 +132,7 @@ export async function GET(_request: Request, { params }: Props) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Loan-${loan.loanNumber}-${c.fullName}.pdf"`,
+      'Content-Disposition': `attachment; filename="${encodeURIComponent('Loan-' + loan.loanNumber + '-' + c.fullName)}.pdf"`,
     },
   })
 }

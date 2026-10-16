@@ -215,7 +215,7 @@ export async function GET(request: Request, { params }: Props) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${customer.customerId}-${customer.fullName}.pdf"`,
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(customer.customerId + '-' + customer.fullName)}.pdf"`,
     },
   })
 }
