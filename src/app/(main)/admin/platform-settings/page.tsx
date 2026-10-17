@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 interface ContactUs {
   phone: string
+  whatsapp: string
   email: string
   address: string
   notes: string
@@ -31,7 +32,7 @@ export default function PlatformSettingsPage() {
   const [message, setMessage] = useState('')
 
   const [bannerText, setBannerText] = useState('')
-  const [contact, setContact] = useState<ContactUs>({ phone: '', email: '', address: '', notes: '' })
+  const [contact, setContact] = useState<ContactUs>({ phone: '', whatsapp: '', email: '', address: '', notes: '' })
   const [faqs, setFaqs] = useState<FaqItem[]>([])
 
   useEffect(() => {
@@ -201,6 +202,16 @@ export default function PlatformSettingsPage() {
               onChange={(e) => setContact({ ...contact, phone: e.target.value })}
               className="input"
               placeholder="+91 98765 43210"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
+            <input
+              type="tel"
+              value={contact.whatsapp}
+              onChange={(e) => setContact({ ...contact, whatsapp: e.target.value })}
+              className="input"
+              placeholder="9876543210 (same as phone if same)"
             />
           </div>
           <div>

@@ -220,8 +220,8 @@ export default function AppShell({ user, children }: AppShellProps) {
               onClick={() => setMenuOpen(!menuOpen)}
               className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold">
-                {user.fullName.charAt(0).toUpperCase()}
+              <div className="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold overflow-hidden">
+                {user.photoPath ? <img src={user.photoPath} alt="" className="w-full h-full object-cover" /> : user.fullName.charAt(0).toUpperCase()}
               </div>
               <span className="text-sm text-white hidden sm:block">{user.fullName}</span>
             </button>
@@ -289,8 +289,8 @@ export default function AppShell({ user, children }: AppShellProps) {
             {/* Profile section */}
             <div className="px-4 py-3 border-b border-gray-200">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  {user.fullName.charAt(0).toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden">
+                  {user.photoPath ? <img src={user.photoPath} alt="" className="w-full h-full object-cover" /> : user.fullName.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName}</p>

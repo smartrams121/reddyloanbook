@@ -26,6 +26,7 @@ export interface AuthUser {
   villageIds: string[]
   ownerId: string | null
   organizationName: string | null
+  photoPath: string | null
   preferredLanguage: string
   agentPermissions: Record<string, AgentPermissionGrid | null>
 }
@@ -170,6 +171,7 @@ export async function getSession(): Promise<AuthUser | null> {
     villageIds: user.villageAssignments.map((a) => a.villageId),
     ownerId,
     organizationName,
+    photoPath: user.photoPath || null,
     preferredLanguage: user.preferredLanguage || 'en',
     agentPermissions,
   }
