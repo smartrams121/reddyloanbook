@@ -254,7 +254,14 @@ export default function ReportsPage() {
 
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('reports.reports')}</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold text-gray-900">{t('reports.reports')}</h1>
+        {userRole !== 'AGENT' && (
+          <a href={`/b/${businessId}/audit-logs`} className="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors">
+            📋 Audit Logs
+          </a>
+        )}
+      </div>
       <p className="text-sm text-gray-500 mb-6">{t('common.generate_download')}</p>
 
       {/* Filters */}

@@ -5,6 +5,7 @@ import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { Role } from '@/lib/constants'
 import { z } from 'zod'
+import { createAuditLog } from '@/lib/audit'
 
 interface RouteParams {
   params: Promise<{ businessId: string }>
@@ -219,9 +220,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (!assignment) {
       return NextResponse.json({ error: 'Employee not assigned to this business' }, { status: 400 })
     }
+    const oldPerms = assignment.permissions
     await prisma.userBusinessAssignment.update({
       where: { id: assignment.id },
       data: { permissions: typeof permissions === 'string' ? permissions : JSON.stringify(permissions) },
+    })
+    await createAuditLog({
+      action: 'CHANGE_PERMISSIONS', entityType: 'Employee', entityId: userId,
+      oldValues: { permissions: oldPerms ? (typeof oldPerms === 'string' ? JSON.parse(oldPerms) : oldPerms) : 'COLLECTOR_ONLY (default)' },
+      newValues: { permissions },
+      userId: user.id, businessId,
     })
     return NextResponse.json({ ok: true })
   }

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { z } from 'zod'
+import { createAuditLog, diffFields } from '@/lib/audit'
 import { todayIST, parseISODate, addDays, addWeeks, addMonths, formatDateISO } from '@/lib/date'
 
 interface Props {
@@ -200,6 +201,11 @@ export async function PATCH(request: Request, { params }: Props) {
       return updatedLoan
     })
 
+    const loanFields = ['loanAmount', 'interestAmount', 'totalRepayable', 'installmentAmount', 'numberOfInstallments', 'startDate', 'expectedEndDate', 'collectionType', 'interestModel', 'agentId', 'notes', 'statusOverride']
+    const diff = diffFields(loan as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>, loanFields)
+    if (diff) {
+      await createAuditLog({ action: 'EDIT_LOAN', entityType: 'Loan', entityId: loanId, oldValues: diff.old, newValues: diff.new, userId: user.id, businessId })
+    }
     return NextResponse.json({ id: updated.id, status: updated.status, loanNumber: updated.loanNumber })
   }
 
@@ -219,7 +225,11 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   if (Object.keys(data).length > 0) {
-    await prisma.loan.update({ where: { id: loanId }, data })
+    const updated = await prisma.loan.update({ where: { id: loanId }, data })
+    const diff = diffFields(loan as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>, Object.keys(data))
+    if (diff) {
+      await createAuditLog({ action: 'EDIT_LOAN', entityType: 'Loan', entityId: loanId, oldValues: diff.old, newValues: diff.new, userId: user.id, businessId })
+    }
   }
   return NextResponse.json({ id: loanId, status: 'updated' })
 }

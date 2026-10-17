@@ -6,6 +6,7 @@ import { Role } from '@/lib/constants'
 import { assertPermission } from '@/lib/permissions'
 import { todayIST, parseISODate, addMonths } from '@/lib/date'
 import { z } from 'zod'
+import { createAuditLog } from '@/lib/audit'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -149,6 +150,13 @@ export async function POST(request: Request, { params }: Props) {
         const updated = await tx.payment.update({
           where: { id: existingPaymentId },
           data: { amount, collectorId: collector },
+        })
+
+        await createAuditLog({
+          action: 'EDIT_PAYMENT', entityType: 'Payment', entityId: existingPaymentId,
+          oldValues: { amount: existing.amount, collectorId: existing.collectorId, paymentDate: existing.paymentDate },
+          newValues: { amount, collectorId: collector, paymentDate },
+          userId: user.id, businessId,
         })
 
         const newTotal = alreadyPaid - existing.amount + amount

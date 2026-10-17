@@ -6,6 +6,7 @@ import { assertPermission } from '@/lib/permissions'
 import { resolveLoanStatus, deriveCustomerStatus, getGracePeriod } from '@/lib/loan-status'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { createAuditLog, diffFields } from '@/lib/audit'
 import { phoneSchema } from '@/lib/validators'
 
 interface Props {
@@ -192,5 +193,10 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   const updated = await prisma.customer.update({ where: { id: customerId }, data })
+  const custFields = ['customerId', 'fullName', 'phone', 'altPhone', 'address', 'jobType', 'guarantorName', 'guarantorPhone', 'familyRelation', 'familyMemberName', 'notes', 'villageId', 'status', 'photoPath']
+  const diff = diffFields(customer as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>, custFields)
+  if (diff) {
+    await createAuditLog({ action: 'EDIT_CUSTOMER', entityType: 'Customer', entityId: customerId, oldValues: diff.old, newValues: diff.new, userId: user.id, businessId })
+  }
   return NextResponse.json(updated)
 }

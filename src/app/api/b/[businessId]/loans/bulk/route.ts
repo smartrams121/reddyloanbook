@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { z } from 'zod'
+import { createAuditLog } from '@/lib/audit'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -35,7 +36,7 @@ export async function POST(request: Request, { params }: Props) {
 
   const loans = await prisma.loan.findMany({
     where: { id: { in: loanIds }, businessId },
-    select: { id: true },
+    select: { id: true, loanNumber: true, loanAmount: true, totalRepayable: true, customer: { select: { fullName: true, customerId: true } } },
   })
 
   if (loans.length === 0) {
@@ -53,6 +54,13 @@ export async function POST(request: Request, { params }: Props) {
       await tx.loan.deleteMany({ where: { id: { in: ids } } })
     })
 
+    for (const l of loans) {
+      await createAuditLog({
+        action: 'DELETE_LOAN', entityType: 'Loan', entityId: l.id,
+        oldValues: { loanNumber: l.loanNumber, loanAmount: l.loanAmount, totalRepayable: l.totalRepayable, customer: l.customer.fullName },
+        userId: user.id, businessId,
+      })
+    }
     return NextResponse.json({ success: true, action: 'delete', count: loans.length })
   }
 

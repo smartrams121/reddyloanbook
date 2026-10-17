@@ -6,6 +6,7 @@ import { assertPermission } from '@/lib/permissions'
 import { todayIST, parseISODate, addMonths } from '@/lib/date'
 import { Role } from '@/lib/constants'
 import { z } from 'zod'
+import { createAuditLog } from '@/lib/audit'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -191,6 +192,12 @@ export async function POST(request: Request, { params }: Props) {
           })
         }
 
+        await createAuditLog({
+          action: 'EDIT_PAYMENT', entityType: 'Payment', entityId: existingPaymentId,
+          oldValues: { amount: existing.amount, collectorId: existing.collectorId, note: existing.note, paymentDate: existing.paymentDate },
+          newValues: { amount, collectorId: collector, note: note || null, paymentDate },
+          userId: user.id, businessId,
+        })
         return { id: updated.id, receiptNumber: updated.receiptNumber, amount: updated.amount, createdAt: updated.createdAt, updatedAt: updated.updatedAt, updated: true }
       }
 

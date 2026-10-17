@@ -326,6 +326,9 @@ export default function AppShell({ user, children }: AppShellProps) {
                   {can('view_own_collection_report') && (
                     <NavLink href={`/b/${activeBusinessId}/reports`} icon="📑" label={t('reports.reports')} active={pathname.startsWith(`/b/${activeBusinessId}/reports`)} />
                   )}
+                  {isOwnerOrAdmin && (
+                    <NavLink href={`/b/${activeBusinessId}/audit-logs`} icon="📋" label="Audit Logs" active={pathname.startsWith(`/b/${activeBusinessId}/audit-logs`)} />
+                  )}
                 </NavSection>
               )}
 

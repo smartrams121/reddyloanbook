@@ -3,6 +3,7 @@ import { getSession, hashPassword } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Role } from '@/lib/constants'
 import { z } from 'zod'
+import { createAuditLog } from '@/lib/audit'
 
 interface RouteParams {
   params: Promise<{ employeeId: string }>
@@ -43,6 +44,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id: employeeId },
       data: { isActive: !employee.isActive },
     })
+    await createAuditLog({
+      action: employee.isActive ? 'SUSPEND_EMPLOYEE' : 'ACTIVATE_EMPLOYEE',
+      entityType: 'Employee', entityId: employeeId,
+      oldValues: { isActive: employee.isActive },
+      newValues: { isActive: !employee.isActive },
+      userId: user.id,
+    })
     return NextResponse.json({ ok: true, isActive: !employee.isActive })
   }
 
@@ -71,10 +79,14 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (user.role !== Role.OWNER) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Remove all assignments first
+  const emp = await prisma.user.findUnique({ where: { id: employeeId }, select: { fullName: true, username: true, role: true } })
   await prisma.userVillageAssignment.deleteMany({ where: { userId: employeeId } })
   await prisma.userBusinessAssignment.deleteMany({ where: { userId: employeeId } })
   await prisma.user.delete({ where: { id: employeeId } })
-
+  await createAuditLog({
+    action: 'DELETE_EMPLOYEE', entityType: 'Employee', entityId: employeeId,
+    oldValues: emp ? { fullName: emp.fullName, username: emp.username, role: emp.role } : undefined,
+    userId: user.id,
+  })
   return NextResponse.json({ ok: true })
 }

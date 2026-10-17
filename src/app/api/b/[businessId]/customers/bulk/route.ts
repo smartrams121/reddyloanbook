@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { assertBusinessAccess } from '@/lib/scope'
 import { assertPermission } from '@/lib/permissions'
 import { z } from 'zod'
+import { createAuditLog } from '@/lib/audit'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -110,7 +111,11 @@ export async function DELETE(request: Request, { params }: Props) {
     )
   }
 
-  // Delete documents first (FK constraint), then customers
+  const custDetails = await prisma.customer.findMany({
+    where: { id: { in: customerIds }, businessId },
+    select: { id: true, fullName: true, customerId: true },
+  })
+
   await prisma.$transaction(async (tx) => {
     await tx.document.deleteMany({
       where: { customerId: { in: customerIds }, customer: { businessId } },
@@ -130,5 +135,12 @@ export async function DELETE(request: Request, { params }: Props) {
     })
   })
 
+  for (const c of custDetails) {
+    await createAuditLog({
+      action: 'DELETE_CUSTOMER', entityType: 'Customer', entityId: c.id,
+      oldValues: { fullName: c.fullName, customerId: c.customerId },
+      userId: user.id, businessId,
+    })
+  }
   return NextResponse.json({ deleted: customerIds.length })
 }
