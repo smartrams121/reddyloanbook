@@ -180,5 +180,5 @@
   "view_download_reports": "View & download reports",
   "record_payment_label": "Record Payment",
   "bulk_payment_label": "Bulk Payment",
-  "permissions_warning": "Turning off View hides the object from navigation and blocks API access. Payments View controls Record + Bulk Payment visibility."
+  "permissions_warning": "Turning off View hides the object from navigation and blocks API access."
 }

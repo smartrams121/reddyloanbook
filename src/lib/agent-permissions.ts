@@ -61,11 +61,6 @@ export const TOGGLE_TO_ACTIONS: Record<string, string[]> = {
 export function applyCascades(grid: AgentPermissionGrid): AgentPermissionGrid {
   const g = JSON.parse(JSON.stringify(grid)) as AgentPermissionGrid
 
-  if (!g.payments.view) {
-    g.record_payment = { view: false, create: false, edit: false }
-    g.bulk_payment = { view: false, create: false, edit: false }
-  }
-
   for (const key of ['customers', 'loans'] as const) {
     if (!g[key].view) {
       g[key] = { view: false, create: false, edit: false, delete: false }
@@ -74,6 +69,9 @@ export function applyCascades(grid: AgentPermissionGrid): AgentPermissionGrid {
   for (const key of ['record_payment', 'bulk_payment'] as const) {
     if (!g[key].view) {
       g[key] = { view: false, create: false, edit: false }
+    } else if (g[key].create || g[key].edit) {
+      g[key].create = true
+      g[key].edit = true
     }
   }
 

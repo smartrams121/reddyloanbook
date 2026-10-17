@@ -47,7 +47,12 @@ export default function AgentPermissionGrid({ value, onChange, saving }: Props) 
   function toggleCell(obj: string, verb: string) {
     const g = JSON.parse(JSON.stringify(grid)) as GridType
     const objPerms = g[obj as keyof GridType] as Record<string, boolean>
-    objPerms[verb] = !objPerms[verb]
+    const newValue = !objPerms[verb]
+    objPerms[verb] = newValue
+    if ((obj === 'record_payment' || obj === 'bulk_payment') && (verb === 'create' || verb === 'edit')) {
+      objPerms.create = newValue
+      objPerms.edit = newValue
+    }
     updateGrid(g)
   }
 
@@ -63,7 +68,6 @@ export default function AgentPermissionGrid({ value, onChange, saving }: Props) 
     if (verb === 'view') return false
     const objPerms = grid[obj as keyof GridType] as Record<string, boolean>
     if (!objPerms.view) return true
-    if ((obj === 'record_payment' || obj === 'bulk_payment') && !grid.payments.view) return true
     return false
   }
 

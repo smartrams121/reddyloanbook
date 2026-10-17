@@ -92,6 +92,28 @@ export default function EmployeesAssignmentPage() {
     finally { setSaving(null) }
   }
 
+  async function toggleAllVillages(userId: string) {
+    const emp = employees.find(e => e.id === userId)
+    if (!emp) return
+    const allSelected = villages.every(v => emp.villageIds.includes(v.id))
+    const newVillageIds = allSelected ? [] : villages.map(v => v.id)
+
+    setSaving(userId)
+    try {
+      const res = await fetch(`/api/b/${businessId}/employees`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, villageIds: newVillageIds }),
+      })
+      if (res.ok) {
+        setEmployees(prev => prev.map(e =>
+          e.id === userId ? { ...e, villageIds: newVillageIds } : e
+        ))
+      }
+    } catch {}
+    finally { setSaving(null) }
+  }
+
   async function savePermissions(userId: string, permissions: GridType) {
     setSaving(userId)
     try {
@@ -122,7 +144,18 @@ export default function EmployeesAssignmentPage() {
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('common.employees')}</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold text-gray-900">{t('common.employees')}</h1>
+        <button
+          onClick={() => window.location.reload()}
+          title="Refresh"
+          className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182M2.985 19.644" />
+          </svg>
+        </button>
+      </div>
       <p className="text-sm text-gray-500 mb-6">{t('settings.assign_employees_desc')}</p>
 
       {employees.length === 0 && (
@@ -236,6 +269,17 @@ export default function EmployeesAssignmentPage() {
                         <p className="text-xs text-gray-400">{t('common.no_locations_yet')}</p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => toggleAllVillages(emp.id)}
+                            disabled={saving === emp.id}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors disabled:opacity-50 ${
+                              villages.every(v => emp.villageIds.includes(v.id))
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {t('common.all')}
+                          </button>
                           {villages.map(v => {
                             const isAssigned = emp.villageIds.includes(v.id)
                             return (

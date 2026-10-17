@@ -133,6 +133,30 @@ export default function EmployeeDetailPage() {
 
       {/* Filters */}
       <div className="card p-3 mb-6 space-y-3">
+        {/* Village filter */}
+        {user.villages.length > 0 && (
+          <div>
+            <label className="label text-xs">Location</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedVillage('')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!selectedVillage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                All
+              </button>
+              {user.villages.map(v => (
+                <button
+                  key={v.id}
+                  onClick={() => setSelectedVillage(selectedVillage === v.id ? '' : v.id)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${selectedVillage === v.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Date presets */}
         <div className="flex flex-wrap gap-2">
           {[
@@ -159,29 +183,6 @@ export default function EmployeeDetailPage() {
           </div>
         </div>
 
-        {/* Village filter */}
-        {user.villages.length > 0 && (
-          <div>
-            <label className="label text-xs">Location</label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedVillage('')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!selectedVillage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                All
-              </button>
-              {user.villages.map(v => (
-                <button
-                  key={v.id}
-                  onClick={() => setSelectedVillage(selectedVillage === v.id ? '' : v.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${selectedVillage === v.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {v.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {loading && (
