@@ -115,6 +115,7 @@ export async function POST(request: Request, { params }: Props) {
     }
 
     const output: { loanId: string; receiptNumber: string; amount: number; createdAt: Date; updated?: boolean }[] = []
+    const auditEntries: { entityId: string; oldValues: Record<string, unknown>; newValues: Record<string, unknown> }[] = []
     let newIndex = 0
 
     for (const entry of entries) {
@@ -122,6 +123,7 @@ export async function POST(request: Request, { params }: Props) {
 
       const loan = await tx.loan.findFirst({
         where: { id: loanId, businessId },
+        include: { customer: { select: { fullName: true } } },
       })
       if (!loan) throw new Error(`Loan not found: ${loanId}`)
 
@@ -152,11 +154,10 @@ export async function POST(request: Request, { params }: Props) {
           data: { amount, collectorId: collector },
         })
 
-        await createAuditLog({
-          action: 'EDIT_PAYMENT', entityType: 'Payment', entityId: existingPaymentId,
-          oldValues: { amount: existing.amount, collectorId: existing.collectorId, paymentDate: existing.paymentDate },
-          newValues: { amount, collectorId: collector, paymentDate },
-          userId: user.id, businessId,
+        auditEntries.push({
+          entityId: existingPaymentId,
+          oldValues: { receipt: existing.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount: existing.amount, collectorId: existing.collectorId, paymentDate: existing.paymentDate },
+          newValues: { receipt: updated.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount, collectorId: collector, paymentDate },
         })
 
         const newTotal = alreadyPaid - existing.amount + amount
@@ -180,6 +181,34 @@ export async function POST(request: Request, { params }: Props) {
           updated: true,
         })
       } else {
+        // Server-side duplicate check: if payment exists for same loan+date, update it
+        const dupPayment = await tx.payment.findFirst({
+          where: { loanId, paymentDate, businessId, isDeleted: false },
+        })
+        if (dupPayment) {
+          const effectiveOutstanding = loan.totalRepayable - (alreadyPaid - dupPayment.amount)
+          if (amount > effectiveOutstanding) {
+            throw new Error(`Payment of ₹${(amount / 100).toLocaleString('en-IN')} exceeds outstanding for loan ${loan.loanNumber}`)
+          }
+          const updated2 = await tx.payment.update({
+            where: { id: dupPayment.id },
+            data: { amount, collectorId: collector, note },
+          })
+          auditEntries.push({
+            entityId: dupPayment.id,
+            oldValues: { receipt: dupPayment.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount: dupPayment.amount, collectorId: dupPayment.collectorId, paymentDate: dupPayment.paymentDate },
+            newValues: { receipt: updated2.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount, collectorId: collector, paymentDate },
+          })
+          const newTotal2 = alreadyPaid - dupPayment.amount + amount
+          if (newTotal2 === loan.totalRepayable) {
+            await tx.loan.update({ where: { id: loanId }, data: { status: 'COMPLETED', closedAt: paymentDate } })
+          } else if (loan.status === 'COMPLETED') {
+            await tx.loan.update({ where: { id: loanId }, data: { status: 'ACTIVE', closedAt: null } })
+          }
+          output.push({ loanId, receiptNumber: updated2.receiptNumber, amount: updated2.amount, createdAt: updated2.createdAt, updated: true })
+          continue
+        }
+
         const outstanding = loan.totalRepayable - alreadyPaid
         if (amount > outstanding) {
           throw new Error(`Payment of ₹${(amount / 100).toLocaleString('en-IN')} exceeds outstanding ₹${(outstanding / 100).toLocaleString('en-IN')} for loan ${loan.loanNumber}`)
@@ -216,11 +245,28 @@ export async function POST(request: Request, { params }: Props) {
       }
     }
 
-    return output
+    return { output, auditEntries }
   })
 
+  // Write audit logs outside transaction to avoid timeout
+  const collectorIds = Array.from(new Set(
+    results.auditEntries.flatMap(e => [e.oldValues.collectorId, e.newValues.collectorId]).filter(Boolean) as string[]
+  ))
+  const collectorNames = collectorIds.length > 0
+    ? await prisma.user.findMany({ where: { id: { in: collectorIds } }, select: { id: true, fullName: true } })
+    : []
+  const nameMap = new Map(collectorNames.map(c => [c.id, c.fullName]))
+
+  for (const entry of results.auditEntries) {
+    const { collectorId: oldCId, ...oldRest } = entry.oldValues
+    const { collectorId: newCId, ...newRest } = entry.newValues
+    const old = { ...oldRest, collector: nameMap.get(oldCId as string) || '-' }
+    const nw = { ...newRest, collector: nameMap.get(newCId as string) || '-' }
+    await createAuditLog({ action: 'EDIT_PAYMENT', entityType: 'Payment', entityId: entry.entityId, oldValues: old, newValues: nw, userId: user.id, businessId })
+  }
+
   return NextResponse.json(
-    { count: results.length, totalAmount: results.reduce((s, r) => s + r.amount, 0), payments: results },
+    { count: results.output.length, totalAmount: results.output.reduce((s, r) => s + r.amount, 0), payments: results.output },
     { status: 201 }
   )
 }

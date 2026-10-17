@@ -138,7 +138,7 @@ export async function POST(request: Request, { params }: Props) {
   }
   const loan = await prisma.loan.findFirst({
     where: { id: loanId, businessId },
-    include: { customer: { select: { villageId: true } } },
+    include: { customer: { select: { villageId: true, fullName: true, customerId: true } } },
   })
   if (!loan) return NextResponse.json({ error: 'Loan not found' }, { status: 404 })
 
@@ -192,12 +192,48 @@ export async function POST(request: Request, { params }: Props) {
           })
         }
 
+        const [oldCollector, newCollector] = await Promise.all([
+          existing.collectorId ? tx.user.findUnique({ where: { id: existing.collectorId }, select: { fullName: true } }) : null,
+          collector ? tx.user.findUnique({ where: { id: collector }, select: { fullName: true } }) : null,
+        ])
         await createAuditLog({
           action: 'EDIT_PAYMENT', entityType: 'Payment', entityId: existingPaymentId,
-          oldValues: { amount: existing.amount, collectorId: existing.collectorId, note: existing.note, paymentDate: existing.paymentDate },
-          newValues: { amount, collectorId: collector, note: note || null, paymentDate },
+          oldValues: { receipt: existing.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount: existing.amount, collector: oldCollector?.fullName || '-', note: existing.note, paymentDate: existing.paymentDate },
+          newValues: { receipt: updated.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount, collector: newCollector?.fullName || '-', note: note || null, paymentDate },
           userId: user.id, businessId,
         })
+        return { id: updated.id, receiptNumber: updated.receiptNumber, amount: updated.amount, createdAt: updated.createdAt, updatedAt: updated.updatedAt, updated: true }
+      }
+
+      // Server-side duplicate check: if payment exists for same loan+date, update it
+      const duplicatePayment = await tx.payment.findFirst({
+        where: { loanId, paymentDate, businessId, isDeleted: false },
+      })
+      if (duplicatePayment) {
+        const effectiveOutstanding = loan.totalRepayable - (alreadyPaid - duplicatePayment.amount)
+        if (amount > effectiveOutstanding) {
+          throw new Error(`Payment of ₹${(amount / 100).toLocaleString('en-IN')} would exceed outstanding. Outstanding: ₹${(effectiveOutstanding / 100).toLocaleString('en-IN')}`)
+        }
+        const updated = await tx.payment.update({
+          where: { id: duplicatePayment.id },
+          data: { amount, collectorId: collector, note: note || null },
+        })
+        const [oldCol, newCol] = await Promise.all([
+          duplicatePayment.collectorId ? tx.user.findUnique({ where: { id: duplicatePayment.collectorId }, select: { fullName: true } }) : null,
+          collector ? tx.user.findUnique({ where: { id: collector }, select: { fullName: true } }) : null,
+        ])
+        await createAuditLog({
+          action: 'EDIT_PAYMENT', entityType: 'Payment', entityId: duplicatePayment.id,
+          oldValues: { receipt: duplicatePayment.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount: duplicatePayment.amount, collector: oldCol?.fullName || '-', note: duplicatePayment.note, paymentDate: duplicatePayment.paymentDate },
+          newValues: { receipt: updated.receiptNumber, customer: loan.customer.fullName, loan: loan.loanNumber, amount, collector: newCol?.fullName || '-', note: note || null, paymentDate },
+          userId: user.id, businessId,
+        })
+        const newTotal = alreadyPaid - duplicatePayment.amount + amount
+        if (newTotal === loan.totalRepayable) {
+          await tx.loan.update({ where: { id: loanId }, data: { status: 'COMPLETED', closedAt: paymentDate } })
+        } else if (loan.status === 'COMPLETED') {
+          await tx.loan.update({ where: { id: loanId }, data: { status: 'ACTIVE', closedAt: null } })
+        }
         return { id: updated.id, receiptNumber: updated.receiptNumber, amount: updated.amount, createdAt: updated.createdAt, updatedAt: updated.updatedAt, updated: true }
       }
 
