@@ -23,6 +23,7 @@ model User {
   passwordHash       String
   fullName           String
   organizationName   String?
+  city               String?
   phone              String?
   email              String?
   role               String   // Role enum

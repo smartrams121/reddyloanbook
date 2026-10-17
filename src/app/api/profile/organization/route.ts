@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest) {
     if (fullName) userData.fullName = fullName
     if (phone) userData.phone = phone
     if (email) userData.email = email
+    if (city) userData.city = city
 
     if (Object.keys(userData).length > 0) {
       await prisma.user.update({

@@ -277,7 +277,7 @@ function OrganizationSection() {
           fullName: d.fullName || '',
           phone: d.phone || '',
           email: d.email || '',
-          city: d.businesses?.[0]?.city || '',
+          city: d.city || d.businesses?.[0]?.city || '',
         }
         setData(vals)
       })

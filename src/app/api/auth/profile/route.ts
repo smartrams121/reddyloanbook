@@ -37,7 +37,7 @@ export async function GET() {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, username: true, fullName: true, role: true, phone: true, email: true, organizationName: true },
+    select: { id: true, username: true, fullName: true, role: true, phone: true, email: true, organizationName: true, city: true },
   })
 
   if (!dbUser) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
@@ -59,6 +59,7 @@ export async function GET() {
     phone: dbUser.phone,
     email: dbUser.email,
     organizationName: dbUser.organizationName,
+    city: dbUser.city,
     businesses,
   })
 }

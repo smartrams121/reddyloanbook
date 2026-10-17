@@ -41,6 +41,7 @@ export async function POST(request: Request, { params }: Props) {
         isActive: true,
         mustChangePassword: false,
         organizationName: regRequest.businessName || null,
+        city: regRequest.city || null,
       },
     })
 
