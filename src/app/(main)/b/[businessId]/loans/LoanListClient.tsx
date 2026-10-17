@@ -187,14 +187,8 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
   const paidInstallments = loan.installmentAmount > 0 ? Math.floor(totalPaid / loan.installmentAmount) : 0
   const pendingInstallments = Math.max(0, loan.numberOfInstallments - paidInstallments)
 
-  const rows: { label: string; value: string }[] = [
-    { label: t('loans.loan_number'), value: loan.loanNumber },
-    { label: t('customers.customer_name'), value: `${loan.customer.fullName} (${loan.customer.customerId})` },
-    { label: t('common.phone'), value: loan.customer.phone },
-    { label: t('common.status'), value: statusLabel(loan.status, t) },
-    { label: t('loans.interest_model'), value: loan.interestModel === 'UPFRONT' ? t('loans.interest_model_upfront') : t('loans.interest_model_added') },
+  const allLoanRows: { label: string; value: string }[] = [
     { label: t('loans.collection_type'), value: loan.collectionType },
-    ...(loan.collectionDay ? [{ label: t('loans.collection_day'), value: loan.collectionDay.charAt(0) + loan.collectionDay.slice(1).toLowerCase() }] : []),
     { label: t('loans.principal_amount'), value: formatPaiseShort(loan.loanAmount) },
     { label: t('loans.interest_amount'), value: formatPaiseShort(loan.interestAmount) },
     { label: t('loans.total_repayable'), value: formatPaiseShort(loan.totalRepayable) },
@@ -206,15 +200,16 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
     { label: t('loans.last_installment'), value: formatPaiseShort(loan.lastInstallmentAmount) },
     { label: t('loans.start_date'), value: formatDateDisplay(loan.startDate) },
     { label: t('loans.end_date'), value: formatDateDisplay(loan.expectedEndDate) },
-    ...(loan.agent ? [{ label: t('loans.agent'), value: loan.agent.fullName }] : []),
-    ...(loan.notes ? [{ label: t('common.notes'), value: loan.notes }] : []),
-    ...(loan.pausedAt ? [{ label: t('common.paused_at'), value: formatDateDisplay(loan.pausedAt) }] : []),
-    ...(loan.settlementAmount ? [{ label: t('loans.settlement_amount'), value: formatPaiseShort(loan.settlementAmount) }] : []),
-    ...(loan.settlementReason ? [{ label: t('loans.settlement_reason'), value: loan.settlementReason }] : []),
-    ...(loan.writeOffReason ? [{ label: t('loans.write_off_reason'), value: loan.writeOffReason }] : []),
-    ...(loan.closedAt ? [{ label: t('common.closed_at'), value: formatDateDisplay(loan.closedAt) }] : []),
+    { label: t('loans.agent'), value: loan.agent?.fullName || '' },
+    { label: t('common.notes'), value: loan.notes || '' },
+    { label: t('common.paused_at'), value: loan.pausedAt ? formatDateDisplay(loan.pausedAt) : '' },
+    { label: t('loans.settlement_amount'), value: loan.settlementAmount ? formatPaiseShort(loan.settlementAmount) : '' },
+    { label: t('loans.settlement_reason'), value: loan.settlementReason || '' },
+    { label: t('loans.write_off_reason'), value: loan.writeOffReason || '' },
+    { label: t('common.closed_at'), value: loan.closedAt ? formatDateDisplay(loan.closedAt) : '' },
     { label: t('common.created'), value: new Date(loan.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
   ]
+  const rows = allLoanRows.filter(r => r.value !== '')
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" onClick={onClose}>
@@ -287,7 +282,7 @@ function LoanDetailModal({ loan, businessId, onClose }: { loan: LoanDetail; busi
             className="hidden md:flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-            XLSX
+            Excel
           </button>
           {/* Mobile — WhatsApp share buttons */}
           <button

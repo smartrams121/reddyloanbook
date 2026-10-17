@@ -136,25 +136,26 @@ function CustomerDetailModal({ customer, businessId, onClose }: { customer: Cust
     a.remove()
   }
 
-  const rows: { label: string; value: string }[] = [
+  const allRows: { label: string; value: string }[] = [
     { label: t('customers.customer_id'), value: customer.customerId },
     { label: t('customers.full_name'), value: customer.fullName },
-    { label: t('customers.age'), value: customer.age ? String(customer.age) : '-' },
-    { label: t('customers.phone'), value: customer.phone || '-' },
-    { label: t('customers.alt_phone'), value: customer.altPhone || '-' },
+    { label: t('customers.age'), value: customer.age ? String(customer.age) : '' },
+    { label: t('customers.phone'), value: customer.phone || '' },
+    { label: t('customers.alt_phone'), value: customer.altPhone || '' },
     { label: t('customers.location'), value: customer.village.name },
-    { label: t('customers.address'), value: customer.address || '-' },
-    { label: t('customers.occupation'), value: customer.jobType || '-' },
-    { label: t('customers.aadhaar_last4'), value: customer.aadhaarLast4 ? `XXXX-XXXX-${customer.aadhaarLast4}` : '-' },
-    { label: t('customers.guarantor'), value: customer.guarantorName || '-' },
-    { label: t('customers.guarantor_phone'), value: customer.guarantorPhone || '-' },
-    { label: t('customers.family'), value: customer.familyRelation ? `${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}` : '-' },
-    { label: t('customers.notes'), value: customer.notes || '-' },
-    { label: t('customers.customer_location'), value: customer.latitude && customer.longitude ? `${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}` : '-' },
+    { label: t('customers.address'), value: customer.address || '' },
+    { label: t('customers.occupation'), value: customer.jobType || '' },
+    { label: t('customers.aadhaar_last4'), value: customer.aadhaarLast4 ? `XXXX-XXXX-${customer.aadhaarLast4}` : '' },
+    { label: t('customers.guarantor'), value: customer.guarantorName || '' },
+    { label: t('customers.guarantor_phone'), value: customer.guarantorPhone || '' },
+    { label: t('customers.family'), value: customer.familyRelation ? `${customer.familyRelation}${customer.familyMemberName ? ' — ' + customer.familyMemberName : ''}` : '' },
+    { label: t('customers.notes'), value: customer.notes || '' },
+    { label: t('customers.customer_location'), value: customer.latitude && customer.longitude ? `${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}` : '' },
     { label: t('customers.status'), value: s.customerStatus },
     { label: t('common.created'), value: new Date(customer.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
-    { label: t('customers.photo'), value: customer.photoPath ? 'Uploaded' : '-' },
+    { label: t('customers.photo'), value: customer.photoPath ? 'Uploaded' : '' },
   ]
+  const rows = allRows.filter(r => r.value !== '')
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" onClick={onClose}>
