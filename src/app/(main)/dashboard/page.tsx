@@ -9,6 +9,7 @@ import Link from 'next/link'
 import BusinessActions from './BusinessActions'
 import { T } from '@/lib/i18n'
 import AutoRefresh from '@/components/AutoRefresh'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 export default async function DashboardPage() {
   const user = await getSession()
@@ -103,7 +104,10 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <AutoRefresh />
-      <h1 className="text-xl font-bold text-gray-900 mb-1"><T k="dashboard.welcome" />, {user.fullName}</h1>
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-xl font-bold text-gray-900"><T k="dashboard.welcome" />, {user.fullName}</h1>
+        <RefreshButton />
+      </div>
       <p className="text-sm text-gray-500 mb-6">
         {businesses.length} <T k="dashboard.collection" />{businesses.length !== 1 ? 's' : ''} &middot; <T k="dashboard.select_collection_prompt" />
       </p>
