@@ -26,6 +26,7 @@ model User {
   city               String?
   phone              String?
   email              String?
+  photoPath          String?
   role               String   // Role enum
   isActive           Boolean  @default(true)
   mustChangePassword Boolean  @default(true)

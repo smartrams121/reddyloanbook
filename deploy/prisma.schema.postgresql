@@ -30,6 +30,7 @@ model User {
   city               String?
   phone              String?
   email              String?
+  photoPath          String?
   role               String
   isActive           Boolean  @default(true)
   mustChangePassword Boolean  @default(true)
