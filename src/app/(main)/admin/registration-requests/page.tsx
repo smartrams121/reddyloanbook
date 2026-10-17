@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import PasswordResetShareModal from '@/components/ui/PasswordResetShareModal'
 
 interface RegistrationRequest {
   id: string
@@ -32,6 +33,7 @@ export default function RegistrationRequestsPage() {
   const [rejectModal, setRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [toast, setToast] = useState('')
+  const [shareTarget, setShareTarget] = useState<{ variant: 'approved' | 'rejected'; fullName: string; username: string; phone?: string | null; email?: string | null; rejectReason?: string } | null>(null)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
@@ -66,7 +68,8 @@ export default function RegistrationRequestsPage() {
       const res = await fetch(`/api/admin/registration-requests/${id}/approve`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
-        showToast(data.message || 'Registration approved')
+        const req = selected!
+        setShareTarget({ variant: 'approved', fullName: req.fullName, username: req.username, phone: req.phone, email: req.email })
         setSelected(null)
         fetchRequests()
       } else {
@@ -90,7 +93,8 @@ export default function RegistrationRequestsPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        showToast('Registration rejected')
+        const req = selected!
+        setShareTarget({ variant: 'rejected', fullName: req.fullName, username: req.username, phone: req.phone, email: req.email, rejectReason: rejectReason.trim() })
         setSelected(null)
         setRejectModal(false)
         setRejectReason('')
@@ -330,6 +334,19 @@ export default function RegistrationRequestsPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Share Modal */}
+      {shareTarget && (
+        <PasswordResetShareModal
+          variant={shareTarget.variant}
+          fullName={shareTarget.fullName}
+          username={shareTarget.username}
+          phone={shareTarget.phone}
+          email={shareTarget.email}
+          rejectReason={shareTarget.rejectReason}
+          onClose={() => setShareTarget(null)}
+        />
       )}
     </div>
   )

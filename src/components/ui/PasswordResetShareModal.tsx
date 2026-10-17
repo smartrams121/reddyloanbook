@@ -1,10 +1,15 @@
 'use client'
 
+type Variant = 'password-reset' | 'approved' | 'rejected' | 'employee-created'
+
 interface Props {
+  variant?: Variant
   fullName: string
   username: string
   phone?: string | null
   email?: string | null
+  password?: string
+  rejectReason?: string
   onClose: () => void
 }
 
@@ -15,38 +20,89 @@ function formatPhone(phone: string): string {
   return digits
 }
 
-function getMessage(fullName: string, username: string) {
-  return `Hi ${fullName}, your Daily Finance password was reset.\nYour temporary credentials are:\n• Username: ${username}\n• Password: ${username}\nPlease log in and change your password immediately.`
+function getConfig(variant: Variant, fullName: string, username: string, password?: string, rejectReason?: string) {
+  switch (variant) {
+    case 'approved':
+      return {
+        icon: 'check',
+        iconBg: 'bg-green-100 text-green-600',
+        title: 'Registration Approved',
+        subtitle: fullName,
+        detail: `Username: ${username}`,
+        message: `Hi ${fullName}, your Daily Finance registration has been approved!\nYour login credentials are:\n• Username: ${username}\n• Password: (the password you set during registration)\nPlease log in at your earliest convenience.`,
+        emailSubject: 'Registration Approved - Daily Finance',
+      }
+    case 'rejected':
+      return {
+        icon: 'x',
+        iconBg: 'bg-red-100 text-red-600',
+        title: 'Registration Rejected',
+        subtitle: fullName,
+        detail: rejectReason ? `Reason: ${rejectReason}` : undefined,
+        message: `Hi ${fullName}, your Daily Finance registration was not approved.${rejectReason ? `\nReason: ${rejectReason}` : ''}\nPlease contact the administrator for more details.`,
+        emailSubject: 'Registration Update - Daily Finance',
+      }
+    case 'employee-created':
+      return {
+        icon: 'check',
+        iconBg: 'bg-green-100 text-green-600',
+        title: 'Employee Created',
+        subtitle: fullName,
+        detail: `Username: ${username}`,
+        message: `Hi ${fullName}, your Daily Finance account has been created.\nYour login credentials are:\n• Username: ${username}\n• Password: ${password || username}\nPlease log in and change your password immediately.`,
+        emailSubject: 'Account Created - Daily Finance',
+      }
+    default:
+      return {
+        icon: 'check',
+        iconBg: 'bg-green-100 text-green-600',
+        title: 'Password Reset Successful',
+        subtitle: fullName,
+        detail: `New password: ${username}`,
+        message: `Hi ${fullName}, your Daily Finance password was reset.\nYour temporary credentials are:\n• Username: ${username}\n• Password: ${username}\nPlease log in and change your password immediately.`,
+        emailSubject: 'Password Reset - Daily Finance',
+      }
+  }
 }
 
-export default function PasswordResetShareModal({ fullName, username, phone, email, onClose }: Props) {
-  const message = getMessage(fullName, username)
+export default function PasswordResetShareModal({ variant = 'password-reset', fullName, username, phone, email, password, rejectReason, onClose }: Props) {
+  const config = getConfig(variant, fullName, username, password, rejectReason)
   const hasPhone = !!phone?.trim()
   const hasEmail = !!email?.trim()
 
   function handleWhatsApp() {
-    const url = `https://wa.me/${formatPhone(phone!)}?text=${encodeURIComponent(message)}`
+    const url = `https://wa.me/${formatPhone(phone!)}?text=${encodeURIComponent(config.message)}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   function handleEmail() {
-    const subject = encodeURIComponent('Password Reset - Daily Finance')
-    const body = encodeURIComponent(message)
+    const subject = encodeURIComponent(config.emailSubject)
+    const body = encodeURIComponent(config.message)
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`
   }
+
+  const isRejected = variant === 'rejected'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
         <div className="p-5 text-center">
-          <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-3">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+          <div className={`w-12 h-12 rounded-full ${config.iconBg} flex items-center justify-center mx-auto mb-3`}>
+            {isRejected ? (
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )}
           </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">Password Reset Successful</h3>
-          <p className="text-sm text-gray-500 mb-1">{fullName}</p>
-          <p className="text-xs text-gray-400">New password: <span className="font-mono font-medium text-gray-700">{username}</span></p>
+          <h3 className="text-base font-semibold text-gray-900 mb-1">{config.title}</h3>
+          <p className="text-sm text-gray-500 mb-1">{config.subtitle}</p>
+          {config.detail && (
+            <p className="text-xs text-gray-400"><span className="font-mono font-medium text-gray-700">{config.detail}</span></p>
+          )}
         </div>
 
         <div className="border-t border-gray-100 p-4 space-y-2">

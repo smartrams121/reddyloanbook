@@ -25,7 +25,7 @@ export default function EmployeesPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [actionMenu, setActionMenu] = useState<string | null>(null)
   const [resetConfirmTarget, setResetConfirmTarget] = useState<Employee | null>(null)
-  const [shareTarget, setShareTarget] = useState<{ fullName: string; username: string; phone?: string | null; email?: string | null } | null>(null)
+  const [shareTarget, setShareTarget] = useState<{ fullName: string; username: string; phone?: string | null; email?: string | null; password?: string; variant?: 'password-reset' | 'employee-created' } | null>(null)
 
   // Create form
   const [fullName, setFullName] = useState('')
@@ -72,7 +72,8 @@ export default function EmployeesPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Failed to create'); return }
-      setSuccess(`Created ${data.fullName} (${data.username})`)
+      const createdPassword = password
+      setShareTarget({ variant: 'employee-created', fullName: data.fullName, username: data.username, phone: phone || null, email: null, password: createdPassword })
       setFullName(''); setUsername(''); setPhone(''); setPassword(''); setRole('AGENT')
       setShowCreate(false)
       loadEmployees()
@@ -383,10 +384,12 @@ export default function EmployeesPage() {
       {/* Share Modal */}
       {shareTarget && (
         <PasswordResetShareModal
+          variant={shareTarget.variant || 'password-reset'}
           fullName={shareTarget.fullName}
           username={shareTarget.username}
           phone={shareTarget.phone}
           email={shareTarget.email}
+          password={shareTarget.password}
           onClose={() => setShareTarget(null)}
         />
       )}
