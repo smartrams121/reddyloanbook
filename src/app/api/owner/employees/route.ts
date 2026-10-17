@@ -20,13 +20,13 @@ export async function GET() {
     where: { businessId: { in: bizIds } },
     include: {
       user: {
-        select: { id: true, fullName: true, username: true, phone: true, role: true, isActive: true, createdAt: true },
+        select: { id: true, fullName: true, username: true, phone: true, email: true, role: true, isActive: true, createdAt: true },
       },
     },
   })
 
   const employeeMap = new Map<string, {
-    id: string; fullName: string; username: string; phone: string | null
+    id: string; fullName: string; username: string; phone: string | null; email: string | null
     role: string; isActive: boolean; createdAt: Date; businesses: string[]
   }>()
 
@@ -49,7 +49,7 @@ export async function GET() {
       role: { in: ['AGENT', 'BUSINESS_ADMIN'] },
       id: { notIn: Array.from(employeeMap.keys()) },
     },
-    select: { id: true, fullName: true, username: true, phone: true, role: true, isActive: true, createdAt: true },
+    select: { id: true, fullName: true, username: true, phone: true, email: true, role: true, isActive: true, createdAt: true },
   })
 
   // Filter to only users that are NOT assigned to any other owner's businesses

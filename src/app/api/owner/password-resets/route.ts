@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
             fullName: true,
             username: true,
             phone: true,
+            email: true,
             role: true,
             isActive: true,
             businessAssignments: {

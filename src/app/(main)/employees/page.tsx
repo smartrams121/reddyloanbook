@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
+import PasswordResetShareModal from '@/components/ui/PasswordResetShareModal'
 
 interface Employee {
   id: string
   fullName: string
   username: string
   phone: string | null
+  email: string | null
   role: string
   isActive: boolean
   businesses: string[]
@@ -22,6 +24,8 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [actionMenu, setActionMenu] = useState<string | null>(null)
+  const [resetConfirmTarget, setResetConfirmTarget] = useState<Employee | null>(null)
+  const [shareTarget, setShareTarget] = useState<{ fullName: string; username: string; phone?: string | null; email?: string | null } | null>(null)
 
   // Create form
   const [fullName, setFullName] = useState('')
@@ -102,18 +106,29 @@ export default function EmployeesPage() {
     finally { setSaving(false) }
   }
 
-  async function handleResetPassword(emp: Employee) {
+  function handleResetPassword(emp: Employee) {
     setActionMenu(null)
-    if (!confirm(`Reset ${emp.fullName}'s password to their username (${emp.username})?`)) return
+    setResetConfirmTarget(emp)
+  }
+
+  async function confirmResetPassword() {
+    if (!resetConfirmTarget) return
     try {
-      const res = await fetch(`/api/owner/employees/${emp.id}`, {
+      const res = await fetch(`/api/owner/employees/${resetConfirmTarget.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reset-password' }),
       })
-      const data = await res.json()
-      if (res.ok) setSuccess(data.message)
+      if (res.ok) {
+        setShareTarget({
+          fullName: resetConfirmTarget.fullName,
+          username: resetConfirmTarget.username,
+          phone: resetConfirmTarget.phone,
+          email: resetConfirmTarget.email,
+        })
+      }
     } catch {}
+    setResetConfirmTarget(null)
   }
 
   async function handleToggleSuspend(emp: Employee) {
@@ -344,6 +359,36 @@ export default function EmployeesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Reset Password Confirmation Modal */}
+      {resetConfirmTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setResetConfirmTarget(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5">
+              <h3 className="text-base font-semibold text-gray-900 mb-2">{t('common.reset_password')}</h3>
+              <p className="text-sm text-gray-500">
+                Reset <strong>{resetConfirmTarget.fullName}</strong>&apos;s password to their username: <span className="font-mono font-medium text-gray-700">{resetConfirmTarget.username}</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-2">They will be required to change it on first login.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+              <button onClick={() => setResetConfirmTarget(null)} className="btn-secondary px-4 py-2">{t('common.cancel')}</button>
+              <button onClick={confirmResetPassword} className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700">{t('common.reset_password')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {shareTarget && (
+        <PasswordResetShareModal
+          fullName={shareTarget.fullName}
+          username={shareTarget.username}
+          phone={shareTarget.phone}
+          email={shareTarget.email}
+          onClose={() => setShareTarget(null)}
+        />
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import PasswordResetShareModal from '@/components/ui/PasswordResetShareModal'
 
 interface ResetRequest {
   id: string
@@ -15,6 +16,7 @@ interface ResetRequest {
     fullName: string
     username: string
     phone: string | null
+    email: string | null
     role: string
     isActive: boolean
     businessAssignments?: Array<{ business: { name: string } }>
@@ -38,6 +40,7 @@ export default function OwnerPasswordResetsPage() {
   const [cancelTarget, setCancelTarget] = useState<ResetRequest | null>(null)
   const [cancelNote, setCancelNote] = useState('')
   const [toast, setToast] = useState('')
+  const [shareTarget, setShareTarget] = useState<{ fullName: string; username: string; phone?: string | null; email?: string | null } | null>(null)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
@@ -76,7 +79,12 @@ export default function OwnerPasswordResetsPage() {
       setResetTarget(null)
       return
     }
-    showToast(`Password reset for ${resetTarget.user.fullName} — new password is their username`)
+    setShareTarget({
+      fullName: resetTarget.user.fullName,
+      username: resetTarget.user.username,
+      phone: resetTarget.user.phone,
+      email: resetTarget.user.email,
+    })
     setResetTarget(null)
     fetchRequests()
   }
@@ -247,6 +255,16 @@ export default function OwnerPasswordResetsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {shareTarget && (
+        <PasswordResetShareModal
+          fullName={shareTarget.fullName}
+          username={shareTarget.username}
+          phone={shareTarget.phone}
+          email={shareTarget.email}
+          onClose={() => setShareTarget(null)}
+        />
       )}
 
       {toast && (
