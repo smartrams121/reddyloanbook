@@ -46,20 +46,6 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    if (city) {
-      const firstBusiness = await prisma.business.findFirst({
-        where: { ownerId: targetUserId },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true },
-      })
-      if (firstBusiness) {
-        await prisma.business.update({
-          where: { id: firstBusiness.id },
-          data: { city },
-        })
-      }
-    }
-
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Organization update error:', error)

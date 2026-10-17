@@ -27,6 +27,7 @@ model User {
   passwordHash       String
   fullName           String
   organizationName   String?
+  city               String?
   phone              String?
   email              String?
   role               String
@@ -84,7 +85,6 @@ model SupportAccess {
 model Business {
   id                   String  @id @default(cuid())
   name                 String
-  city                 String
   address              String?
   phone                String?
   logoPath             String?

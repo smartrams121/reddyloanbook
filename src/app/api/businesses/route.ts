@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const { name, city, address, phone, receiptPrefix, collectionType, defaultCollectionDay, interestModel, collectionDays, repaymentMultiplierDailyWeekly, repaymentMultiplierMonthly, villages, agentIds } = parsed.data
+  const { name, address, phone, receiptPrefix, collectionType, defaultCollectionDay, interestModel, collectionDays, repaymentMultiplierDailyWeekly, repaymentMultiplierMonthly, villages, agentIds } = parsed.data
 
   const existingBiz = await prisma.business.findFirst({
     where: { ownerId: user.id, name },
@@ -52,7 +52,6 @@ export async function POST(request: Request) {
     const biz = await tx.business.create({
       data: {
         name,
-        city,
         address: address || null,
         phone: phone || null,
         receiptPrefix: receiptPrefix || null,

@@ -61,6 +61,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
+    include: { owner: { select: { city: true } } },
   })
 
   if (!business) redirect('/dashboard')
@@ -223,7 +224,7 @@ export default async function BusinessDashboardPage({ params, searchParams }: Pr
         <div>
           <h1 className="text-xl font-bold text-gray-900">{business.name}</h1>
           <p className="text-sm text-gray-500">
-            {business.city} &middot; {business.collectionType} &middot; {formatDateDisplay(today)}
+            {business.owner.city || ''}{business.owner.city ? ' · ' : ''}{business.collectionType} &middot; {formatDateDisplay(today)}
           </p>
         </div>
         <RefreshButton />

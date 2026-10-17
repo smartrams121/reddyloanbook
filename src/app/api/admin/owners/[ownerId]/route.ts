@@ -31,7 +31,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     where: { id: ownerId, role: 'OWNER' },
     include: {
       ownedBusinesses: {
-        select: { id: true, name: true, city: true, isActive: true, collectionType: true },
+        select: { id: true, name: true, isActive: true, collectionType: true },
       },
     },
   })

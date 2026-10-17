@@ -41,7 +41,7 @@ export default async function SelectBusinessPage() {
             className="card p-4 block hover:border-primary-300 transition-colors"
           >
             <h3 className="font-semibold text-gray-900">{biz.name}</h3>
-            <p className="text-sm text-gray-500">{biz.city} &middot; {biz.collectionType}</p>
+            <p className="text-sm text-gray-500">{biz.collectionType}</p>
           </Link>
         ))}
       </div>

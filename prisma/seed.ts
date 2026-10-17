@@ -56,6 +56,7 @@ async function main() {
       passwordHash: PASSWORD_HASH,
       fullName: 'Rajesh Kumar',
       phone: '9553940001',
+      city: 'Visakhapatnam',
       role: 'OWNER',
       mustChangePassword: false,
     },
@@ -67,6 +68,7 @@ async function main() {
       passwordHash: PASSWORD_HASH,
       fullName: 'Suresh Reddy',
       phone: '9553940002',
+      city: 'Vijayawada',
       role: 'OWNER',
       mustChangePassword: false,
     },
@@ -76,7 +78,6 @@ async function main() {
   const saiFinance = await prisma.business.create({
     data: {
       name: 'Sai Daily Finance',
-      city: 'Visakhapatnam',
       address: 'PM Palem Main Road, Visakhapatnam',
       phone: '9553940010',
       receiptPrefix: 'SDF',
@@ -92,7 +93,6 @@ async function main() {
   const hydFinance = await prisma.business.create({
     data: {
       name: 'Sri Lakshmi Finance',
-      city: 'Hyderabad',
       address: 'Ameerpet, Hyderabad',
       phone: '9553940011',
       receiptPrefix: 'SLF',
@@ -109,7 +109,6 @@ async function main() {
   const owner2Biz = await prisma.business.create({
     data: {
       name: 'Ganesh Finance',
-      city: 'Vijayawada',
       address: 'MG Road, Vijayawada',
       phone: '9553940020',
       receiptPrefix: 'GNF',

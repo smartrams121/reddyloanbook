@@ -33,7 +33,6 @@ export async function POST(request: Request) {
   const file = formData.get('file') as File | null
   const action = formData.get('action') as string || 'test'
   const name = formData.get('name') as string || ''
-  const city = formData.get('city') as string || ''
   const receiptPrefix = formData.get('receiptPrefix') as string || ''
   const collectionType = (formData.get('collectionType') as string || 'DAILY').toUpperCase()
   const defaultCollectionDay = formData.get('defaultCollectionDay') as string || null
@@ -46,8 +45,6 @@ export async function POST(request: Request) {
   if (!name || name.length < 2) {
     return NextResponse.json({ error: 'Business name is required (min 2 characters)' }, { status: 400 })
   }
-  const effectiveCity = city && city.length >= 2 ? city : 'Default'
-
   const existing = await prisma.business.findFirst({
     where: { ownerId: user.id, name },
   })
@@ -89,7 +86,6 @@ export async function POST(request: Request) {
       const biz = await tx.business.create({
         data: {
           name,
-          city: effectiveCity,
           receiptPrefix: receiptPrefix || null,
           collectionType,
           defaultCollectionDay: collectionType === 'WEEKLY' ? defaultCollectionDay : null,

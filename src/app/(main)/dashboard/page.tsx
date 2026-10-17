@@ -142,7 +142,7 @@ export default async function DashboardPage() {
             >
               <div>
                 <h3 className="font-semibold text-gray-900">{business.name}</h3>
-                <p className="text-xs text-gray-500">{business.city} &middot; {customerCount} <T k="dashboard.customers" /></p>
+                <p className="text-xs text-gray-500">{business.collectionType} &middot; {customerCount} <T k="dashboard.customers" /></p>
               </div>
               <div className="text-right">
                 <div className="text-sm font-bold text-gray-900">{formatPaiseShort(totalOutstanding)}</div>

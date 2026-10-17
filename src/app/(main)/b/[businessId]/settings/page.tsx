@@ -8,7 +8,6 @@ import { useTranslation } from '@/lib/i18n'
 interface BusinessSettings {
   id: string
   name: string
-  city: string
   address: string | null
   phone: string | null
   receiptPrefix: string | null
@@ -74,7 +73,6 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: settings.name,
-          city: settings.city,
           address: settings.address || undefined,
           phone: settings.phone || undefined,
           receiptPrefix: settings.receiptPrefix || undefined,
@@ -222,10 +220,6 @@ export default function SettingsPage() {
           <div>
             <label className="label">{t('settings.collection_name')}</label>
             <input className="input" value={settings.name} onChange={(e) => update('name', e.target.value)} required />
-          </div>
-          <div>
-            <label className="label">{t('settings.city')}</label>
-            <input className="input" value={settings.city} onChange={(e) => update('city', e.target.value)} required />
           </div>
         </div>}
         </div>

@@ -7,7 +7,6 @@ import { z } from 'zod'
 
 const updateSettingsSchema = z.object({
   name: z.string().min(2).optional(),
-  city: z.string().min(2).optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
   receiptPrefix: z.string().max(5).regex(/^[A-Z]*$/).optional(),
@@ -59,7 +58,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const business = await prisma.business.findUnique({
     where: { id: businessId },
     select: {
-      id: true, name: true, city: true, address: true, phone: true,
+      id: true, name: true, address: true, phone: true,
       receiptPrefix: true, collectionType: true, defaultCollectionDay: true,
       interestModel: true, collectionDays: true,
       gracePeriodDaily: true, gracePeriodWeekly: true, gracePeriodMonthly: true, defaulterPeriodDays: true,
@@ -110,7 +109,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   return NextResponse.json({
     id: updated.id,
     name: updated.name,
-    city: updated.city,
   })
 }
 

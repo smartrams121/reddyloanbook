@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: Props) {
     return NextResponse.json({ error: (e as Error).message }, { status: 403 })
   }
 
-  const business = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true, city: true, collectionType: true } })
+  const business = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true, collectionType: true } })
   if (!business) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const [customers, loans, payments, villages, employees] = await Promise.all([
@@ -65,7 +65,7 @@ export async function GET(_request: Request, { params }: Props) {
     doc.addPage()
     doc.fontSize(16).font('Helvetica-Bold').text(text, { underline: true })
     doc.moveDown(0.5)
-    doc.fontSize(8).font('Helvetica').text(`${business!.name} · ${business!.city} · ${business!.collectionType} · ${date}`)
+    doc.fontSize(8).font('Helvetica').text(`${business!.name} · ${business!.collectionType} · ${date}`)
     doc.moveDown(1)
   }
 

@@ -14,7 +14,7 @@ export default async function OwnersPage() {
     include: {
       ownedBusinesses: {
         select: {
-          id: true, name: true, city: true,
+          id: true, name: true,
           _count: { select: { customers: true, loans: true, payments: true } },
         },
       },
@@ -37,7 +37,7 @@ export default async function OwnersPage() {
     ownerUsername: o.username,
     ownerPhone: o.phone || '-',
     ownerEmail: o.email || '-',
-    ownerCity: o.city || o.ownedBusinesses[0]?.city || '-',
+    ownerCity: o.city || '-',
     ownerActive: o.isActive,
     customers: o.ownedBusinesses.reduce((sum, b) => sum + b._count.customers, 0),
     loans: o.ownedBusinesses.reduce((sum, b) => sum + b._count.loans, 0),

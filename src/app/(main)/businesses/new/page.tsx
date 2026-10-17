@@ -59,7 +59,6 @@ export default function NewBusinessPage() {
       const fd = new FormData()
       fd.append('file', importFile)
       fd.append('name', importName)
-      fd.append('city', 'Default')
       fd.append('collectionType', importCollectionType)
       if (importCollectionType === 'WEEKLY' && importCollectionDay) fd.append('defaultCollectionDay', importCollectionDay)
       fd.append('collectionDays', importCollectionDays.join(','))
@@ -88,7 +87,6 @@ export default function NewBusinessPage() {
       const fd = new FormData()
       fd.append('file', importFile)
       fd.append('name', importName)
-      fd.append('city', 'Default')
       fd.append('collectionType', importCollectionType)
       if (importCollectionType === 'WEEKLY' && importCollectionDay) fd.append('defaultCollectionDay', importCollectionDay)
       fd.append('collectionDays', importCollectionDays.join(','))
@@ -111,7 +109,6 @@ export default function NewBusinessPage() {
 
   // Manual creation state
   const [name, setName] = useState('')
-  const [city, setCity] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [receiptPrefix, setReceiptPrefix] = useState('')
@@ -190,7 +187,6 @@ export default function NewBusinessPage() {
     try {
       const body: Record<string, unknown> = {
         name,
-        city,
         collectionType,
         collectionDays: collectionDays.join(','),
         villages,

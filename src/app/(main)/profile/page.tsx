@@ -44,7 +44,6 @@ export default function ProfilePage() {
 
   const [editingBiz, setEditingBiz] = useState<string | null>(null)
   const [bizName, setBizName] = useState('')
-  const [bizCity, setBizCity] = useState('')
   const [bizPhone, setBizPhone] = useState('')
   const [bizMsg, setBizMsg] = useState({ type: '', text: '' })
   const [bizSaving, setBizSaving] = useState(false)
@@ -125,7 +124,6 @@ export default function ProfilePage() {
   function startEditBiz(biz: BusinessInfo) {
     setEditingBiz(biz.id)
     setBizName(biz.name)
-    setBizCity(biz.city)
     setBizPhone('')
     setBizMsg({ type: '', text: '' })
   }
@@ -143,7 +141,6 @@ export default function ProfilePage() {
           action: 'updateBusiness',
           businessId: editingBiz,
           name: bizName,
-          city: bizCity,
           phone: bizPhone || undefined,
         }),
       })
@@ -277,7 +274,7 @@ function OrganizationSection() {
           fullName: d.fullName || '',
           phone: d.phone || '',
           email: d.email || '',
-          city: d.city || d.businesses?.[0]?.city || '',
+          city: d.city || '',
         }
         setData(vals)
       })

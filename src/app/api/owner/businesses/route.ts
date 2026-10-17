@@ -13,7 +13,7 @@ export async function GET() {
 
   const businesses = await prisma.business.findMany({
     where: { ownerId: user.id, isActive: true },
-    select: { id: true, name: true, city: true },
+    select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })
 

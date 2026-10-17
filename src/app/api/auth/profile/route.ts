@@ -42,11 +42,11 @@ export async function GET() {
 
   if (!dbUser) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
-  let businesses: { id: string; name: string; city: string; isActive: boolean }[] = []
+  let businesses: { id: string; name: string; isActive: boolean }[] = []
   if (dbUser.role === Role.OWNER) {
     businesses = await prisma.business.findMany({
       where: { ownerId: user.id },
-      select: { id: true, name: true, city: true, isActive: true },
+      select: { id: true, name: true, isActive: true },
       orderBy: { name: 'asc' },
     })
   }
@@ -171,7 +171,6 @@ export async function PATCH(request: Request) {
 
     const bizUpdates: Record<string, string> = {}
     if (parsed.data.name) bizUpdates.name = parsed.data.name
-    if (parsed.data.city) bizUpdates.city = parsed.data.city
     if (parsed.data.phone !== undefined) bizUpdates.phone = parsed.data.phone
     if (parsed.data.address !== undefined) bizUpdates.address = parsed.data.address
 
