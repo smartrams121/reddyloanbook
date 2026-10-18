@@ -7,6 +7,7 @@ import { assertPermission } from '@/lib/permissions'
 import { todayIST, parseISODate, addMonths } from '@/lib/date'
 import { z } from 'zod'
 import { createAuditLog } from '@/lib/audit'
+import { assertBackdateAllowed, assertRecordEditAllowed } from '@/lib/backdate'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -82,6 +83,9 @@ export async function POST(request: Request, { params }: Props) {
   if (payDate > todayDate) {
     return NextResponse.json({ error: 'Payment date cannot be in the future' }, { status: 400 })
   }
+  try { assertBackdateAllowed(user, paymentDate) } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
   // Agents: verify all loans are in accessible villages
   if (user.role === Role.AGENT) {
     const agentVillageIds = await getAccessibleVillageIds(user, businessId)
@@ -143,6 +147,7 @@ export async function POST(request: Request, { params }: Props) {
           where: { id: existingPaymentId, loanId, businessId, isDeleted: false },
         })
         if (!existing) throw new Error(`Existing payment not found for loan ${loan.loanNumber}`)
+        assertRecordEditAllowed(user, existing.createdAt)
 
         const effectiveOutstanding = loan.totalRepayable - (alreadyPaid - existing.amount)
         if (amount > effectiveOutstanding) {
@@ -186,6 +191,7 @@ export async function POST(request: Request, { params }: Props) {
           where: { loanId, paymentDate, businessId, isDeleted: false },
         })
         if (dupPayment) {
+          assertRecordEditAllowed(user, dupPayment.createdAt)
           const effectiveOutstanding = loan.totalRepayable - (alreadyPaid - dupPayment.amount)
           if (amount > effectiveOutstanding) {
             throw new Error(`Payment of ₹${(amount / 100).toLocaleString('en-IN')} exceeds outstanding for loan ${loan.loanNumber}`)

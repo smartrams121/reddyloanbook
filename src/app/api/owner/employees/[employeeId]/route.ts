@@ -13,6 +13,8 @@ const updateSchema = z.object({
   fullName: z.string().min(2).optional(),
   phone: z.string().optional(),
   role: z.enum(['AGENT', 'BUSINESS_ADMIN']).optional(),
+  backdateValue: z.number().int().min(1).optional(),
+  backdateUnit: z.enum(['HOURS', 'DAYS', 'MONTHS']).optional(),
 })
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -64,6 +66,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (parsed.data.fullName) data.fullName = parsed.data.fullName
   if (parsed.data.phone !== undefined) data.phone = parsed.data.phone || null
   if (parsed.data.role) data.role = parsed.data.role
+  if (parsed.data.backdateValue !== undefined) data.backdateValue = parsed.data.backdateValue
+  if (parsed.data.backdateUnit) data.backdateUnit = parsed.data.backdateUnit
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })

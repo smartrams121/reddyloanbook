@@ -6,6 +6,7 @@ import { assertPermission } from '@/lib/permissions'
 import { z } from 'zod'
 import { createAuditLog, diffFields } from '@/lib/audit'
 import { todayIST, parseISODate, addDays, addWeeks, addMonths, formatDateISO } from '@/lib/date'
+import { assertBackdateAllowed, assertRecordEditAllowed } from '@/lib/backdate'
 
 interface Props {
   params: Promise<{ businessId: string; loanId: string }>
@@ -74,6 +75,9 @@ export async function PATCH(request: Request, { params }: Props) {
   const loan = await prisma.loan.findFirst({ where: { id: loanId, businessId } })
   if (!loan) return NextResponse.json({ error: 'Loan not found' }, { status: 404 })
 
+  try { assertRecordEditAllowed(user, loan.createdAt) } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const body = await request.json()
   const parsed = updateLoanSchema.safeParse(body)
@@ -85,6 +89,13 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   const d = parsed.data
+
+  if (d.startDate) {
+    try { assertBackdateAllowed(user, d.startDate) } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+    }
+  }
+
   const data: Record<string, unknown> = {}
 
   // Agent validation

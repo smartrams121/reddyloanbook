@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import PasswordResetShareModal from '@/components/ui/PasswordResetShareModal'
+
+const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
 interface Employee {
   id: string
@@ -14,6 +16,8 @@ interface Employee {
   role: string
   isActive: boolean
   businesses: string[]
+  backdateValue: number
+  backdateUnit: string
 }
 
 export default function EmployeesPage() {
@@ -33,6 +37,8 @@ export default function EmployeesPage() {
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState('AGENT')
   const [password, setPassword] = useState('')
+  const [backdateValue, setBackdateValue] = useState('4')
+  const [backdateUnit, setBackdateUnit] = useState('HOURS')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -42,7 +48,30 @@ export default function EmployeesPage() {
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [editRole, setEditRole] = useState('')
+  const [editBackdateValue, setEditBackdateValue] = useState('4')
+  const [editBackdateUnit, setEditBackdateUnit] = useState('HOURS')
   const [saving, setSaving] = useState(false)
+
+  // Search + pagination
+  const [search, setSearch] = useState('')
+  const [pageSize, setPageSize] = useState(0)
+  const [page, setPage] = useState(1)
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return employees
+    const q = search.toLowerCase()
+    return employees.filter(emp =>
+      emp.fullName.toLowerCase().includes(q) ||
+      emp.username.toLowerCase().includes(q) ||
+      (emp.phone && emp.phone.includes(q)) ||
+      emp.role.toLowerCase().includes(q) ||
+      emp.businesses.some(b => b.toLowerCase().includes(q))
+    )
+  }, [employees, search])
+
+  const showAll = pageSize === 0
+  const totalPages = showAll ? 1 : Math.ceil(filtered.length / pageSize)
+  const paged = showAll ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
 
   function loadEmployees() {
     fetch('/api/owner/employees')
@@ -68,13 +97,16 @@ export default function EmployeesPage() {
       const res = await fetch('/api/owner/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, username, phone: phone || undefined, role, password }),
+        body: JSON.stringify({
+          fullName, username, phone: phone || undefined, role, password,
+          ...(role === 'AGENT' ? { backdateValue: parseInt(backdateValue) || 4, backdateUnit } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Failed to create'); return }
       const createdPassword = password
       setShareTarget({ variant: 'employee-created', fullName: data.fullName, username: data.username, phone: phone || null, email: null, password: createdPassword })
-      setFullName(''); setUsername(''); setPhone(''); setPassword(''); setRole('AGENT')
+      setFullName(''); setUsername(''); setPhone(''); setPassword(''); setRole('AGENT'); setBackdateValue('4'); setBackdateUnit('HOURS')
       setShowCreate(false)
       loadEmployees()
     } catch { setError('Network error') }
@@ -86,6 +118,8 @@ export default function EmployeesPage() {
     setEditName(emp.fullName)
     setEditPhone(emp.phone || '')
     setEditRole(emp.role)
+    setEditBackdateValue(String(emp.backdateValue ?? 4))
+    setEditBackdateUnit(emp.backdateUnit ?? 'HOURS')
     setActionMenu(null)
   }
 
@@ -96,7 +130,10 @@ export default function EmployeesPage() {
       const res = await fetch(`/api/owner/employees/${editingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: editName, phone: editPhone, role: editRole }),
+        body: JSON.stringify({
+          fullName: editName, phone: editPhone, role: editRole,
+          ...(editRole === 'AGENT' ? { backdateValue: parseInt(editBackdateValue) || 4, backdateUnit: editBackdateUnit } : {}),
+        }),
       })
       if (res.ok) {
         setEditingId(null)
@@ -190,6 +227,30 @@ export default function EmployeesPage() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-4">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          className="input pl-9 pr-8"
+          placeholder="Search by name, username, phone, role, business..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+        />
+        {search && (
+          <button
+            onClick={() => { setSearch(''); setPage(1) }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
       {error && <div className="bg-danger-50 text-danger-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>}
       {success && <div className="bg-green-50 text-green-700 text-sm px-4 py-3 rounded-lg mb-4">{success}</div>}
 
@@ -225,6 +286,27 @@ export default function EmployeesPage() {
                 </select>
               </div>
             </div>
+            {role === 'AGENT' && (
+              <div>
+                <label className="label">Back Dating Limit</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    className="input"
+                    value={backdateValue}
+                    onChange={(e) => setBackdateValue(e.target.value)}
+                    min={1}
+                    placeholder="Value"
+                  />
+                  <select className="input" value={backdateUnit} onChange={(e) => setBackdateUnit(e.target.value)}>
+                    <option value="HOURS">Hours</option>
+                    <option value="DAYS">Days</option>
+                    <option value="MONTHS">Months</option>
+                  </select>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">Agent can only backdate entries within this limit</p>
+              </div>
+            )}
             <div className="flex gap-2">
               <button type="submit" disabled={creating} className="btn-primary text-sm flex-1">
                 {creating ? t('common.creating') : t('common.create')}
@@ -238,13 +320,13 @@ export default function EmployeesPage() {
       )}
 
       {/* Employee List */}
-      {employees.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-400 text-sm">{t('common.no_employees_yet')}</p>
+          <p className="text-gray-400 text-sm">{search ? 'No employees match your search' : t('common.no_employees_yet')}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {employees.map((emp) => (
+          {paged.map((emp) => (
             <div key={emp.id} className="card p-4">
               {/* Edit Mode */}
               {editingId === emp.id ? (
@@ -266,6 +348,25 @@ export default function EmployeesPage() {
                       </select>
                     </div>
                   </div>
+                  {editRole === 'AGENT' && (
+                    <div>
+                      <label className="label text-xs">Back Dating Limit</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="number"
+                          className="input"
+                          value={editBackdateValue}
+                          onChange={(e) => setEditBackdateValue(e.target.value)}
+                          min={1}
+                        />
+                        <select className="input" value={editBackdateUnit} onChange={(e) => setEditBackdateUnit(e.target.value)}>
+                          <option value="HOURS">Hours</option>
+                          <option value="DAYS">Days</option>
+                          <option value="MONTHS">Months</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <button onClick={handleSaveEdit} disabled={saving} className="btn-primary text-xs flex-1">
                       {saving ? t('common.saving') : t('common.save')}
@@ -286,6 +387,11 @@ export default function EmployeesPage() {
                       }`}>
                         {emp.role === 'BUSINESS_ADMIN' ? t('profile.role_admin') : t('profile.role_agent')}
                       </span>
+                      {emp.role === 'AGENT' && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                          {emp.backdateValue ?? 4} {(emp.backdateUnit ?? 'HOURS').toLowerCase()}
+                        </span>
+                      )}
                       {!emp.isActive && (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">{t('common.suspended')}</span>
                       )}
@@ -370,6 +476,69 @@ export default function EmployeesPage() {
               )}
             </div>
           ))}
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">
+                {showAll ? `All ${filtered.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+                className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600"
+              >
+                {PAGE_SIZES.map(s => (
+                  <option key={s} value={s}>{s === 0 ? 'All' : s}</option>
+                ))}
+              </select>
+            </div>
+            {totalPages > 1 && <div className="flex gap-1">
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                First
+              </button>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                .map((p, idx, arr) => (
+                  <span key={p}>
+                    {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                    <button
+                      onClick={() => setPage(p)}
+                      className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+                        p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  </span>
+                ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Last
+              </button>
+            </div>}
+          </div>
         </div>
       )}
 

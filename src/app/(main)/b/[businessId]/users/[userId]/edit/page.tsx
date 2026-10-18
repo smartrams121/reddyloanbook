@@ -24,6 +24,8 @@ interface UserData {
   username: string
   role: string
   isActive: boolean
+  backdateValue: number
+  backdateUnit: string
   businessAssignments: { businessId: string }[]
   villageAssignments: { village: { id: string; name: string; businessId: string } }[]
 }
@@ -43,6 +45,8 @@ export default function EditUserPage() {
   const [selectedVillages, setSelectedVillages] = useState<string[]>([])
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [allVillages, setAllVillages] = useState<Village[]>([])
+  const [backdateValue, setBackdateValue] = useState('4')
+  const [backdateUnit, setBackdateUnit] = useState('HOURS')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
@@ -66,6 +70,8 @@ export default function EditUserPage() {
           setSelectedVillages(
             userData.villageAssignments?.map((va) => va.village.id) || []
           )
+          setBackdateValue(String(userData.backdateValue ?? 4))
+          setBackdateUnit(userData.backdateUnit ?? 'HOURS')
         }
         if (Array.isArray(bizData)) setBusinesses(bizData)
         if (Array.isArray(villageData)) setAllVillages(villageData)
@@ -109,7 +115,11 @@ export default function EditUserPage() {
 
     try {
       const body: Record<string, unknown> = { fullName, phone, email: email || null }
-      if (role === 'AGENT') body.villageIds = selectedVillages
+      if (role === 'AGENT') {
+        body.villageIds = selectedVillages
+        body.backdateValue = parseInt(backdateValue) || 4
+        body.backdateUnit = backdateUnit
+      }
       if (businesses.length > 1) body.businessIds = selectedBusinesses
 
       const res = await fetch(`/api/b/${businessId}/users/${userId}`, {
@@ -204,6 +214,28 @@ export default function EditUserPage() {
               placeholder="employee@example.com"
             />
           </div>
+
+          {role === 'AGENT' && (
+            <div>
+              <label className="label">Back Dating Limit</label>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  className="input"
+                  value={backdateValue}
+                  onChange={(e) => setBackdateValue(e.target.value)}
+                  min={1}
+                  placeholder="Value"
+                />
+                <select className="input" value={backdateUnit} onChange={(e) => setBackdateUnit(e.target.value)}>
+                  <option value="HOURS">Hours</option>
+                  <option value="DAYS">Days</option>
+                  <option value="MONTHS">Months</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Agent can only backdate entries within this limit</p>
+            </div>
+          )}
 
           {businesses.length > 1 && (
             <div>

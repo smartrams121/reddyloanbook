@@ -23,7 +23,7 @@ interface Row {
   lastLogin: string | null
 }
 
-const PAGE_SIZE = 10
+const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -39,7 +39,8 @@ function formatDateTime(iso: string | null) {
 export default function BusinessTable({ rows }: { rows: Row[] }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(0)
+  const [page, setPage] = useState(1)
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows
@@ -55,8 +56,9 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
     )
   }, [rows, search])
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const showAll = pageSize === 0
+  const totalPages = showAll ? 1 : Math.ceil(filtered.length / pageSize)
+  const paged = showAll ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
 
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
@@ -75,13 +77,28 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
         </div>
       </div>
 
-      <input
-        type="text"
-        className="input mb-4"
-        placeholder="Search by OrgID, organization, owner, username, city, phone, email..."
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-      />
+      <div className="relative mb-4">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          className="input pl-9 pr-8"
+          placeholder="Search by OrgID, organization, owner, username, city, phone, email..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+        />
+        {search && (
+          <button
+            onClick={() => { setSearch(''); setPage(1) }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {filtered.length === 0 ? (
         <div className="card p-8 text-center text-gray-400">No organizations found.</div>
@@ -111,7 +128,7 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
               <tbody>
                 {paged.map((r, i) => (
                   <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2 px-2 text-gray-400">{page * PAGE_SIZE + i + 1}</td>
+                    <td className="py-2 px-2 text-gray-400">{showAll ? i + 1 : (page - 1) * pageSize + i + 1}</td>
                     <td className="py-2 px-2 text-gray-400 font-mono text-[10px]">{r.ownerId}</td>
                     <td className="py-2 px-2 font-medium text-gray-900">{r.organizationName}</td>
                     <td className="py-2 px-2">
@@ -143,28 +160,67 @@ export default function BusinessTable({ rows }: { rows: Row[] }) {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 text-xs text-gray-500">
-              <span>Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="px-2 py-1.5">Page {page + 1} of {totalPages}</span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
+          <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">
+                {showAll ? `All ${filtered.length}` : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+                className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600"
+              >
+                {PAGE_SIZES.map(s => (
+                  <option key={s} value={s}>{s === 0 ? 'All' : s}</option>
+                ))}
+              </select>
             </div>
-          )}
+            {totalPages > 1 && <div className="flex gap-1">
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                First
+              </button>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                .map((p, idx, arr) => (
+                  <span key={p}>
+                    {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-xs text-gray-400">...</span>}
+                    <button
+                      onClick={() => setPage(p)}
+                      className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+                        p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  </span>
+                ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+                className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Last
+              </button>
+            </div>}
+          </div>
         </>
       )}
     </div>

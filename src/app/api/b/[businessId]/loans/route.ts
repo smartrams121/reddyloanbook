@@ -6,6 +6,7 @@ import { assertPermission } from '@/lib/permissions'
 import { Role } from '@/lib/constants'
 import { createLoanSchema } from '@/lib/validators'
 import { parseISODate, addDays, addWeeks, addMonths, formatDateISO } from '@/lib/date'
+import { assertBackdateAllowed } from '@/lib/backdate'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -87,6 +88,10 @@ export async function POST(request: Request, { params }: Props) {
     loanNumber: requestedLoanNumber,
     documents,
   } = parsed.data
+
+  try { assertBackdateAllowed(user, startDate) } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const customer = await prisma.customer.findFirst({
     where: { id: customerId, businessId },

@@ -15,6 +15,8 @@ const updateUserSchema = z.object({
   resetPassword: passwordSchema.optional(),
   villageIds: z.array(z.string()).optional(),
   businessIds: z.array(z.string()).min(1).optional(),
+  backdateValue: z.number().int().min(1).optional(),
+  backdateUnit: z.enum(['HOURS', 'DAYS', 'MONTHS']).optional(),
 })
 
 interface RouteParams {
@@ -44,6 +46,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
       username: true,
       role: true,
       isActive: true,
+      backdateValue: true,
+      backdateUnit: true,
       businessAssignments: {
         select: { businessId: true },
       },
@@ -86,12 +90,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Employee not found in this business' }, { status: 404 })
   }
 
-  const { fullName, phone, email, isActive, resetPassword, villageIds, businessIds } = parsed.data
+  const { fullName, phone, email, isActive, resetPassword, villageIds, businessIds, backdateValue, backdateUnit } = parsed.data
   const updateData: Record<string, unknown> = {}
 
   if (fullName !== undefined) updateData.fullName = fullName
   if (phone !== undefined) updateData.phone = phone
   if (email !== undefined) updateData.email = email
+  if (backdateValue !== undefined) updateData.backdateValue = backdateValue
+  if (backdateUnit !== undefined) updateData.backdateUnit = backdateUnit
 
   if (isActive !== undefined) {
     assertPermission(user, 'deactivate_user', businessId)

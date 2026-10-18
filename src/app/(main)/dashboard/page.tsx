@@ -7,6 +7,7 @@ import { todayIST } from '@/lib/date'
 import { resolveLoanStatus, getGracePeriod } from '@/lib/loan-status'
 import Link from 'next/link'
 import BusinessActions from './BusinessActions'
+import CollectionList from './CollectionList'
 import { T } from '@/lib/i18n'
 import AutoRefresh from '@/components/AutoRefresh'
 import RefreshButton from '@/components/ui/RefreshButton'
@@ -137,38 +138,17 @@ export default async function DashboardPage() {
           + <T k="dashboard.new_collection" />
         </Link>
       </div>
-      <div className="space-y-2">
-        {stats.map(({ business, customerCount, totalOutstanding, todayCollection }) => (
-          <div key={business.id} className="card p-4 hover:border-primary-300 transition-colors">
-            <Link
-              href={`/b/${business.id}/dashboard`}
-              className="flex items-center justify-between"
-            >
-              <div>
-                <h3 className="font-semibold text-gray-900">{business.name}</h3>
-                <p className="text-xs text-gray-500">{business.collectionType} &middot; {customerCount} <T k="dashboard.customers" /></p>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-bold text-gray-900">{formatPaiseShort(totalOutstanding)}</div>
-                <div className="text-xs text-success-600">+{formatPaiseShort(todayCollection)} <T k="dashboard.today_suffix" /></div>
-              </div>
-            </Link>
-          </div>
-        ))}
-
-        {businesses.length === 0 && (
-          <div className="card p-8 text-center">
-            <p className="text-gray-500 mb-4"><T k="dashboard.no_businesses" /></p>
-            <Link href="/businesses/new" className="btn-primary">
-              <T k="dashboard.register_first_collection" />
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {businesses.length > 0 && (
-        <div className="mt-0"></div>
-      )}
+      <CollectionList
+        stats={stats.map(s => ({
+          business: { id: s.business.id, name: s.business.name, collectionType: s.business.collectionType },
+          customerCount: s.customerCount,
+          activeLoanCount: s.activeLoanCount,
+          totalOutstanding: s.totalOutstanding,
+          todayCollection: s.todayCollection,
+          todayNewLoanCount: s.todayNewLoanCount,
+          todayDisbursed: s.todayDisbursed,
+        }))}
+      />
     </div>
   )
 }

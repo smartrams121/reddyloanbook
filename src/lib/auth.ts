@@ -28,6 +28,8 @@ export interface AuthUser {
   organizationName: string | null
   photoPath: string | null
   preferredLanguage: string
+  backdateValue: number
+  backdateUnit: string
   agentPermissions: Record<string, AgentPermissionGrid | null>
 }
 
@@ -173,6 +175,8 @@ export async function getSession(): Promise<AuthUser | null> {
     organizationName,
     photoPath: user.photoPath || null,
     preferredLanguage: user.preferredLanguage || 'en',
+    backdateValue: user.backdateValue ?? 4,
+    backdateUnit: user.backdateUnit ?? 'HOURS',
     agentPermissions,
   }
 }

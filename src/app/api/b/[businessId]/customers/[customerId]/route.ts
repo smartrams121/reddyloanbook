@@ -8,6 +8,7 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import { createAuditLog, diffFields } from '@/lib/audit'
 import { phoneSchema } from '@/lib/validators'
+import { assertRecordEditAllowed } from '@/lib/backdate'
 
 interface Props {
   params: Promise<{ businessId: string; customerId: string }>
@@ -140,6 +141,10 @@ export async function PATCH(request: Request, { params }: Props) {
 
   const customer = await prisma.customer.findFirst({ where: { id: customerId, businessId } })
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+
+  try { assertRecordEditAllowed(user, customer.createdAt) } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
 
   const body = await request.json()
   const parsed = updateCustomerSchema.safeParse(body)
