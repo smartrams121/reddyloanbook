@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { formatDateDisplay } from '@/lib/date'
 
@@ -17,18 +17,27 @@ interface AuditEntry {
 }
 
 const ACTION_LABELS: Record<string, string> = {
+  EDIT_PAYMENT: 'Edit Payment',
   EDIT_LOAN: 'Edit Loan',
-  DELETE_LOAN: 'Delete Loan',
   EDIT_CUSTOMER: 'Edit Customer',
+  DELETE_LOAN: 'Delete Loan',
   DELETE_CUSTOMER: 'Delete Customer',
   CUSTOMER_MERGE: 'Merge Customers',
-  EDIT_PAYMENT: 'Edit Payment',
   CHANGE_PERMISSIONS: 'Change Permissions',
   SUSPEND_EMPLOYEE: 'Suspend Employee',
   ACTIVATE_EMPLOYEE: 'Activate Employee',
   DELETE_EMPLOYEE: 'Delete Employee',
   PASSWORD_RESET: 'Password Reset',
 }
+
+const ACTION_ORDER = [
+  'EDIT_PAYMENT', 'EDIT_LOAN', 'EDIT_CUSTOMER',
+  'DELETE_LOAN', 'DELETE_CUSTOMER',
+  'CUSTOMER_MERGE', 'CHANGE_PERMISSIONS', 'SUSPEND_EMPLOYEE',
+  'ACTIVATE_EMPLOYEE', 'DELETE_EMPLOYEE', 'PASSWORD_RESET',
+]
+
+const PAGE_SIZES = [15, 25, 50, 100, 0] as const
 
 const ACTION_COLORS: Record<string, string> = {
   EDIT_LOAN: 'bg-amber-100 text-amber-700',
@@ -79,6 +88,11 @@ export default function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sharing, setSharing] = useState(false)
+  const [pageSize, setPageSize] = useState<number>(0)
+  const [page, setPage] = useState(1)
+  const [datePreset, setDatePreset] = useState<string>('7d')
+  const [showCustomDates, setShowCustomDates] = useState(false)
+  const [search, setSearch] = useState('')
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -93,7 +107,31 @@ export default function AuditLogsPage() {
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
-  const actions = Array.from(new Set(logs.map(l => l.action)))
+  const hasLogs = logs.length > 0
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return logs
+    const q = search.toLowerCase()
+    return logs.filter(log => {
+      const employee = `${log.user.fullName} ${log.user.username}`.toLowerCase()
+      const customer = String(log.newValues?.customer || log.oldValues?.customer || '').toLowerCase()
+      const loan = String(log.newValues?.loan || log.oldValues?.loan || '').toLowerCase()
+      const receipt = String(log.newValues?.receipt || log.oldValues?.receipt || '').toLowerCase()
+      const vals = [...Object.values(log.oldValues || {}), ...Object.values(log.newValues || {})]
+      const amounts = vals.map(v => typeof v === 'number' && v > 100 ? `₹${(v / 100).toLocaleString('en-IN')}` : String(v ?? '')).join(' ').toLowerCase()
+      return employee.includes(q) || customer.includes(q) || loan.includes(q) || receipt.includes(q) || amounts.includes(q)
+    })
+  }, [logs, search])
+
+  const showAll = pageSize === 0
+  const totalPages = showAll ? 1 : Math.ceil(filtered.length / pageSize)
+  const paged = useMemo(() => {
+    if (showAll) return filtered
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize, showAll])
+
+  useEffect(() => { setPage(1) }, [pageSize, actionFilter, fromDate, toDate, search])
 
   async function handleSharePdf() {
     setSharing(true)
@@ -134,72 +172,54 @@ export default function AuditLogsPage() {
       <div className="card p-3 mb-4 space-y-3">
         <div className="flex flex-wrap gap-2">
           {[
-            { label: 'Today', fn: () => { setFromDate(today); setToDate(today) } },
-            { label: '7 Days', fn: () => { setFromDate(daysAgo(6)); setToDate(today) } },
-            { label: '30 Days', fn: () => { setFromDate(daysAgo(29)); setToDate(today) } },
+            { key: 'today', label: 'Today', fn: () => { setFromDate(today); setToDate(today); setShowCustomDates(false) } },
+            { key: '7d', label: '7 Days', fn: () => { setFromDate(daysAgo(6)); setToDate(today); setShowCustomDates(false) } },
+            { key: '30d', label: '30 Days', fn: () => { setFromDate(daysAgo(29)); setToDate(today); setShowCustomDates(false) } },
           ].map(p => (
-            <button key={p.label} onClick={p.fn} className="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+            <button key={p.key} onClick={() => { setDatePreset(p.key); p.fn() }} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${datePreset === p.key && !showCustomDates ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
               {p.label}
             </button>
           ))}
+          <button onClick={() => { setDatePreset('custom'); setShowCustomDates(!showCustomDates) }} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${showCustomDates ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            Custom
+          </button>
         </div>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <label className="label text-xs">From</label>
-            <input type="date" className="input text-xs py-1.5" value={fromDate} onChange={e => setFromDate(e.target.value)} max={toDate} />
+        {showCustomDates && (
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className="label text-xs">From</label>
+              <input type="date" className="input text-xs py-1.5" value={fromDate} onChange={e => setFromDate(e.target.value)} max={toDate} />
+            </div>
+            <div className="flex-1">
+              <label className="label text-xs">To</label>
+              <input type="date" className="input text-xs py-1.5" value={toDate} onChange={e => setToDate(e.target.value)} min={fromDate} max={today} />
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="label text-xs">To</label>
-            <input type="date" className="input text-xs py-1.5" value={toDate} onChange={e => setToDate(e.target.value)} min={fromDate} max={today} />
-          </div>
-        </div>
-        {actions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setActionFilter('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${!actionFilter ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
-            {Object.keys(ACTION_LABELS).map(a => (
-              <button key={a} onClick={() => setActionFilter(actionFilter === a ? '' : a)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${actionFilter === a ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+        )}
+        <div className="overflow-x-auto -mx-3 px-3">
+          <div className="flex gap-2 whitespace-nowrap pb-1">
+            <button onClick={() => setActionFilter('')} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors shrink-0 ${!actionFilter ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+            {ACTION_ORDER.map(a => (
+              <button key={a} onClick={() => setActionFilter(actionFilter === a ? '' : a)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors shrink-0 ${actionFilter === a ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {ACTION_LABELS[a] || a}
               </button>
             ))}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 mb-4">
-        {/* Desktop: PDF + Excel */}
-        <button onClick={() => { window.open(`/api/b/${businessId}/audit-logs/pdf?from=${fromDate}&to=${toDate}${actionFilter ? `&action=${actionFilter}` : ''}`, '_blank') }} disabled={logs.length === 0} className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H6.75a2.25 2.25 0 0 0-2.25 2.25v16.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V14.25Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-          PDF
-        </button>
-        <button onClick={() => { window.open(`/api/b/${businessId}/audit-logs/xlsx?from=${fromDate}&to=${toDate}${actionFilter ? `&action=${actionFilter}` : ''}`, '_blank') }} disabled={logs.length === 0} className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 12c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c-.621 0-1.125-.504-1.125-1.125v-1.5" /></svg>
-          Excel
-        </button>
-        {/* Mobile: Share PDF + Share Excel */}
-        <button onClick={handleSharePdf} disabled={sharing || logs.length === 0} className="flex md:hidden items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] disabled:opacity-50 transition-colors">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-          {sharing ? '...' : 'Share PDF'}
-        </button>
-        <button onClick={async () => {
-          setSharing(true)
-          try {
-            const url = `/api/b/${businessId}/audit-logs/xlsx?from=${fromDate}&to=${toDate}${actionFilter ? `&action=${actionFilter}` : ''}`
-            const res = await fetch(url)
-            if (!res.ok) return
-            const blob = await res.blob()
-            const file = new File([blob], `audit-logs-${fromDate}-${toDate}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-              await navigator.share({ title: 'Audit Logs', files: [file] })
-            } else {
-              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove()
-            }
-          } catch {} finally { setSharing(false) }
-        }} disabled={sharing || logs.length === 0} className="flex md:hidden items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] disabled:opacity-50 transition-colors">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-          {sharing ? '...' : 'Share Excel'}
-        </button>
-      </div>
+      {/* Search */}
+      {hasLogs && (
+        <div className="relative mb-3">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+          <input type="text" placeholder="Search employee, customer, loan, receipt, amount..." value={search} onChange={e => setSearch(e.target.value)} className="input text-sm py-2 pl-9 pr-8 w-full" />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Results */}
       {loading ? (
@@ -212,8 +232,8 @@ export default function AuditLogsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-xs text-gray-500 mb-2">{logs.length} entries</p>
-          {logs.map(log => (
+          <p className="text-xs text-gray-500 mb-2">{filtered.length}{search ? ` of ${logs.length}` : ''} entries{!showAll && ` · Page ${page} of ${totalPages}`}</p>
+          {paged.map(log => (
             <div key={log.id} className="card p-3">
               <div className="flex items-start justify-between gap-2 cursor-pointer" onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}>
                 <div className="min-w-0 flex-1">
@@ -261,6 +281,73 @@ export default function AuditLogsPage() {
               )}
             </div>
           ))}
+
+          {/* Pagination + Export */}
+          <div className="flex flex-col gap-3 pt-3 pb-2">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>{filtered.length} total</span>
+                <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))} className="border border-gray-200 rounded px-1.5 py-1 text-xs bg-white">
+                  {PAGE_SIZES.map(s => (
+                    <option key={s} value={s}>{s === 0 ? 'All' : s}</option>
+                  ))}
+                </select>
+                <span>per page</span>
+              </div>
+              {!showAll && totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage(1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">First</button>
+                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">Prev</button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let p: number
+                    if (totalPages <= 5) p = i + 1
+                    else if (page <= 3) p = i + 1
+                    else if (page >= totalPages - 2) p = totalPages - 4 + i
+                    else p = page - 2 + i
+                    return (
+                      <button key={p} onClick={() => setPage(p)} className={`px-2.5 py-1 text-xs rounded border ${page === p ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 hover:bg-gray-50'}`}>{p}</button>
+                    )
+                  })}
+                  <button onClick={() => setPage(p => p + 1)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">Next</button>
+                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">Last</button>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {/* Desktop: PDF + Excel */}
+              <button onClick={() => { window.open(`/api/b/${businessId}/audit-logs/pdf?from=${fromDate}&to=${toDate}${actionFilter ? `&action=${actionFilter}` : ''}`, '_blank') }} className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H6.75a2.25 2.25 0 0 0-2.25 2.25v16.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V14.25Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                PDF
+              </button>
+              <button onClick={() => { window.open(`/api/b/${businessId}/audit-logs/xlsx?from=${fromDate}&to=${toDate}${actionFilter ? `&action=${actionFilter}` : ''}`, '_blank') }} className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 12c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c-.621 0-1.125-.504-1.125-1.125v-1.5" /></svg>
+                Excel
+              </button>
+              {/* Mobile: Share PDF + Share Excel */}
+              <button onClick={handleSharePdf} disabled={sharing} className="flex md:hidden items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] disabled:opacity-50 transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                {sharing ? '...' : 'Share PDF'}
+              </button>
+              <button onClick={async () => {
+                setSharing(true)
+                try {
+                  const url = `/api/b/${businessId}/audit-logs/xlsx?from=${fromDate}&to=${toDate}${actionFilter ? `&action=${actionFilter}` : ''}`
+                  const res = await fetch(url)
+                  if (!res.ok) return
+                  const blob = await res.blob()
+                  const file = new File([blob], `audit-logs-${fromDate}-${toDate}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+                  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ title: 'Audit Logs', files: [file] })
+                  } else {
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove()
+                  }
+                } catch {} finally { setSharing(false) }
+              }} disabled={sharing} className="flex md:hidden items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#25D366] text-white hover:bg-[#1da851] disabled:opacity-50 transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                {sharing ? '...' : 'Share Excel'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
