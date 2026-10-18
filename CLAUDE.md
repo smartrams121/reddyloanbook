@@ -191,14 +191,115 @@ All use password: `Test@123`
 - Full session log: `Memory/session_2026_10_03.md`
 - CI/CD scripts reference: `Memory/cicd_scripts.md`
 
+## Setting Up a New Computer
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/smartrams121/reddyloanbook.git Daily_Finance
+cd Daily_Finance
+npm install
+
+# 2. Create .env for local dev
+cp .env.example .env
+# Edit .env — set any random JWT_SECRET for local dev
+
+# 3. Setup local database
+npm run db:generate
+npm run db:push
+npm run db:seed
+
+# 4. Generate SSH key for this computer
+ssh-keygen -t rsa -b 2048 -f ssh_Keys/ssh-key-new
+# DO NOT commit ssh_Keys/ — it's in .gitignore
+
+# 5. Add the new public key to the server
+# (Run this from a computer that already has SSH access, OR use OCI Cloud Shell)
+# From existing computer:
+ssh -i ssh_Keys/ssh-key-2026-10-01.key opc@80.225.201.199 \
+  "cat >> ~/.ssh/authorized_keys" < ssh_Keys/ssh-key-new.pub
+
+# From OCI Cloud Shell (if no existing computer):
+# Login at cloud.oracle.com → Cloud Shell → paste the public key:
+# echo "ssh-rsa AAAA..." >> /home/opc/.ssh/authorized_keys
+
+# 6. Test SSH
+ssh -i ssh_Keys/ssh-key-new opc@80.225.201.199 "hostname"
+
+# 7. Start dev server
+npm run dev
+```
+
+Each computer gets its own SSH key. Multiple keys can coexist on the server. If a computer is lost, remove its public key from `~/.ssh/authorized_keys` on the server.
+
 ## Deployment
 
-- SSH: `ssh -i ssh_Keys/ssh-key-2026-10-01.key opc@80.225.201.199`
+- SSH: `ssh -i ssh_Keys/<your-key> opc@80.225.201.199`
 - Always copy PostgreSQL schema before build: `cp deploy/prisma.schema.postgresql prisma/schema.prisma`
 - Tag image as BOTH `dailyfinance_app:latest` AND `deploy-app:latest`
 - Use `--no-build` with docker compose
 - Do NOT deploy without user confirmation
 - For new schema columns: run ALTER TABLE on production PostgreSQL before deploying the app
+
+## Deploy Steps (copy-paste)
+
+```bash
+# Standard deploy from local machine
+ssh -i ssh_Keys/<your-key> opc@80.225.201.199 "cd /opt/dailyfinance && \
+  git checkout -- prisma/schema.prisma && \
+  git pull origin main && \
+  cp deploy/prisma.schema.postgresql prisma/schema.prisma && \
+  docker build -f deploy/Dockerfile -t dailyfinance_app:latest . && \
+  docker tag dailyfinance_app:latest deploy-app:latest && \
+  cd deploy && docker compose up -d --no-build"
+
+# If schema has new columns, run migration BEFORE deploy:
+ssh -i ssh_Keys/<your-key> opc@80.225.201.199 "docker exec dailyfinance_postgres \
+  psql -U financeapp -d financeapp_db -c 'ALTER TABLE \"TableName\" ADD COLUMN IF NOT EXISTS \"column\" TEXT;'"
+```
+
+## Production DB Access
+
+```bash
+# Connect to production PostgreSQL
+ssh -i ssh_Keys/<your-key> opc@80.225.201.199 "docker exec -it dailyfinance_postgres \
+  psql -U financeapp -d financeapp_db"
+```
+
+## Server Health Check
+
+```bash
+ssh -i ssh_Keys/<your-key> opc@80.225.201.199 "uptime && free -h && docker ps && \
+  curl -s -o /dev/null -w 'HTTP %{http_code} in %{time_total}s' http://localhost:3000/login"
+```
+
+## Server Cron Jobs (on OCI, not in git)
+
+```bash
+# View crontab
+ssh -i ssh_Keys/<your-key> opc@80.225.201.199 "crontab -l"
+
+# Current schedule:
+# */15 * * * *  /opt/dailyfinance/deploy/scripts/monitor.sh     # Health check + DuckDNS + response time
+# 0 2 * * *     /opt/dailyfinance/deploy/scripts/backup.sh      # DB backup (90-day retention)
+# 30 2 * * 0    /opt/dailyfinance/deploy/scripts/cleanup.sh     # Docker prune + SSL + sessions + audit log cleanup (30 days)
+```
+
+**Log files on server:**
+- `/opt/dailyfinance/backups/health-check.log` — only written on failures/restarts
+- `/opt/dailyfinance/backups/response-times.log` — every 15 min, flags >2s as SLOW
+- `/opt/dailyfinance/backups/backup.log` — daily backup results
+- `/opt/dailyfinance/backups/maintenance.log` — weekly cleanup results
+- `/opt/dailyfinance/backups/duckdns.log` — DuckDNS IP update status
+- `/opt/dailyfinance/backups/dailyfinance_*.sql.gz` — daily DB backups
+
+## Common Troubleshooting
+
+- **Prisma generate fails (EPERM)**: Dev server has the DLL locked. Kill node first: `taskkill /F /IM node.exe` (Windows)
+- **Dev server shows unstyled page**: `.next` cache stale. Run `rm -rf .next node_modules/.cache && npm run dev`
+- **Transaction timeout on bulk posting**: Audit log writes inside transaction take too long. Move `createAuditLog()` calls outside the transaction
+- **Variable fonts crash PDFKit**: Use static TTF fonts only (`public/fonts/NotoSans-*.ttf`)
+- **PDF 0KB response**: Telugu characters in Content-Disposition filename. Use `encodeURIComponent()` on filenames
+- **iOS date input zoom**: Ensure `font-size: 16px` on date inputs (in `globals.css`)
 
 ## Conventions
 
