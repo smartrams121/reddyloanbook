@@ -10,11 +10,12 @@ Data hierarchy: Platform Admin → Owner → Business → Village → Customer �
 
 - Next.js 14 (App Router) + TypeScript + Tailwind CSS (mobile-first)
 - Prisma ORM — SQLite (local dev) / PostgreSQL (production)
-- PDF generation: pdfkit (server-side), @react-pdf/renderer
+- PDF generation: pdfkit (server-side) with NotoSans + NotoSansTelugu static TTF fonts
 - Excel export: exceljs
 - Auth: bcryptjs (passwords), jsonwebtoken (JWT), otplib + qrcode (TOTP 2FA)
 - Validation: Zod
 - Tests: Vitest
+- i18n: Custom provider at `src/lib/i18n.tsx` with English + Telugu (20 translation files each)
 
 ## Commands
 
@@ -40,13 +41,14 @@ src/
 │   ├── (auth)/          Login, register, forgot-password, change-password, 2FA
 │   ├── (main)/          Authenticated app pages
 │   │   ├── dashboard/   Owner combined dashboard
-│   │   ├── b/[id]/      Business-scoped pages (customers, loans, villages, posting, users)
+│   │   ├── b/[id]/      Business-scoped pages (customers, loans, villages, posting, users, audit-logs)
 │   │   ├── admin/       Platform admin (organizations, registration requests, password resets, settings)
 │   │   ├── faq/         Help (FAQ accordion)
-│   │   └── profile/     User profile
+│   │   ├── contact-us/  Contact Us (mobile: action buttons, desktop: text)
+│   │   └── profile/     User profile with photo upload
 │   └── api/             REST API routes (auth, admin, owner, b/[businessId])
-├── lib/                 Core utilities (auth, db, money, date, loan-status, audit, scope, rate-limit, csv-parse, xlsx-import, schedule, constants, i18n)
-├── components/          React components (ui/, layout/)
+├── lib/                 Core utilities (auth, db, money, date, loan-status, audit, scope, rate-limit, csv-parse, xlsx-import, schedule, constants, i18n, agent-permissions, pdf-helpers)
+├── components/          React components (ui/, layout/, permissions/)
 └── middleware.ts        Auth + route protection
 prisma/
 ├── schema.prisma        Database schema (SQLite locally, PostgreSQL in prod)
@@ -58,21 +60,26 @@ deploy/
 ├── Dockerfile           Multi-stage Next.js build (ARM-compatible)
 ├── docker-compose.yml   Production (PostgreSQL + app)
 ├── nginx.conf           Reverse proxy config
+├── prisma.schema.postgresql  Production schema (copy before build)
 ├── DEPLOY.md            Full deployment guide
-└── scripts/             setup-oci.sh, deploy.sh, provision-oci.sh, backup.sh, safe-deploy.sh
+└── scripts/             monitor.sh, backup.sh, cleanup.sh, restore-owner.sh
 ```
 
 ## Key Domain Concepts
 
-- **Roles**: PLATFORM_ADMIN, OWNER, BUSINESS_ADMIN, AGENT (36 permissions via RBAC)
+- **Roles**: PLATFORM_ADMIN, OWNER, BUSINESS_ADMIN (Partner), AGENT
+- **Permissions**: 36 actions via RBAC. Owner=full, Partner=near-full, Agent=customizable via permission grid (15 toggles, 3 presets: Collector/Field Manager/Full Access)
 - **Collection types**: DAILY, WEEKLY, MONTHLY
 - **Interest models**: ADDON (added on top), UPFRONT (deducted before disbursement)
 - **Repayment multiplier**: Configurable per business (default 1.20 Daily/Weekly, 1.40 Monthly)
 - **Money**: Stored in paise (Indian currency subunit), displayed as rupees
-- **Loan lifecycle**: ACTIVE → (grace period) → OVERDUE → (1 year) → DEFAULTER / COMPLETED / PAUSED / SETTLED / WRITTEN_OFF
+- **Loan lifecycle**: ACTIVE → (grace period) → OVERDUE → (defaulter period) → DEFAULTER / COMPLETED / PAUSED / SETTLED / WRITTEN_OFF
 - **Grace period**: Configurable per business (default 30 days Daily, 4 weeks Weekly, 1 month Monthly)
+- **Defaulter period**: Configurable per business (default 365 days)
+- **City**: Owner-level field (User.city), not per-collection. Set at registration, editable in Profile → Organization Details
 - **Aadhaar**: SHA-256 hashed, only last 4 digits stored
-- **Payment modes**: Cash / UPI (recorded as note on payment)
+- **Payment modes**: Cash / UPI
+- **Payment upsert**: Server-side duplicate prevention — same loan+date always updates existing payment
 
 ## Test Accounts (Local Dev)
 
@@ -91,62 +98,88 @@ All use password: `Test@123`
 
 ## Production
 
-- OCI Always Free ARM VM (VM.Standard.A1.Flex) + Oracle Linux 9
+- OCI Always Free ARM VM (VM.Standard.A1.Flex, 2 OCPUs, 12 GB RAM) + Oracle Linux 9
+- Region: ap-mumbai-1 (Mumbai)
 - Docker Compose: Next.js + PostgreSQL + DuckDNS dynamic DNS
-- Nginx reverse proxy
-- Automated daily DB backups, session cleanup, SSL renewal via cron
+- Nginx reverse proxy with SSL (Let's Encrypt)
+- GitHub repo: private (smartrams121/reddyloanbook)
 
-## Recent Features (Session 2026-10-03)
+### Server Monitoring & Maintenance
 
-- **Business Import**: Upload exported XLSX to recreate a business with all data. Test → Import flow with sample template.
-- **CSV Bulk Upload**: Loans and Payments CSV bulk import. Hidden on mobile.
-- **Configurable Repayment Multiplier**: Per-business setting (replaces hardcoded 1.20/1.40).
-- **Grace Period in Overdue Logic**: Wired into all 18 deriveLoanStatus call sites.
-- **Employee Management**: Global create/edit/suspend/delete + business-scoped assignment with village multi-select.
-- **View Payments Page**: Dedicated page with date/village/employee filters, sortable table, PDF/XLSX download.
-- **Agent Access Control**: Agents only see their own loans, assigned village customers, and their payments. Employees page blocked.
-- **Agent Dashboard**: Redirects to activity page with collections/disbursements stats.
-- **Record Payment**: Date filter, Payment Completed checkbox, eligible customer filter by loan start date, default installment amount, payment mode (Cash/UPI).
-- **Bulk Posting**: All Locations default, 10 per page, Submit & Next, payment mode, Payment Completed filter.
-- **Table UI**: Plain table layout for Customers/Loans/Payments with pagination (15 default, 10 mobile), sortable columns, multi-select status filters.
-- **Header Navigation**: Desktop has all icons (Customers, Locations, Loans, Payments, New Payment, Bulk Payments, Employees, Reports, Dashboard). Mobile shows Customers, Loans, Payments only.
-- **Collapsible Sections**: Settings (Basic Info, Other), New Loan (Loan Details), New Customer (Additional Details), New Business (Import), Record Payment (Loan Summary), Bulk Posting (Details).
-- **Android Download Fix**: DOM-attached anchors with delayed blob URL revocation.
-- **Zero-Downtime Deploy**: Script tags image as both names, uses --no-build flag.
+| Script | Schedule | What |
+|---|---|---|
+| `monitor.sh` | Every 15 min (cron) | Health check + auto-restart + DuckDNS update + response time logging |
+| `backup.sh` | Daily 2:00 AM | PostgreSQL pg_dump (90-day retention) |
+| `cleanup.sh` | Weekly Sunday 2:30 AM | Docker prune + SSL renewal + session cleanup + audit log cleanup (30 days) |
 
-## Recent Features (Session 2026-10-05)
+### High Availability
 
-- **Telugu i18n**: Full Telugu language support. 20 translation files in locales/en/ and locales/te/. Custom i18n provider at src/lib/i18n.tsx. Language switcher on profile + header. PATCH /api/profile/language.
-- **UI Rebrand**: Business → Collection labels. Dynamic org name in header.
-- **Configurable Defaulter Period**: Business.defaulterPeriodDays (default 365). Settings page field.
-- **Manual Loan Status Override**: Loan.statusOverride + statusOverrideDate. Edit Loan dropdown. resolveLoanStatus() replaces deriveLoanStatus().
-- **Bulk Posting Defaulter Filter**: Checkbox to include/exclude defaulter loans.
-- **Password Reset Simplification**: Auto-set to username, forced change on first login.
-- **Backdate Limits Removed**: No limit on loan creation date or payment posting date.
-- **Owner in Employees**: First row with gold accent, pre-selected in new collection.
-- **Permissions Update**: Business Admin gained create_business, manage_employee_password_resets.
-- **Report Changes**: Loans report columns updated (-Phone/-Interest/+CID/+Dates), Customers -Age, Payments -Phone.
-- **Loans List**: Due Date column added.
+- UptimeRobot: external monitoring (email/SMS on downtime)
+- OCI boot volume: Silver auto-backup policy (weekly, 5 snapshots)
+- Health check: auto-restart if app unreachable (every 15 min)
+- Response time logging: `/opt/dailyfinance/backups/response-times.log` (flags >2s as SLOW)
 
-## Recent Features (Session 2026-10-06)
+## Features by Session
 
-- **Admin Page Redesign**: Owners page → "Organizations" table view (OrgID, Organization, Owner, City, Phone, Email, Collections, Customers, Loans, Payments, Created, Last Login, Status). Search, pagination 10/page, sorted by last login desc. "+ Register New Business" button. Removed Edit Owner, Reset Password actions. Renamed Suspend/Delete Owner → Suspend/Delete Organization. Delete requires typing "DELETE" + force delete checkbox. Removed dead admin/owners/new and admin/owners/[ownerId]/edit pages. Sidebar: "Manage Owners" → "Organizations".
-- **Organization Model**: User.organizationName field. OrgID = Owner's user ID. Profile: Organization Details section (5 editable fields). Header shows organizationName (fallback to first business name). PATCH /api/profile/organization endpoint.
-- **Registration Flow**: Approval creates Owner account only (no auto-collection). City and Email mandatory. Phone duplicate check. Old approved requests cleaned up for username reuse. Removed Collection Type and Locations from registration requests page.
-- **Password & Session**: Platform Admin forgot password auto-resets to "system" (no approval). Owner sessions persist until manual logout (1-year expiry). Agents/BA keep 30-min inactivity timeout.
-- **Sidebar Reorder**: Collection section: New Payment, New Customer, New Loan, Location, Employees, Reports, Settings. Settings moved from Owner to Collection section. FAQ → "Help". Password Resets → "Employee Password Management".
-- **Customer Merge**: Select 2+ customers → Merge → pick Master → loans moved, duplicates deleted. Requires typing "MERGE". POST /api/b/{businessId}/customers/merge.
-- **System Banner**: Platform Settings Banner tab. Yellow banner at top of all pages. Stored as system_banner in PlatformSetting.
-- **Dashboard Improvements**: 60-second auto-refresh (AutoRefresh component). Paid/Unpaid loan counts in Today's Collection. Paid links to View Payments, Unpaid links to Bulk Posting. Removed "In Hand" stat.
-- **View Payments**: Paid/Unpaid/Expected/Collected stats bar. Unpaid links to Bulk Posting.
-- **Reports**: New "Daily Collection Summary" report (default). Shows active loans with Paid/Unpaid for selected date. Payment Status filter (All/Paid/Unpaid). Default preset "Today". PDF/XLSX respects payment status filter.
-- **Collection Creation**: Removed Basic Info section (city, phone, address, receipt prefix) from New Collection. Collection Name in Collection Settings. Import: added Collection Type, Collection Days, Repayment Multiplier. Import: zero payments accepted, city defaults to "Default".
-- **Settings**: Removed address, phone, receipt prefix from Basic Info. Only Collection ID and Collection Name.
-- **Payment Flow**: Customer names clickable in Record Payment / Bulk Posting. Loan-level payment tracking with Paid/Pending badges. Loans page: New Payment button replaces Payments button. Loan detail modal: payment history replaces repayment schedule.
-- **Profile**: Removed My Collections section. Removed edit button from profile card. Danger Zone: Delete Organization (owner only, blocked if collections exist).
-- **Delete Flow**: Force delete cascade deletes all businesses, data, orphaned agents. Orphaned agents fully deleted (not just deactivated).
-- **Dead Code Removed**: ResetPasswordModal, Toast, LoadingSpinner components. password-gen, loan-calc, rating, whatsapp, receipt lib files. admin/owners/new, admin/owners/[ownerId]/edit, users/new pages. admin/owners/route.ts, auth/me, owner/agents API routes.
-- **Terminology**: "Record Payment" → "New Payment" everywhere. "business" → "collection" in remaining UI text.
+### Session 2026-10-03
+- Business Import (XLSX), CSV Bulk Upload, Configurable Repayment Multiplier
+- Grace Period in Overdue Logic, Employee Management, View Payments Page
+- Agent Access Control (village-based), Agent Dashboard, Record Payment, Bulk Posting
+- Table UI with pagination/sorting, Header Navigation, Collapsible Sections
+- Android Download Fix, Zero-Downtime Deploy
+
+### Session 2026-10-05
+- Telugu i18n (20 files), UI Rebrand (Business→Collection), Configurable Defaulter Period
+- Manual Loan Status Override, Bulk Posting Defaulter Filter, Password Reset Simplification
+- Owner in Employees, Permissions Update for Business Admin, Report/Loans column changes
+
+### Session 2026-10-06
+- Admin Page Redesign (Organizations table), Organization Model, Registration Flow redesign
+- Password & Session management, Sidebar Reorder, Customer Merge, System Banner
+- Dashboard Improvements (auto-refresh, paid/unpaid), Daily Collection Summary report
+- Collection Creation simplified, Payment Flow improvements, Profile redesign
+- Delete Flow (cascade), Dead Code Removal, Terminology updates
+
+### Session 2026-10-08
+- Customer consistency fixes (family fields, GPS, edit page), Edit Loan form rewrite
+- Granular Agent ACL: 15-toggle permission grid with cascade rules, 3 presets
+- Village-based loan/payment access (replacing agentId filtering)
+- Report improvements (field ordering, CID sort, PDF cell borders, Telugu font support)
+- UI redesign: blue gradient header, Cricbuzz-style mobile footer, iOS safe area
+- Dashboard abbreviated amounts with tap-to-toggle, Customer/Loan PDF+XLSX generation
+- Mobile-responsive table columns, naming consistency fixes
+- Server: cron consolidation, PostgreSQL tuning, disk cleanup, boot volume expansion
+- GitHub Actions TWA workflow for Android APK builds
+
+### Session 2026-10-16–17
+- **Telugu translations expanded**: ~82 new keys across Dashboard, DateFilter, Reports, View Payments, Bulk Posting, AppShell nav, Permission Grid, Owner Dashboard
+- **City field refactored**: Moved from Business to User model. Registration→approval carries city. Backfilled 6 existing owners from RegistrationRequest
+- **Refresh buttons**: Owner dashboard, global employees, business employees, locations pages. Uses `window.location.reload()` for full refresh including header dropdown
+- **Password reset share buttons**: WhatsApp + Email share modal after password reset on 3 pages (admin, owner, employees). Extended to registration approve/reject and employee creation (4 variants: password-reset, approved, rejected, employee-created)
+- **Permission cascade fix**: Removed payments.view→record/bulk dependency. Create+edit locked together for record/bulk payment (upsert behavior)
+- **"All" location toggle**: Assign locations section — select/deselect all villages at once
+- **Audit Logs**: Full feature for fraud detection
+  - Logging on 8 APIs: Edit Loan, Delete Loan, Edit Customer, Delete Customer, Edit Payment (individual+bulk), Change Permissions, Suspend/Activate/Delete Employee
+  - Collector names resolved (not IDs), receipt/customer/loan info in entries
+  - `diffFields()` helper for clean old/new comparison
+  - View page: `/b/{id}/audit-logs` with date filters, action filters, expandable diff table
+  - PDF download (beautified: color-coded badges, styled tables, page footers)
+  - Excel download endpoint
+  - Desktop: PDF + Excel buttons. Mobile: Share PDF + Share Excel (Web Share API)
+  - Owner + Partner only (Agent blocked)
+  - 30-day auto-cleanup in maintenance cron
+  - Audit Logs button on Reports page header
+  - Sidebar link below Reports
+- **Duplicate payment fix**: Server-side upsert — same loan+date always updates existing payment (both individual and bulk posting APIs)
+- **Detail modal improvements**: Hide blank fields in Customer Details and Loan Details modals. XLSX→Excel label everywhere
+- **Desktop/Mobile button split**: Desktop shows PDF+Excel buttons, mobile shows Share PDF+Share Excel (WhatsApp). Applied to Reports, Audit Logs
+- **Profile photo upload**: `User.photoPath` field, POST/DELETE `/api/auth/profile/upload`, saves to `public/uploads/profiles/`. Gallery/Camera/Remove buttons. Fullscreen viewer on click. Photo shows in header + sidebar avatars
+- **Profile page reordered**: 1) Profile (with photo) → 2) Org Details → 3) Language → 4) Change Password (collapsed) → 5) Danger Zone (collapsed)
+- **Contact Us redesign**: Platform Admin: new WhatsApp Number field in settings. Desktop: old style with visible phone/WhatsApp/email. Mobile: action buttons only (Call Customer Care, Email Customer Care, WhatsApp Message) — no raw values shown
+- **Server upgrade**: 1→2 OCPUs, 6→12 GB RAM (OCI Always Free, $0). Swap dropped to 0
+- **OCI boot volume auto-backup**: Silver policy (weekly, 5 snapshots)
+- **Response time monitoring**: `monitor.sh` logs response times every 15 min, flags >2s as SLOW
+- **GitHub repo**: Changed from public to private
 
 ## Documentation
 
@@ -165,6 +198,7 @@ All use password: `Test@123`
 - Tag image as BOTH `dailyfinance_app:latest` AND `deploy-app:latest`
 - Use `--no-build` with docker compose
 - Do NOT deploy without user confirmation
+- For new schema columns: run ALTER TABLE on production PostgreSQL before deploying the app
 
 ## Conventions
 
@@ -173,3 +207,7 @@ All use password: `Test@123`
 - Do not deploy to OCI without asking
 - ssh_Keys/ is in .gitignore — never stage it
 - Local dev: kill node, rm -rf .next + node_modules/.cache, then npm run dev
+- PDF fonts: use static TTF (NotoSans + NotoSansTelugu) in `public/fonts/`, not variable fonts
+- Mixed Telugu+Latin text in PDFs: use `splitMixedText()` from `src/lib/pdf-helpers.ts`
+- Money display: `formatPaiseShort()` for abbreviated amounts, `formatPaiseAbbr()` for tap-to-toggle
+- Audit logging: use `createAuditLog()` from `src/lib/audit.ts` for all edit/delete operations. Move audit writes outside DB transactions to avoid timeout
