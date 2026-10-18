@@ -140,6 +140,48 @@ Source files in [`documents/`](documents/)
 
 ---
 
+## Onboarding for New Developers
+
+### Local Setup
+
+```bash
+git clone https://github.com/smartrams121/reddyloanbook.git
+cd reddyloanbook
+npm install
+npm run setup    # Creates local SQLite DB with test data
+npm run dev      # http://localhost:3000
+```
+
+### AI Coding Assistants
+
+| Tool | Reads | What to say |
+|---|---|---|
+| Claude Code | `CLAUDE.md` (automatic) | Just start working — it picks up context |
+| OpenAI Codex | `AGENTS.md` (automatic) | "Read AGENTS.md for full project context" |
+| Cursor / Copilot | Neither (manual) | "Read AGENTS.md for project context before helping" |
+
+`AGENTS.md` contains: architecture, commands, deploy steps, server details, cron jobs, troubleshooting, and all feature history.
+
+### Getting Production Server Access
+
+1. Generate an SSH key on your computer:
+   ```bash
+   ssh-keygen -t rsa -b 2048 -f ~/.ssh/dailyfinance-key
+   ```
+2. Send the **public key** (`.pub` file) to the project owner
+3. Owner adds it to the server — then you can SSH in:
+   ```bash
+   ssh -i ~/.ssh/dailyfinance-key opc@80.225.201.199
+   ```
+
+### Important Rules
+
+- **Never commit** `ssh_Keys/`, `.env`, or any credentials
+- **Never deploy** without confirming with the project owner
+- **Database changes** (new columns) need `ALTER TABLE` on production PostgreSQL before deploying the app code
+- **Cron jobs** run automatically on the server (monitoring every 15 min, backups daily, cleanup weekly) — no manual maintenance needed
+- Full deploy steps, DB access commands, and troubleshooting are documented in `AGENTS.md`
+
 ## License
 
 Private — All rights reserved.
