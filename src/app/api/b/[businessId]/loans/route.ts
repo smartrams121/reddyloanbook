@@ -106,15 +106,15 @@ export async function POST(request: Request, { params }: Props) {
   })
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
-  if (agentId) {
-    const isBusinessOwner = business.ownerId === agentId
-    if (!isBusinessOwner) {
-      const agent = await prisma.userBusinessAssignment.findFirst({
-        where: { userId: agentId, businessId },
-      })
-      if (!agent) {
-        return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
-      }
+  const resolvedAgentId = agentId || user.id
+
+  const isBusinessOwner = business.ownerId === resolvedAgentId
+  if (!isBusinessOwner) {
+    const agent = await prisma.userBusinessAssignment.findFirst({
+      where: { userId: resolvedAgentId, businessId },
+    })
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not assigned to this business' }, { status: 400 })
     }
   }
 
@@ -206,7 +206,7 @@ export async function POST(request: Request, { params }: Props) {
           lastInstallmentAmount,
           startDate,
           expectedEndDate,
-          agentId: agentId || null,
+          agentId: resolvedAgentId,
           renewedFromLoanId: renewFromLoanId || null,
           notes: notes || null,
           schedule: {
