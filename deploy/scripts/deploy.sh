@@ -67,14 +67,13 @@ echo "▸ Installing Prisma CLI on host..."
 npm install --no-save prisma@5 @prisma/client@5 2>/dev/null
 
 echo "▸ Pushing database schema..."
-DATABASE_URL="postgresql://${POSTGRES_USER:-financeapp}:${POSTGRES_PASSWORD:-financeapp123}@localhost:5432/${POSTGRES_DB:-financeapp_db}" \
-  npx prisma db push --accept-data-loss
+set -a; source .env; set +a
+npx prisma db push --accept-data-loss 2>&1 | grep -v "^$" || true
 
 # ── 6. Check if seed data is needed ──────────────────────────────────────────
 echo ""
 echo "▸ Checking if seed data is needed..."
-USER_COUNT=$(DATABASE_URL="postgresql://${POSTGRES_USER:-financeapp}:${POSTGRES_PASSWORD:-financeapp123}@localhost:5432/${POSTGRES_DB:-financeapp_db}" \
-  node -e "
+USER_COUNT=$(node -e "
   const { PrismaClient } = require('@prisma/client');
   const p = new PrismaClient();
   p.user.count().then(c => { console.log(c); p.\$disconnect(); });
@@ -83,8 +82,7 @@ USER_COUNT=$(DATABASE_URL="postgresql://${POSTGRES_USER:-financeapp}:${POSTGRES_
 if [ "$USER_COUNT" = "0" ]; then
   echo "  No users found — loading seed data..."
   npm install --no-save tsx 2>/dev/null
-  DATABASE_URL="postgresql://${POSTGRES_USER:-financeapp}:${POSTGRES_PASSWORD:-financeapp123}@localhost:5432/${POSTGRES_DB:-financeapp_db}" \
-    npx tsx prisma/seed.ts
+  npx tsx prisma/seed.ts 2>&1 | grep -v "^$" || true
   echo "  Seed data loaded."
 else
   echo "  Database already has $USER_COUNT users — skipping seed."
