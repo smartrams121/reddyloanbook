@@ -55,7 +55,7 @@ export function assertRecordEditAllowed(user: AuthUser, recordCreatedAt: Date) {
       editDeadline = new Date(recordCreatedAt.getTime() + 4 * 60 * 60 * 1000)
   }
 
-  if (now > editDeadline) {
+  if (now.getTime() > editDeadline.getTime()) {
     throw new Error(`This record was created outside your allowed edit window (${value} ${unit.toLowerCase()})`)
   }
 }
