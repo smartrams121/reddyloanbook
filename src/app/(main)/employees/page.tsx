@@ -16,6 +16,7 @@ interface Employee {
   role: string
   isActive: boolean
   businesses: string[]
+  businessIds?: string[]
   backdateValue: number
   backdateUnit: string
 }
@@ -56,6 +57,13 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('')
   const [pageSize, setPageSize] = useState(0)
   const [page, setPage] = useState(1)
+
+  // Business ID to name mapping
+  const businessMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    businesses.forEach(b => { map[b.id] = b.name })
+    return map
+  }, [businesses])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return employees
@@ -179,6 +187,21 @@ export default function EmployeesPage() {
       })
       if (res.ok) {
         setSuccess(`${emp.fullName} ${emp.isActive ? 'suspended' : 'activated'}`)
+        loadEmployees()
+      }
+    } catch {}
+  }
+
+  async function handleUnassignCollection(emp: Employee, businessId: string, businessName: string) {
+    setActionMenu(null)
+    try {
+      const res = await fetch(`/api/b/${businessId}/employees`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unassign', userId: emp.id }),
+      })
+      if (res.ok) {
+        setSuccess(`${emp.fullName} unassigned from ${businessName}`)
         loadEmployees()
       }
     } catch {}
@@ -461,6 +484,23 @@ export default function EmployeesPage() {
                                 {b.name}
                               </button>
                             ))}
+                          </div>
+                        )}
+                        {emp.businesses.length > 0 && (
+                          <div className="px-4 py-1 border-t border-gray-100">
+                            <p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Unassign from</p>
+                            {emp.businesses.map(bizName => {
+                              const bizId = Object.entries(businessMap).find(([_id, name]) => name === bizName)?.[0]
+                              return bizId ? (
+                                <button
+                                  key={bizId}
+                                  onClick={() => handleUnassignCollection(emp, bizId, bizName)}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded"
+                                >
+                                  {bizName}
+                                </button>
+                              ) : null
+                            })}
                           </div>
                         )}
                         <button onClick={() => handleToggleSuspend(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
