@@ -35,10 +35,27 @@ export function assertBackdateAllowed(user: AuthUser, dateStr: string) {
 }
 
 export function assertRecordEditAllowed(user: AuthUser, recordCreatedAt: Date) {
-  const cutoff = getBackdateCutoff(user)
-  if (!cutoff) return
-  if (recordCreatedAt < cutoff) {
-    const unit = (user.backdateUnit ?? 'HOURS').toLowerCase()
-    throw new Error(`This record was created outside your allowed edit window (${user.backdateValue ?? 4} ${unit})`)
+  if (user.role !== Role.AGENT) return
+  const now = nowIST()
+  const value = user.backdateValue ?? 4
+  const unit = user.backdateUnit ?? 'HOURS'
+
+  let editDeadline: Date
+  switch (unit) {
+    case 'HOURS':
+      editDeadline = new Date(recordCreatedAt.getTime() + value * 60 * 60 * 1000)
+      break
+    case 'DAYS':
+      editDeadline = addDays(new Date(recordCreatedAt), value)
+      break
+    case 'MONTHS':
+      editDeadline = addMonths(new Date(recordCreatedAt), value)
+      break
+    default:
+      editDeadline = new Date(recordCreatedAt.getTime() + 4 * 60 * 60 * 1000)
+  }
+
+  if (now > editDeadline) {
+    throw new Error(`This record was created outside your allowed edit window (${value} ${unit.toLowerCase()})`)
   }
 }

@@ -311,7 +311,7 @@ export default function EmployeesPage() {
             </div>
             {role === 'AGENT' && (
               <div>
-                <label className="label">Back Dating Limit</label>
+                <label className="label">Edit Window</label>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="number"
@@ -327,7 +327,7 @@ export default function EmployeesPage() {
                     <option value="MONTHS">Months</option>
                   </select>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Agent can only backdate entries within this limit</p>
+                <p className="text-[10px] text-gray-400 mt-1">Agent can edit records created within this window (from creation time)</p>
               </div>
             )}
             <div className="flex gap-2">
@@ -373,7 +373,7 @@ export default function EmployeesPage() {
                   </div>
                   {editRole === 'AGENT' && (
                     <div>
-                      <label className="label text-xs">Back Dating Limit</label>
+                      <label className="label text-xs">Edit Window</label>
                       <div className="grid grid-cols-2 gap-3">
                         <input
                           type="number"
@@ -411,8 +411,8 @@ export default function EmployeesPage() {
                         {emp.role === 'BUSINESS_ADMIN' ? t('profile.role_admin') : t('profile.role_agent')}
                       </span>
                       {emp.role === 'AGENT' && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                          {emp.backdateValue ?? 4} {(emp.backdateUnit ?? 'HOURS').toLowerCase()}
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700" title="Edit window">
+                          {emp.backdateValue ?? 4}{(emp.backdateUnit ?? 'HOURS').charAt(0)}
                         </span>
                       )}
                       {!emp.isActive && (
