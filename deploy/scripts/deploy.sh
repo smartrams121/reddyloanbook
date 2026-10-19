@@ -30,7 +30,18 @@ if [ -d .git ]; then
   git pull
 fi
 
-# ── 2. Copy PostgreSQL schema ────────────────────────────────────────────────
+# ── 2. Deploy Nginx Configuration ────────────────────────────────────────────
+echo ""
+echo "▸ Deploying Nginx configuration..."
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/dailyfinance.conf
+sudo nginx -t >/dev/null 2>&1 && echo "  ✓ Nginx config validated" || {
+  echo "  ✗ Nginx config invalid!"
+  exit 1
+}
+sudo systemctl reload nginx
+echo "  ✓ Nginx reloaded"
+
+# ── 3. Copy PostgreSQL schema ────────────────────────────────────────────────
 echo ""
 echo "▸ Switching Prisma schema to PostgreSQL..."
 cp deploy/prisma.schema.postgresql prisma/schema.prisma
