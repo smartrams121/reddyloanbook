@@ -40,19 +40,22 @@ export function assertRecordEditAllowed(user: AuthUser, recordCreatedAt: Date) {
   const value = user.backdateValue ?? 4
   const unit = user.backdateUnit ?? 'HOURS'
 
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+  const createdAtIST = new Date(recordCreatedAt.getTime() + IST_OFFSET_MS)
+
   let editDeadline: Date
   switch (unit) {
     case 'HOURS':
-      editDeadline = new Date(recordCreatedAt.getTime() + value * 60 * 60 * 1000)
+      editDeadline = new Date(createdAtIST.getTime() + value * 60 * 60 * 1000)
       break
     case 'DAYS':
-      editDeadline = addDays(new Date(recordCreatedAt), value)
+      editDeadline = addDays(createdAtIST, value)
       break
     case 'MONTHS':
-      editDeadline = addMonths(new Date(recordCreatedAt), value)
+      editDeadline = addMonths(createdAtIST, value)
       break
     default:
-      editDeadline = new Date(recordCreatedAt.getTime() + 4 * 60 * 60 * 1000)
+      editDeadline = new Date(createdAtIST.getTime() + 4 * 60 * 60 * 1000)
   }
 
   if (now.getTime() > editDeadline.getTime()) {
