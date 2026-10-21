@@ -30,6 +30,7 @@ export interface AuthUser {
   preferredLanguage: string
   backdateValue: number
   backdateUnit: string
+  backdatingDays: number | null
   agentPermissions: Record<string, AgentPermissionGrid | null>
 }
 
@@ -177,6 +178,7 @@ export async function getSession(): Promise<AuthUser | null> {
     preferredLanguage: user.preferredLanguage || 'en',
     backdateValue: user.backdateValue ?? 4,
     backdateUnit: user.backdateUnit ?? 'HOURS',
+    backdatingDays: user.backdatingDays ?? null,
     agentPermissions,
   }
 }

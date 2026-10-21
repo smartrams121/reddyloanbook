@@ -15,6 +15,7 @@ const updateSchema = z.object({
   role: z.enum(['AGENT', 'BUSINESS_ADMIN']).optional(),
   backdateValue: z.number().int().min(1).optional(),
   backdateUnit: z.enum(['HOURS', 'DAYS', 'MONTHS']).optional(),
+  backdatingDays: z.number().int().min(0).max(365).nullable().optional(),
 })
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -68,12 +69,28 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (parsed.data.role) data.role = parsed.data.role
   if (parsed.data.backdateValue !== undefined) data.backdateValue = parsed.data.backdateValue
   if (parsed.data.backdateUnit) data.backdateUnit = parsed.data.backdateUnit
+  if ('backdatingDays' in parsed.data) data.backdatingDays = parsed.data.backdatingDays ?? null
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
+  // Fetch old value for audit log before updating
+  const oldEmployee = await prisma.user.findUnique({ where: { id: employeeId }, select: { backdatingDays: true } })
+
   await prisma.user.update({ where: { id: employeeId }, data })
+
+  // Log backdatingDays changes to audit log
+  if ('backdatingDays' in parsed.data && oldEmployee?.backdatingDays !== (parsed.data.backdatingDays ?? null)) {
+    await createAuditLog({
+      action: 'UPDATE_EMPLOYEE_BACKDATING',
+      entityType: 'Employee', entityId: employeeId,
+      oldValues: { backdatingDays: oldEmployee?.backdatingDays ?? null },
+      newValues: { backdatingDays: parsed.data.backdatingDays ?? null },
+      userId: user.id,
+    })
+  }
+
   return NextResponse.json({ ok: true })
 }
 

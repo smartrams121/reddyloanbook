@@ -1,0 +1,694 @@
+<title>Mobile UI Redesign</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #f8f9fa;
+    --fg: #1a1a2e;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --muted: #6b7280;
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --orange: #FD5108;
+    --green: #16a34a;
+    --red: #dc2626;
+    --teal: #0d9488;
+    --blue: #2563eb;
+    --flag-bg: #fef3c7;
+    --flag-border: #f59e0b;
+    --flag-text: #92400e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111827;
+      --fg: #f3f4f6;
+      --card: #1f2937;
+      --border: #374151;
+      --muted: #9ca3af;
+      --primary: #60a5fa;
+      --primary-light: #1e293b;
+      --flag-bg: #422006;
+      --flag-border: #b45309;
+      --flag-text: #fde68a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111827;
+    --fg: #f3f4f6;
+    --card: #1f2937;
+    --border: #374151;
+    --muted: #9ca3af;
+    --primary: #60a5fa;
+    --primary-light: #1e293b;
+    --flag-bg: #422006;
+    --flag-border: #b45309;
+    --flag-text: #fde68a;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  .page-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 28px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 32px 0 16px;
+    color: var(--muted);
+  }
+
+  .phones-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .phone-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 280px;
+    height: 560px;
+    border: 3px solid var(--border);
+    border-radius: 28px;
+    overflow: hidden;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  /* Header bar */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    height: 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-center { display: flex; align-items: center; gap: 6px; }
+  .header-right { display: flex; align-items: center; gap: 6px; }
+
+  .hamburger {
+    width: 22px; height: 22px;
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+  }
+  .hamburger span {
+    display: block; height: 2px; background: var(--fg); border-radius: 1px;
+  }
+
+  .logo-circle {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+  }
+
+  .icon-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 6px;
+    border-radius: 6px; font-size: 9px; font-weight: 500; color: var(--muted);
+    text-decoration: none;
+  }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.blue { color: #2563eb; }
+  .icon-btn.green { color: #16a34a; }
+  .icon-btn.red { color: #dc2626; }
+  .icon-btn.teal { color: #0d9488; }
+
+  .avatar-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+
+  .biz-dropdown {
+    font-size: 10px;
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--muted);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Content area */
+  .content {
+    flex: 1;
+    background: var(--bg);
+    padding: 16px 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .content-placeholder {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .placeholder-bar {
+    height: 10px;
+    background: var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .placeholder-bar.short { width: 60%; }
+  .placeholder-bar.med { width: 80%; }
+  .placeholder-bar:last-child { margin-bottom: 0; }
+
+  /* Footer bar */
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 56px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    flex-shrink: 0;
+  }
+  .footer-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; flex: 1; padding: 4px 0;
+    font-size: 9px; font-weight: 500; color: var(--muted);
+    text-decoration: none;
+  }
+  .footer-item svg { width: 22px; height: 22px; }
+  .footer-item.active { color: var(--primary); }
+
+  /* Sidebar overlay */
+  .sidebar-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+  }
+  .sidebar-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    border-radius: 25px;
+  }
+  .sidebar {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 200px;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+    border-radius: 25px 0 0 25px;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .sidebar-profile {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sidebar-profile-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-profile .avatar-circle {
+    width: 36px; height: 36px;
+    font-size: 14px;
+  }
+  .sidebar-profile .name { font-size: 13px; font-weight: 600; }
+  .sidebar-profile .role { font-size: 10px; color: var(--muted); }
+  .sidebar-profile .biz { font-size: 10px; color: var(--muted); }
+  .sidebar-links {
+    padding: 8px 0;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-link {
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--fg);
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none;
+  }
+  .sidebar-link:hover { background: var(--primary-light); }
+  .sidebar-link.logout { color: var(--red); margin-top: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+
+  /* Flags section */
+  .flags {
+    margin-top: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .flag {
+    background: var(--flag-bg);
+    border-left: 4px solid var(--flag-border);
+    border-radius: 6px;
+    padding: 12px 16px;
+  }
+  .flag-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--flag-text);
+    margin-bottom: 4px;
+  }
+  .flag-body {
+    font-size: 13px;
+    color: var(--flag-text);
+    line-height: 1.5;
+  }
+  .flag-body code {
+    background: rgba(0,0,0,0.08);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  /* Change annotations */
+  .change-tag {
+    display: inline-block;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+  .change-tag.removed { background: #fee2e2; color: #991b1b; }
+  .change-tag.new { background: #dcfce7; color: #166534; }
+  .change-tag.moved { background: #dbeafe; color: #1e40af; }
+
+  .annotation {
+    position: absolute;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 30;
+    pointer-events: none;
+  }
+  .annotation.red { background: #fee2e2; color: #991b1b; }
+  .annotation.green { background: #dcfce7; color: #166534; }
+  .annotation.blue { background: #dbeafe; color: #1e40af; }
+
+  .strikethrough { text-decoration: line-through; opacity: 0.4; }
+  .highlight-new { outline: 2px dashed #16a34a; outline-offset: 2px; border-radius: 4px; }
+  .highlight-removed { outline: 2px dashed #dc2626; outline-offset: 2px; border-radius: 4px; opacity: 0.4; }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .summary-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .summary-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .summary-table tr:nth-child(even) td {
+    background: var(--primary-light);
+  }
+  .status-ok { color: #16a34a; font-weight: 600; }
+  .status-flag { color: #f59e0b; font-weight: 600; }
+  .status-skip { color: #dc2626; font-weight: 600; }
+</style>
+
+<div class="page-wrap">
+  <h1>Daily Finance — Mobile UI Redesign</h1>
+  <p class="subtitle">Before &amp; After mockup showing proposed changes to mobile header, footer, and sidebar</p>
+
+  <!-- CURRENT STATE -->
+  <div class="section-title">Current Mobile UI</div>
+  <div class="phones-row">
+    <!-- Current: Main View -->
+    <div class="phone-col">
+      <span class="phone-label">Main View</span>
+      <div class="phone">
+        <div class="header">
+          <div class="header-left">
+            <div class="hamburger"><span></span><span></span><span></span></div>
+            <div class="logo-circle">₹</div>
+          </div>
+          <div class="header-center">
+            <div class="icon-btn blue">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg>
+              <span>Customers</span>
+            </div>
+            <div class="icon-btn green">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              <span>Loans</span>
+            </div>
+            <div class="icon-btn red">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+              <span>Reports</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="biz-dropdown">Vizag Fin</div>
+            <div class="avatar-circle">A</div>
+          </div>
+        </div>
+        <div class="content">
+          <div class="content-placeholder">
+            <div class="placeholder-bar"></div>
+            <div class="placeholder-bar short"></div>
+            <div class="placeholder-bar med"></div>
+          </div>
+          <div class="content-placeholder">
+            <div class="placeholder-bar med"></div>
+            <div class="placeholder-bar short"></div>
+          </div>
+          <div class="content-placeholder">
+            <div class="placeholder-bar"></div>
+            <div class="placeholder-bar med"></div>
+            <div class="placeholder-bar short"></div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="footer-item active">
+            <svg fill="currentColor" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="footer-item">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Collect</span>
+          </div>
+          <div class="footer-item">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+            <span>Bulk</span>
+          </div>
+          <div class="footer-item">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current: Sidebar Open -->
+    <div class="phone-col">
+      <span class="phone-label">Sidebar Open</span>
+      <div class="phone">
+        <div class="header" style="opacity:0.3">
+          <div class="header-left">
+            <div class="hamburger"><span></span><span></span><span></span></div>
+            <div class="logo-circle">₹</div>
+          </div>
+          <div class="header-right">
+            <div class="avatar-circle">A</div>
+          </div>
+        </div>
+        <div class="content" style="opacity:0.3">
+          <div class="content-placeholder"><div class="placeholder-bar"></div></div>
+        </div>
+        <div class="sidebar-overlay">
+          <div class="sidebar-backdrop"></div>
+          <div class="sidebar">
+            <div class="sidebar-header">
+              <span>All Features</span>
+              <span style="color:var(--muted); cursor:pointer">✕</span>
+            </div>
+            <div class="sidebar-links">
+              <div class="sidebar-link">📋 Register Business</div>
+              <div class="sidebar-link">👤 Manage Employees</div>
+              <div class="sidebar-link">🔑 Password Resets</div>
+              <div style="height:1px; background:var(--border); margin:6px 0"></div>
+              <div class="sidebar-link" style="font-size:9px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em">Business</div>
+              <div class="sidebar-link">🏘️ Add Locations</div>
+              <div class="sidebar-link">➕ New Customer</div>
+              <div class="sidebar-link">📝 New Loan</div>
+              <div class="sidebar-link">💰 Record Payment</div>
+              <div class="sidebar-link">📋 Bulk Posting</div>
+              <div class="sidebar-link">📑 Reports</div>
+              <div class="sidebar-link">⚙️ Settings</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer" style="opacity:0.3">
+          <div class="footer-item"><span>Home</span></div>
+          <div class="footer-item"><span>Collect</span></div>
+          <div class="footer-item"><span>Bulk</span></div>
+          <div class="footer-item"><span>More</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPOSED STATE -->
+  <div class="section-title">Proposed Mobile UI (After Changes)</div>
+  <div class="phones-row">
+    <!-- Proposed: Main View -->
+    <div class="phone-col">
+      <span class="phone-label">Main View</span>
+      <div class="phone">
+        <div class="header">
+          <div class="header-left">
+            <div class="hamburger"><span></span><span></span><span></span></div>
+            <div class="logo-circle">₹</div>
+          </div>
+          <div class="header-center">
+            <div class="icon-btn blue">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg>
+              <span>Customers</span>
+            </div>
+            <div class="icon-btn green">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              <span>Loans</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="biz-dropdown">Vizag Fin</div>
+            <!-- NO avatar here -->
+          </div>
+        </div>
+        <!-- Annotations -->
+        <div style="position:relative">
+          <div class="annotation red" style="right:8px; top:-42px;">REMOVED: Reports icon</div>
+          <div class="annotation red" style="right:8px; top:-24px;">REMOVED: Profile avatar</div>
+        </div>
+        <div class="content">
+          <div class="content-placeholder">
+            <div class="placeholder-bar"></div>
+            <div class="placeholder-bar short"></div>
+            <div class="placeholder-bar med"></div>
+          </div>
+          <div class="content-placeholder">
+            <div class="placeholder-bar med"></div>
+            <div class="placeholder-bar short"></div>
+          </div>
+          <div class="content-placeholder">
+            <div class="placeholder-bar"></div>
+            <div class="placeholder-bar med"></div>
+            <div class="placeholder-bar short"></div>
+          </div>
+        </div>
+        <div class="footer" style="height:62px;">
+          <div class="footer-item active">
+            <svg fill="currentColor" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0" style="width:24px;height:24px"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="footer-item">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Collect</span>
+          </div>
+          <div class="footer-item">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+            <span>Bulk</span>
+          </div>
+          <div class="footer-item" style="position:relative;">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;color:#dc2626"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+            <span style="color:#dc2626">Reports</span>
+            <div class="annotation green" style="bottom:-18px; right:-8px; font-size:7px">NEW: replaces More</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proposed: Sidebar Open -->
+    <div class="phone-col">
+      <span class="phone-label">Sidebar with Profile</span>
+      <div class="phone">
+        <div class="header" style="opacity:0.3">
+          <div class="header-left">
+            <div class="hamburger"><span></span><span></span><span></span></div>
+            <div class="logo-circle">₹</div>
+          </div>
+          <div class="header-right">
+            <div class="biz-dropdown">Vizag Fin</div>
+          </div>
+        </div>
+        <div class="content" style="opacity:0.3">
+          <div class="content-placeholder"><div class="placeholder-bar"></div></div>
+        </div>
+        <div class="sidebar-overlay">
+          <div class="sidebar-backdrop"></div>
+          <div class="sidebar">
+            <!-- NEW: Profile section at top -->
+            <div class="sidebar-profile highlight-new" style="position:relative">
+              <div class="annotation green" style="top:2px; right:4px; font-size:7px">NEW</div>
+              <div class="sidebar-profile-top">
+                <div class="avatar-circle">A</div>
+                <div>
+                  <div class="name">Akhil Reddy</div>
+                  <div class="role">Owner</div>
+                  <div class="biz">Vizag Finance Co.</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:6px; margin-top:4px">
+                <span style="font-size:10px; color:var(--primary); font-weight:500; cursor:pointer">My Profile</span>
+                <span style="font-size:10px; color:var(--muted)">|</span>
+                <span style="font-size:10px; color:var(--red); font-weight:500; cursor:pointer">Logout</span>
+              </div>
+            </div>
+
+            <div class="sidebar-links">
+              <div class="sidebar-link">📋 Register Business</div>
+              <div class="sidebar-link">👤 Manage Employees</div>
+              <div class="sidebar-link">🔑 Password Resets</div>
+              <div style="height:1px; background:var(--border); margin:6px 0"></div>
+              <div class="sidebar-link" style="font-size:9px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em">Business</div>
+              <div class="sidebar-link">🏘️ Add Locations</div>
+              <div class="sidebar-link">➕ New Customer</div>
+              <div class="sidebar-link">📝 New Loan</div>
+              <div class="sidebar-link">💰 Record Payment</div>
+              <div class="sidebar-link">📋 Bulk Posting</div>
+              <div class="sidebar-link">📑 Reports</div>
+              <div class="sidebar-link">⚙️ Settings</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer" style="opacity:0.3; height:62px">
+          <div class="footer-item"><span>Home</span></div>
+          <div class="footer-item"><span>Collect</span></div>
+          <div class="footer-item"><span>Bulk</span></div>
+          <div class="footer-item"><span>Reports</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE SUMMARY TABLE -->
+  <div class="section-title">Change Summary</div>
+  <table class="summary-table">
+    <thead>
+      <tr><th>#</th><th>Change</th><th>Status</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Collect → Individual Posting</td><td class="status-flag">FLAG</td><td>Needs review — see below</td></tr>
+      <tr><td>2</td><td>Remove Reports from mobile header</td><td class="status-ok">OK</td><td>Hide with <code>hidden md:flex</code></td></tr>
+      <tr><td>3</td><td>Remove "More" from mobile footer</td><td class="status-ok">OK</td><td>Replace with Reports</td></tr>
+      <tr><td>4</td><td>Add Reports to mobile footer</td><td class="status-ok">OK</td><td>Last position, with active state</td></tr>
+      <tr><td>5</td><td>Remove Profile icon from mobile header</td><td class="status-ok">OK</td><td>Hide with <code>hidden md:flex</code></td></tr>
+      <tr><td>6</td><td>Move Profile into sidebar</td><td class="status-ok">OK</td><td>Name, role, business, logout</td></tr>
+      <tr><td>7</td><td>Full width mobile layout (all pages)</td><td class="status-flag">FLAG</td><td>Massive scope — see below</td></tr>
+      <tr><td>8</td><td>Larger header/footer icons</td><td class="status-ok">OK</td><td>Already w-6 h-6, bump to w-7 h-7</td></tr>
+    </tbody>
+  </table>
+
+  <!-- FLAGS -->
+  <div class="flags">
+    <div class="section-title" style="margin-bottom:0">Items Flagged for Review</div>
+
+    <div class="flag">
+      <div class="flag-title">Flag 1 — "Collect → Individual Posting Page"</div>
+      <div class="flag-body">
+        The prompt says: <em>"clicking Collect → go directly to <code>/posting/[customerId]</code>"</em>. But the Collect button is in the <strong>footer nav bar</strong> — it has <strong>no customer context</strong>. The footer is visible on every page, so there's no way to know which customer to open.<br><br>
+        <strong>Options:</strong><br>
+        &bull; Keep Collect going to <code>/posting</code> (the customer selection/search page) — this is the current correct behavior<br>
+        &bull; Or did the prompt mean: from the <em>Customer detail page</em>, a collect button should go to that customer's posting? That would be a different feature entirely<br><br>
+        <strong>Recommendation:</strong> Skip this item. The current Collect → posting page behavior is correct for a footer nav button.
+      </div>
+    </div>
+
+    <div class="flag">
+      <div class="flag-title">Flag 2 — "Full Width Mobile Layout" (Item 7)</div>
+      <div class="flag-body">
+        This item asks to audit and fix <strong>every page, card, table, modal, and form</strong> in the entire app for mobile overflow. This is a <strong>separate sprint-level task</strong>, not a single change.<br><br>
+        It touches 30+ page files, all table components, all modal components, and all form layouts. Bundling it with these header/footer changes risks breaking things and makes testing very difficult.<br><br>
+        <strong>Recommendation:</strong> Do items 2–6 and 8 first (header/footer/sidebar — all in <code>AppShell.tsx</code>). Then tackle item 7 as a separate pass, page by page, with testing between each.
+      </div>
+    </div>
+
+    <div class="flag">
+      <div class="flag-title">Flag 3 — Icon size w-7 h-7 vs current w-6 h-6</div>
+      <div class="flag-body">
+        You previously requested bigger icons and we set them to <code>w-6 h-6</code>. The prompt now asks for <code>w-7 h-7</code> (28px). That's fine, but wanted to confirm — the header already gets tight with Customers + Loans + business dropdown at phone width. Going bigger may cause the header to clip on smaller phones (375px).<br><br>
+        <strong>Recommendation:</strong> Keep <code>w-6 h-6</code> in the header (already bigger than before), bump footer icons to <code>w-7 h-7</code> since footer has more room.
+      </div>
+    </div>
+  </div>
+</div>

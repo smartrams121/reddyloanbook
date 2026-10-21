@@ -1,0 +1,1420 @@
+<title>Razorpay Subscriptions Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: sectioned technical document with tabbed navigation */
+  :root {
+    --bg: #fafbfc;
+    --fg: #1a1d23;
+    --fg-muted: #5a6170;
+    --surface: #ffffff;
+    --surface-alt: #f0f2f5;
+    --border: #dfe2e8;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --warning: #d97706;
+    --warning-light: #fffbeb;
+    --danger: #dc2626;
+    --danger-light: #fef2f2;
+    --purple: #7c3aed;
+    --purple-light: #f5f3ff;
+    --code-bg: #f1f3f5;
+    --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1117;
+      --fg: #e4e6eb;
+      --fg-muted: #8b90a0;
+      --surface: #1a1d27;
+      --surface-alt: #22252f;
+      --border: #2e3240;
+      --accent: #5b8def;
+      --accent-light: #1a2744;
+      --success: #34d072;
+      --success-light: #0d2818;
+      --warning: #f0a030;
+      --warning-light: #2a1f0a;
+      --danger: #f06060;
+      --danger-light: #2a0f0f;
+      --purple: #a78bfa;
+      --purple-light: #1e1535;
+      --code-bg: #1e2130;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117;
+    --fg: #e4e6eb;
+    --fg-muted: #8b90a0;
+    --surface: #1a1d27;
+    --surface-alt: #22252f;
+    --border: #2e3240;
+    --accent: #5b8def;
+    --accent-light: #1a2744;
+    --success: #34d072;
+    --success-light: #0d2818;
+    --warning: #f0a030;
+    --warning-light: #2a1f0a;
+    --danger: #f06060;
+    --danger-light: #2a0f0f;
+    --purple: #a78bfa;
+    --purple-light: #1e1535;
+    --code-bg: #1e2130;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    z-index: 10;
+    background: var(--bg);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  .wrap { max-width: 960px; margin: 0 auto; padding-block: 24px 48px; }
+  h1 { font-size: 1.75rem; font-weight: 700; text-wrap: balance; letter-spacing: -0.02em; margin-bottom: 4px; }
+  h2 { font-size: 1.25rem; font-weight: 700; text-wrap: balance; letter-spacing: -0.01em; margin-top: 32px; margin-bottom: 12px; color: var(--fg); }
+  h3 { font-size: 1rem; font-weight: 600; margin-top: 20px; margin-bottom: 8px; }
+  .subtitle { color: var(--fg-muted); font-size: 0.95rem; margin-bottom: 24px; }
+  .badge { display: inline-block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+  .badge-blue { background: var(--accent-light); color: var(--accent); }
+  .badge-green { background: var(--success-light); color: var(--success); }
+  .badge-yellow { background: var(--warning-light); color: var(--warning); }
+  .badge-red { background: var(--danger-light); color: var(--danger); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; overflow-x: auto; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 5; padding-top: 8px; }
+  .tab { padding: 10px 16px; font-size: 0.85rem; font-weight: 500; color: var(--fg-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Cards & boxes */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .card-header { font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .flow-step { display: flex; gap: 12px; margin-bottom: 12px; }
+  .flow-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .flow-body { min-width: 0; }
+  .flow-title { font-weight: 600; margin-bottom: 2px; }
+  .flow-desc { color: var(--fg-muted); font-size: 0.85rem; }
+
+  /* Code blocks */
+  pre { background: var(--code-bg); border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7; margin: 8px 0 16px; border: 1px solid var(--border); }
+  code { font-family: var(--font-mono); font-size: 0.82em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 8px 0 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; font-weight: 600; padding: 8px 12px; border-bottom: 2px solid var(--border); white-space: nowrap; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-muted); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  /* Diagram boxes */
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 20px; background: var(--surface-alt); border-radius: 8px; margin: 12px 0 16px; }
+  .d-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; font-size: 0.82rem; font-weight: 500; text-align: center; min-width: 0; }
+  .d-box.accent { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .d-box.green { background: var(--success-light); border-color: var(--success); color: var(--success); }
+  .d-box.yellow { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
+  .d-box.red { background: var(--danger-light); border-color: var(--danger); color: var(--danger); }
+  .d-box.purple { background: var(--purple-light); border-color: var(--purple); color: var(--purple); }
+  .d-arrow { font-size: 1.2rem; color: var(--fg-muted); flex-shrink: 0; }
+
+  /* Section dividers */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* Requirement mapping */
+  .req { display: flex; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+  .req-num { font-weight: 700; color: var(--accent); font-size: 1.1rem; flex-shrink: 0; width: 24px; }
+  .req-label { font-weight: 600; margin-bottom: 2px; }
+  .req-solution { color: var(--fg-muted); font-size: 0.85rem; }
+
+  /* Mockup frames */
+  .mockup { border: 2px solid var(--border); border-radius: 12px; overflow: hidden; margin: 12px 0 16px; }
+  .mockup-bar { background: var(--surface-alt); padding: 8px 12px; font-size: 0.75rem; font-weight: 600; color: var(--fg-muted); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .mockup-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .mockup-body { padding: 16px; background: var(--surface); }
+  .m-row { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+  .m-stat { flex: 1; min-width: 100px; background: var(--surface-alt); border-radius: 8px; padding: 12px; }
+  .m-stat-label { font-size: 0.72rem; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .m-stat-val { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .m-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: default; }
+  .m-btn-primary { background: var(--accent); color: #fff; }
+  .m-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--fg); }
+  .m-btn-success { background: var(--success); color: #fff; }
+  .m-btn-warning { background: var(--warning); color: #fff; }
+  .m-table { width: 100%; font-size: 0.8rem; }
+  .m-table th { font-size: 0.7rem; }
+  .m-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; }
+  .pill-green { background: var(--success-light); color: var(--success); }
+  .pill-yellow { background: var(--warning-light); color: var(--warning); }
+  .pill-red { background: var(--danger-light); color: var(--danger); }
+  .pill-blue { background: var(--accent-light); color: var(--accent); }
+  .pill-purple { background: var(--purple-light); color: var(--purple); }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.35rem; }
+    .tabs { gap: 0; }
+    .tab { padding: 8px 10px; font-size: 0.78rem; }
+    .m-row { flex-direction: column; }
+    .m-stat { min-width: auto; }
+    pre { font-size: 0.72rem; padding: 10px 12px; }
+  }
+</style>
+
+<div class="wrap">
+  <h1>Razorpay Subscriptions — Integration Design</h1>
+  <p class="subtitle">Daily Finance Platform · Subscription lifecycle, schema, APIs, and UI for Platform Admin + Owner</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="overview" role="tab">Overview</button>
+    <button class="tab" data-tab="schema" role="tab">Schema</button>
+    <button class="tab" data-tab="apis" role="tab">APIs</button>
+    <button class="tab" data-tab="admin-ui" role="tab">Admin UI</button>
+    <button class="tab" data-tab="owner-ui" role="tab">Owner UI</button>
+    <button class="tab" data-tab="flows" role="tab">Flows</button>
+    <button class="tab" data-tab="revenue" role="tab">Revenue</button>
+    <button class="tab" data-tab="reqs" role="tab">Requirements</button>
+    <button class="tab" data-tab="future" role="tab">Long-term</button>
+  </div>
+
+  <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
+  <div class="tab-content active" id="overview">
+    <h2>Architecture</h2>
+    <div class="diagram">
+      <div class="d-box accent">Platform Admin<br><small>Manage Plans & Subscriptions</small></div>
+      <div class="d-arrow">→</div>
+      <div class="d-box">Daily Finance API<br><small>Next.js API Routes</small></div>
+      <div class="d-arrow">⇄</div>
+      <div class="d-box purple">Razorpay API<br><small>Plans, Subscriptions, Payments</small></div>
+      <div class="d-arrow">→</div>
+      <div class="d-box green">Owner<br><small>Checkout & Status</small></div>
+    </div>
+    <div class="diagram">
+      <div class="d-box purple">Razorpay Webhook</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box">/api/webhooks/razorpay</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box green">Update Subscription Status</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box accent">Activate/Suspend App</div>
+    </div>
+
+    <h2>Subscription Lifecycle</h2>
+    <div class="diagram">
+      <div class="d-box accent">TRIAL</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box green">ACTIVE</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box yellow">EXPIRING</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box">PAST_DUE</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box red">SUSPENDED</div>
+    </div>
+    <div style="text-align:center; margin-top:-8px; margin-bottom:16px;">
+      <small style="color:var(--fg-muted)">Also: CANCELLED (owner opted out) · COMPLETED (non-recurring ended)</small>
+    </div>
+
+    <h3>Key Decisions</h3>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <tr><th style="width:200px">Decision</th><th>Choice</th><th>Why</th></tr>
+          <tr><td><strong>Payment gateway</strong></td><td>Razorpay Subscriptions API</td><td>Native UPI, embedded checkout, Indian market</td></tr>
+          <tr><td><strong>Trial management</strong></td><td>Our DB (not Razorpay trial)</td><td>Full control — extend, shorten, custom per owner</td></tr>
+          <tr><td><strong>Subscription record</strong></td><td>Our DB + Razorpay sync</td><td>App works offline; Razorpay is payment layer only</td></tr>
+          <tr><td><strong>Payment checkout</strong></td><td>Razorpay checkout.js modal</td><td>No redirect, stays in-app, handles UPI/Card/NB</td></tr>
+          <tr><td><strong>Renewal</strong></td><td>Manual pay (no auto-charge)</td><td>Owners prefer control; auto-debit needs e-mandate</td></tr>
+          <tr><td><strong>Popup logic</strong></td><td>Middleware + client check</td><td>Show only 30 days before trial/subscription expiry</td></tr>
+          <tr><td><strong>Access control</strong></td><td>Middleware gate</td><td>Suspended owners see payment page only</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <h3>npm Packages</h3>
+<pre>razorpay          # Server-side API calls (plans, subscriptions, payments)
+# checkout.js loaded via &lt;script&gt; tag on payment page (no npm package)</pre>
+
+    <h3>Environment Variables</h3>
+<pre>RAZORPAY_KEY_ID=rzp_live_xxxxx
+RAZORPAY_KEY_SECRET=xxxxx
+RAZORPAY_WEBHOOK_SECRET=xxxxx        # For webhook signature verification
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_xxxxx   # Client-side key (public)</pre>
+  </div>
+
+  <!-- ═══════════════════ SCHEMA ═══════════════════ -->
+  <div class="tab-content" id="schema">
+    <h2>Database Schema Changes</h2>
+
+    <h3>New Model: <code>SubscriptionPlan</code></h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px">Plans created by Platform Admin (Monthly, Yearly, Custom)</p>
+<pre>model SubscriptionPlan {
+  id                String   @id @default(cuid())
+  name              String                  // "Monthly Basic", "Yearly Pro"
+  amountPaise       Int                     // 50000 = ₹500
+  intervalUnit      String                  // "monthly" | "yearly"
+  intervalCount     Int      @default(1)    // 1 = every 1 month/year
+  description       String?
+  razorpayPlanId    String?  @unique        // Razorpay plan_xxxxx
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions     Subscription[]
+}</pre>
+
+    <h3>New Model: <code>Subscription</code></h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px">One per Owner — their subscription lifecycle</p>
+<pre>model Subscription {
+  id                    String    @id @default(cuid())
+  ownerId               String    @unique     // One subscription per owner
+  owner                 User      @relation(fields: [ownerId], references: [id])
+
+  planId                String?
+  plan                  SubscriptionPlan? @relation(fields: [planId], references: [id])
+
+  status                String    @default("TRIAL")
+  // TRIAL | ACTIVE | EXPIRING | PAST_DUE | SUSPENDED | CANCELLED
+
+  // Trial tracking (managed by us, NOT Razorpay)
+  trialStartDate        DateTime  @default(now())
+  trialEndDate          DateTime              // Set on creation (approval date + trial days)
+  trialDays             Int       @default(30)
+
+  // Subscription dates
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+
+  // Razorpay references
+  razorpaySubscriptionId  String?  @unique   // sub_xxxxx (created when first payment made)
+  razorpayCustomerId      String?            // cust_xxxxx
+
+  // Admin actions
+  suspendedAt           DateTime?
+  suspendedReason       String?
+  cancelledAt           DateTime?
+  lastPaymentAt         DateTime?
+  nextPaymentDue        DateTime?
+
+  // Metadata
+  notes                 String?              // Admin notes
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  payments              SubscriptionPayment[]
+
+  @@index([ownerId])
+  @@index([status])
+}</pre>
+
+    <h3>New Model: <code>SubscriptionPayment</code></h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px">Every payment attempt — success or failure</p>
+<pre>model SubscriptionPayment {
+  id                    String    @id @default(cuid())
+  subscriptionId        String
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id])
+
+  amountPaise           Int
+  status                String    // "SUCCESS" | "FAILED" | "PENDING" | "REFUNDED"
+  method                String?   // "upi" | "card" | "netbanking" | "wallet"
+
+  // Razorpay references
+  razorpayPaymentId     String?   @unique   // pay_xxxxx
+  razorpayOrderId       String?             // order_xxxxx
+  razorpaySignature     String?
+
+  // Period this payment covers
+  periodStart           DateTime?
+  periodEnd             DateTime?
+
+  // Fee (snapshot at payment time — one number covers all taxes)
+  effectiveRate         Float?              // Total deduction % (e.g. 2.36). From PlatformSetting.
+  feeAmountPaise        Int?                // Total deducted (e.g. 23600 = ₹236)
+  netAmountPaise        Int?                // You receive (amountPaise - feeAmountPaise)
+
+  // Invoice + Settlement
+  invoiceNumber         String?   @unique   // INV-2026-0001
+  settledAt             DateTime?           // When bank credit confirmed (admin marks)
+  settledBy             String?             // Admin who confirmed settlement
+
+  paidAt                DateTime?
+  failureReason         String?
+  createdAt             DateTime  @default(now())
+
+  @@index([subscriptionId])
+  @@index([status])
+}</pre>
+
+    <h3>Changes to Existing Models</h3>
+<pre>// User model — add relation
+model User {
+  // ... existing fields ...
+  subscription          Subscription?        // Only for OWNER role
+}
+
+// No changes to Business, Loan, Payment, etc.
+// Subscription is Owner-level, not Business-level</pre>
+
+    <div class="card" style="border-left: 3px solid var(--accent);">
+      <div class="card-header">Design Note: Why Trial in Our DB?</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">Razorpay Subscriptions has a <code>trial_period</code> field, but it's set at the plan level and can't be customized per-subscriber. Since Platform Admin needs to set 30-day, 90-day, or 6-month trials per owner (sales offers), we manage trials entirely in our DB. Razorpay only enters when actual payment happens.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ APIs ═══════════════════ -->
+  <div class="tab-content" id="apis">
+    <h2>API Routes</h2>
+
+    <h3>Platform Admin APIs</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/admin/subscription-plans</code></td><td>List all plans</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/admin/subscription-plans</code></td><td>Create plan (+ create on Razorpay)</td></tr>
+        <tr><td><span class="badge badge-yellow">PATCH</span></td><td><code>/api/admin/subscription-plans/[id]</code></td><td>Update plan name/price</td></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/admin/subscriptions</code></td><td>List all owner subscriptions</td></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/admin/subscriptions/[id]</code></td><td>Single subscription detail + payment history</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/admin/subscriptions/[id]/extend-trial</code></td><td>Extend trial by N days</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/admin/subscriptions/[id]/suspend</code></td><td>Manually suspend (non-payment, abuse)</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/admin/subscriptions/[id]/activate</code></td><td>Manually activate (after offline payment)</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/admin/subscriptions/[id]/change-plan</code></td><td>Change owner's plan</td></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/admin/revenue</code></td><td>Revenue summary + reconciliation data</td></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/admin/revenue/xlsx</code></td><td>Export reconciliation to Excel</td></tr>
+        <tr><td><span class="badge badge-yellow">PATCH</span></td><td><code>/api/admin/revenue/[paymentId]/settled</code></td><td>Mark payment as settled (bank confirmed)</td></tr>
+      </table>
+    </div>
+
+    <h3>Owner / Payment APIs</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/subscription/status</code></td><td>Owner's current subscription status</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/subscription/create-order</code></td><td>Create Razorpay order for payment</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/api/subscription/verify-payment</code></td><td>Verify payment signature + activate</td></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/subscription/invoices</code></td><td>Owner's payment history</td></tr>
+        <tr><td><span class="badge badge-green">GET</span></td><td><code>/api/subscription/invoices/[paymentId]/pdf</code></td><td>Download invoice PDF for a payment</td></tr>
+      </table>
+    </div>
+
+    <h3>Webhook</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+        <tr><td><span class="badge badge-purple">POST</span></td><td><code>/api/webhooks/razorpay</code></td><td>Handle Razorpay events (payment success/failure)</td></tr>
+      </table>
+    </div>
+
+    <h3>Key API: Create Order (Payment Flow)</h3>
+<pre><span style="color:var(--fg-muted)">// POST /api/subscription/create-order</span>
+<span style="color:var(--fg-muted)">// Called when Owner clicks "Pay Now"</span>
+
+const razorpay = new Razorpay({ key_id, key_secret })
+
+// 1. Get owner's subscription + plan
+const sub = await prisma.subscription.findUnique({
+  where: { ownerId: user.id },
+  include: { plan: true }
+})
+
+// 2. Create Razorpay order
+const order = await razorpay.orders.create({
+  amount: sub.plan.amountPaise,      // e.g. 1000000 = ₹10,000
+  currency: 'INR',
+  receipt: `sub_${sub.id}_${Date.now()}`,
+  notes: {
+    subscriptionId: sub.id,
+    ownerId: user.id,
+    planName: sub.plan.name
+  }
+})
+
+// 3. Record pending payment
+await prisma.subscriptionPayment.create({
+  data: {
+    subscriptionId: sub.id,
+    amountPaise: sub.plan.amountPaise,
+    status: 'PENDING',
+    razorpayOrderId: order.id,
+    periodStart: sub.currentPeriodEnd || new Date(),
+    periodEnd: addMonths(sub.currentPeriodEnd || new Date(),
+                         sub.plan.intervalCount),
+  }
+})
+
+return { orderId: order.id, amount: sub.plan.amountPaise }</pre>
+
+    <h3>Key API: Verify Payment</h3>
+<pre><span style="color:var(--fg-muted)">// POST /api/subscription/verify-payment</span>
+<span style="color:var(--fg-muted)">// Called after Razorpay checkout success callback</span>
+
+// 1. Verify signature (CRITICAL — prevents tampering)
+const expectedSig = crypto.createHmac('sha256', RAZORPAY_KEY_SECRET)
+  .update(orderId + '|' + paymentId)
+  .digest('hex')
+
+if (expectedSig !== signature) → 400 Invalid signature
+
+// 2. Update payment record
+await prisma.subscriptionPayment.update({
+  where: { razorpayOrderId: orderId },
+  data: {
+    status: 'SUCCESS',
+    razorpayPaymentId: paymentId,
+    razorpaySignature: signature,
+    method: paymentDetails.method,   // "upi", "card", etc.
+    paidAt: new Date()
+  }
+})
+
+// 3. Activate subscription
+const payment = await prisma.subscriptionPayment.findUnique(...)
+await prisma.subscription.update({
+  where: { id: payment.subscriptionId },
+  data: {
+    status: 'ACTIVE',
+    currentPeriodStart: payment.periodStart,
+    currentPeriodEnd: payment.periodEnd,
+    lastPaymentAt: new Date(),
+    nextPaymentDue: payment.periodEnd,
+    suspendedAt: null,
+    suspendedReason: null,
+  }
+})</pre>
+
+    <h3>Key API: Webhook Handler</h3>
+<pre><span style="color:var(--fg-muted)">// POST /api/webhooks/razorpay</span>
+<span style="color:var(--fg-muted)">// Razorpay sends events for all payment state changes</span>
+
+// 1. Verify webhook signature
+const expectedSig = crypto.createHmac('sha256', RAZORPAY_WEBHOOK_SECRET)
+  .update(rawBody)
+  .digest('hex')
+
+// 2. Handle events
+switch (event) {
+  case 'payment.captured':
+    // Same as verify-payment — activate subscription
+    // (Backup: handles case where client callback fails)
+    break
+  case 'payment.failed':
+    // Update payment record status to FAILED
+    // If retry count > 3, suspend subscription
+    break
+  case 'refund.processed':
+    // Update payment status to REFUNDED
+    break
+}
+
+// Always return 200 (Razorpay retries on non-200)</pre>
+
+    <h3>Middleware: Subscription Gate</h3>
+<pre><span style="color:var(--fg-muted)">// In src/middleware.ts — added check for owner access</span>
+
+if (user.role === 'OWNER' && !isPublicPath && !isPaymentPath) {
+  const sub = await getOwnerSubscription(user.id)  // cached
+
+  if (sub.status === 'SUSPENDED') {
+    // Redirect to payment page — can't use app
+    return NextResponse.redirect('/payment')
+  }
+
+  if (sub.status === 'TRIAL' &amp;&amp; isPastDate(sub.trialEndDate)) {
+    // Trial expired — suspend and redirect
+    await suspendSubscription(sub.id, 'Trial expired')
+    return NextResponse.redirect('/payment')
+  }
+}</pre>
+  </div>
+
+  <!-- ═══════════════════ ADMIN UI ═══════════════════ -->
+  <div class="tab-content" id="admin-ui">
+    <h2>Platform Admin: Subscriptions Page</h2>
+    <p style="color:var(--fg-muted);margin-bottom:16px;">New sidebar item under Organizations: <strong>"Subscriptions"</strong></p>
+
+    <h3>Subscriptions Dashboard</h3>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        admin / subscriptions
+      </div>
+      <div class="mockup-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:1.1rem;font-weight:700;">Subscriptions</div>
+          <div class="m-btn m-btn-primary">+ Create Plan</div>
+        </div>
+        <div class="m-row">
+          <div class="m-stat"><div class="m-stat-label">Total Owners</div><div class="m-stat-val">24</div></div>
+          <div class="m-stat"><div class="m-stat-label">Trial</div><div class="m-stat-val" style="color:var(--accent)">8</div></div>
+          <div class="m-stat"><div class="m-stat-label">Active</div><div class="m-stat-val" style="color:var(--success)">12</div></div>
+          <div class="m-stat"><div class="m-stat-label">Expiring &lt;30d</div><div class="m-stat-val" style="color:var(--warning)">3</div></div>
+          <div class="m-stat"><div class="m-stat-label">Suspended</div><div class="m-stat-val" style="color:var(--danger)">1</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <span class="m-pill pill-blue" style="cursor:default">All</span>
+          <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg-muted)">Trial</span>
+          <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg-muted)">Active</span>
+          <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg-muted)">Expiring</span>
+          <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg-muted)">Suspended</span>
+        </div>
+        <div class="table-wrap">
+          <table class="m-table">
+            <tr><th>Organization</th><th>Owner</th><th>Plan</th><th>Status</th><th>Trial Ends / Renews</th><th>Actions</th></tr>
+            <tr>
+              <td>Sai Daily Finance</td><td>Ramesh Kumar</td><td>—</td>
+              <td><span class="m-pill pill-blue">TRIAL</span></td>
+              <td>2026-12-15 <small style="color:var(--fg-muted)">(58 days)</small></td>
+              <td><span style="color:var(--accent);font-size:0.78rem;cursor:default">Extend · Assign Plan</span></td>
+            </tr>
+            <tr>
+              <td>Sri Lakshmi Finance</td><td>Suresh Reddy</td><td>Yearly ₹10,000</td>
+              <td><span class="m-pill pill-green">ACTIVE</span></td>
+              <td>2027-04-20 <small style="color:var(--fg-muted)">(185 days)</small></td>
+              <td><span style="color:var(--accent);font-size:0.78rem;cursor:default">Change Plan · Suspend</span></td>
+            </tr>
+            <tr>
+              <td>Ganesh Finance</td><td>Ganesh Rao</td><td>Monthly ₹1,000</td>
+              <td><span class="m-pill pill-yellow">EXPIRING</span></td>
+              <td>2026-11-02 <small style="color:var(--warning)">(15 days)</small></td>
+              <td><span style="color:var(--accent);font-size:0.78rem;cursor:default">Remind · Extend</span></td>
+            </tr>
+            <tr>
+              <td>Venkat Finance</td><td>Venkat Rao</td><td>Monthly ₹1,000</td>
+              <td><span class="m-pill pill-red">SUSPENDED</span></td>
+              <td>Expired 2026-10-01</td>
+              <td><span style="color:var(--accent);font-size:0.78rem;cursor:default">Activate · Delete</span></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <h3>Admin Actions Detail</h3>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <tr><th style="width:160px">Action</th><th>What Happens</th><th>When Used</th></tr>
+          <tr><td><strong>Extend Trial</strong></td><td>Adds N days to <code>trialEndDate</code>. Logs in audit.</td><td>Sales offered longer trial, owner needs more time</td></tr>
+          <tr><td><strong>Assign Plan</strong></td><td>Sets <code>planId</code> on subscription. Shows plan price to owner.</td><td>After trial, before first payment</td></tr>
+          <tr><td><strong>Change Plan</strong></td><td>Updates plan. Next renewal uses new price.</td><td>Rate change, upgrade/downgrade</td></tr>
+          <tr><td><strong>Activate</strong></td><td>Sets status=ACTIVE, sets period dates. For offline/cash payments.</td><td>Owner paid offline (bank transfer, cash)</td></tr>
+          <tr><td><strong>Suspend</strong></td><td>Sets status=SUSPENDED. Owner sees payment page only.</td><td>Non-payment, abuse, manual block</td></tr>
+          <tr><td><strong>Remind</strong></td><td>Sends WhatsApp/SMS reminder about upcoming expiry.</td><td>Expiring within 30 days</td></tr>
+          <tr><td><strong>Delete</strong></td><td>Cancels subscription. Owner account stays but app blocked.</td><td>Owner churned permanently</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <h3>Plans Management</h3>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        admin / subscriptions / plans
+      </div>
+      <div class="mockup-body">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:12px;">Subscription Plans</div>
+        <div class="m-row">
+          <div class="m-stat" style="border-left:3px solid var(--accent);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">Monthly Basic</div>
+            <div class="m-stat-val">₹1,000<small style="font-weight:400;font-size:0.7rem;color:var(--fg-muted)">/month</small></div>
+            <div style="font-size:0.75rem;color:var(--fg-muted);margin-top:4px;">8 active subscribers</div>
+          </div>
+          <div class="m-stat" style="border-left:3px solid var(--success);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">Yearly Pro</div>
+            <div class="m-stat-val">₹10,000<small style="font-weight:400;font-size:0.7rem;color:var(--fg-muted)">/year</small></div>
+            <div style="font-size:0.75rem;color:var(--fg-muted);margin-top:4px;">4 active subscribers</div>
+          </div>
+          <div class="m-stat" style="border-left:3px solid var(--purple);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">Custom</div>
+            <div class="m-stat-val">₹5,000<small style="font-weight:400;font-size:0.7rem;color:var(--fg-muted)">/6 months</small></div>
+            <div style="font-size:0.75rem;color:var(--fg-muted);margin-top:4px;">2 active subscribers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Registration Approval — Trial Setup</h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px;">When Platform Admin approves a registration request, a new field appears:</p>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        Approve Registration
+      </div>
+      <div class="mockup-body" style="max-width:400px;">
+        <div style="font-weight:600;margin-bottom:12px;">Approve: Ramesh Kumar</div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:0.78rem;color:var(--fg-muted);display:block;margin-bottom:4px;">Organization</label>
+          <div style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-size:0.85rem;">Sai Daily Finance</div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:0.78rem;color:var(--fg-muted);display:block;margin-bottom:4px;">City</label>
+          <div style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-size:0.85rem;">Visakhapatnam</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.78rem;color:var(--fg-muted);display:block;margin-bottom:4px;">Free Trial Period</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg)">30 days</span>
+            <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg)">90 days</span>
+            <span class="m-pill pill-blue" style="cursor:default">180 days</span>
+            <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg)">Custom</span>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.78rem;color:var(--fg-muted);display:block;margin-bottom:4px;">Assign Plan (optional)</label>
+          <div style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-size:0.85rem;color:var(--fg-muted);">Select after trial — or assign now</div>
+        </div>
+        <div class="m-btn m-btn-success" style="width:100%;justify-content:center;">Approve & Start Trial</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ OWNER UI ═══════════════════ -->
+  <div class="tab-content" id="owner-ui">
+    <h2>Owner: Payment & Subscription UI</h2>
+
+    <h3>New Sidebar Item: "Subscription"</h3>
+    <p style="color:var(--fg-muted);margin-bottom:16px;">Added below Profile in sidebar. Shows current status badge.</p>
+
+    <h3>During Trial (No Popup — Happy Path)</h3>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        /payment
+      </div>
+      <div class="mockup-body" style="max-width:480px;">
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Subscription</div>
+        <div style="background:var(--accent-light);border:1px solid var(--accent);border-radius:8px;padding:16px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-weight:600;">Free Trial</span>
+            <span class="m-pill pill-blue">ACTIVE</span>
+          </div>
+          <div style="font-size:0.85rem;color:var(--fg-muted);">Your trial ends on <strong style="color:var(--fg)">15 March 2027</strong></div>
+          <div style="font-size:0.85rem;color:var(--fg-muted);">148 days remaining</div>
+          <div style="margin-top:12px;height:6px;background:var(--surface-alt);border-radius:3px;overflow:hidden;">
+            <div style="width:18%;height:100%;background:var(--accent);border-radius:3px;"></div>
+          </div>
+        </div>
+        <div style="font-size:0.85rem;color:var(--fg-muted);margin-bottom:12px;">Want to pay early? Choose a plan below:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-weight:600;">Monthly</div>
+            <div style="font-size:1.2rem;font-weight:700;">₹1,000</div>
+            <div style="font-size:0.72rem;color:var(--fg-muted);">per month</div>
+          </div>
+          <div style="flex:1;min-width:120px;border:2px solid var(--accent);border-radius:8px;padding:12px;text-align:center;background:var(--accent-light);">
+            <div style="font-weight:600;">Yearly</div>
+            <div style="font-size:1.2rem;font-weight:700;">₹10,000</div>
+            <div style="font-size:0.72rem;color:var(--fg-muted);">per year (save 17%)</div>
+          </div>
+        </div>
+        <div class="m-btn m-btn-primary" style="width:100%;justify-content:center;">Pay Now — ₹10,000</div>
+        <div style="font-size:0.72rem;color:var(--fg-muted);text-align:center;margin-top:8px;">Secure payment via Razorpay · UPI / Card / Net Banking</div>
+      </div>
+    </div>
+
+    <h3>Expiring Warning Popup (30 Days Before)</h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px;">Shows ONCE after login on the <strong>owner's dashboard</strong> — dismissible, doesn't block.</p>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        /dashboard (popup overlay)
+      </div>
+      <div class="mockup-body" style="max-width:400px;">
+        <div style="background:var(--warning-light);border:1px solid var(--warning);border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:8px;">⏳</div>
+          <div style="font-weight:700;margin-bottom:4px;">Your trial expires in 22 days</div>
+          <div style="font-size:0.85rem;color:var(--fg-muted);margin-bottom:16px;">Your free trial ends on <strong>15 November 2026</strong>. Pay now to continue using the app without interruption.</div>
+          <div class="m-btn m-btn-warning" style="width:100%;justify-content:center;margin-bottom:8px;">Pay Now</div>
+          <div style="font-size:0.78rem;color:var(--fg-muted);cursor:default;">Remind me later</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Suspended State (Trial Expired / Payment Failed)</h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px;">Owner can ONLY see this page. All other routes redirect here.</p>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        /payment (suspended)
+      </div>
+      <div class="mockup-body" style="max-width:480px;">
+        <div style="background:var(--danger-light);border:1px solid var(--danger);border-radius:8px;padding:16px;margin-bottom:16px;text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:4px;">🔒</div>
+          <div style="font-weight:700;color:var(--danger);margin-bottom:4px;">Account Suspended</div>
+          <div style="font-size:0.85rem;color:var(--fg-muted);">Your trial expired on 1 October 2026. Pay to reactivate your account.</div>
+        </div>
+        <div style="font-weight:600;margin-bottom:8px;">Choose a plan to continue:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-weight:600;">Monthly</div>
+            <div style="font-size:1.2rem;font-weight:700;">₹1,000</div>
+          </div>
+          <div style="flex:1;min-width:120px;border:2px solid var(--accent);border-radius:8px;padding:12px;text-align:center;background:var(--accent-light);">
+            <div style="font-weight:600;">Yearly</div>
+            <div style="font-size:1.2rem;font-weight:700;">₹10,000</div>
+          </div>
+        </div>
+        <div class="m-btn m-btn-primary" style="width:100%;justify-content:center;">Pay Now & Reactivate</div>
+        <div style="font-size:0.78rem;color:var(--fg-muted);text-align:center;margin-top:8px;">Your data is safe. Instant reactivation on payment.</div>
+        <div class="divider"></div>
+        <div style="font-size:0.85rem;color:var(--fg-muted);text-align:center;">Need help? <span style="color:var(--accent)">Contact Support</span></div>
+      </div>
+    </div>
+
+    <h3>Active Subscription View</h3>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        /payment (active)
+      </div>
+      <div class="mockup-body" style="max-width:480px;">
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Subscription</div>
+        <div style="background:var(--success-light);border:1px solid var(--success);border-radius:8px;padding:16px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-weight:600;">Yearly Pro</span>
+            <span class="m-pill pill-green">ACTIVE</span>
+          </div>
+          <div style="font-size:0.85rem;color:var(--fg-muted);">Next payment due: <strong style="color:var(--fg)">20 April 2027</strong></div>
+          <div style="font-size:0.85rem;color:var(--fg-muted);">Plan: ₹10,000 / year</div>
+        </div>
+        <div style="font-weight:600;margin-bottom:8px;">Payment History</div>
+        <div class="table-wrap">
+          <table class="m-table">
+            <tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th></th></tr>
+            <tr><td>20 Oct 2026</td><td>₹10,000</td><td>UPI</td><td><span class="m-pill pill-green">Paid</span></td><td><span style="color:var(--accent);font-size:0.78rem;cursor:default">Invoice PDF</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <h3>Invoice PDF (Owner Download)</h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px;">Each successful payment gets a downloadable invoice. Generated server-side via PDFKit (same pattern as existing reports).</p>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        Invoice PDF Preview
+      </div>
+      <div class="mockup-body" style="max-width:480px;font-size:0.82rem;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+          <div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--accent);">Daily Finance</div>
+            <div style="color:var(--fg-muted);font-size:0.75rem;">Platform Subscription Invoice</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:600;">INVOICE</div>
+            <div style="color:var(--fg-muted);font-size:0.75rem;">#INV-2026-0001</div>
+            <div style="color:var(--fg-muted);font-size:0.75rem;">Date: 20 Oct 2026</div>
+          </div>
+        </div>
+        <div style="background:var(--surface-alt);border-radius:6px;padding:10px;margin-bottom:12px;">
+          <div style="font-weight:600;margin-bottom:4px;">Bill To</div>
+          <div>Sai Daily Finance</div>
+          <div style="color:var(--fg-muted);">Ramesh Kumar · Visakhapatnam</div>
+          <div style="color:var(--fg-muted);">+91 98765 43210</div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:12px;">
+          <table class="m-table" style="font-size:0.78rem;">
+            <tr><th>Description</th><th style="text-align:right">Amount</th></tr>
+            <tr><td>Yearly Pro Plan (20 Oct 2026 — 19 Oct 2027)</td><td style="text-align:right;font-weight:600;">₹10,000</td></tr>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-weight:600;">
+          <span>Total Paid</span>
+          <span>₹10,000</span>
+        </div>
+        <div style="margin-top:8px;font-size:0.72rem;color:var(--fg-muted);">
+          Payment Method: UPI · Razorpay ID: pay_xxxxx · Status: Captured
+        </div>
+        <div style="margin-top:12px;text-align:center;font-size:0.7rem;color:var(--fg-muted);border-top:1px solid var(--border);padding-top:8px;">
+          This is a computer-generated invoice. No signature required.
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--accent);">
+      <div class="card-header">Invoice Implementation</div>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li><strong>API</strong>: GET /api/subscription/invoices/[paymentId]/pdf</li>
+        <li><strong>Generator</strong>: PDFKit (same as existing report PDFs)</li>
+        <li><strong>Content</strong>: Invoice number (auto-increment), bill-to (owner org + name + city + phone), plan description with period, amount, payment method, Razorpay payment ID</li>
+        <li><strong>Mobile</strong>: Share button (Web Share API) instead of direct download</li>
+        <li><strong>Invoice number</strong>: <code>INV-{year}-{sequence}</code> stored in SubscriptionPayment.invoiceNumber</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ FLOWS ═══════════════════ -->
+  <div class="tab-content" id="flows">
+    <h2>End-to-End Flows</h2>
+
+    <h3>Flow 1: Registration → Trial</h3>
+    <div class="card">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body"><div class="flow-title">Owner registers</div><div class="flow-desc">Fills registration form (name, phone, email, city, org name). Status: PENDING.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body"><div class="flow-title">Platform Admin reviews</div><div class="flow-desc">Sees registration request. Selects trial period (30/90/180/custom days). Optionally assigns a plan.</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body"><div class="flow-title">Approve → Create Owner + Subscription</div><div class="flow-desc">Transaction: create User (OWNER), create Subscription (status=TRIAL, trialEndDate=now+trialDays). No Razorpay call yet.</div></div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-body"><div class="flow-title">Owner logs in</div><div class="flow-desc">Full app access. Sidebar shows "Subscription" with trial badge. No popups until 30 days before expiry.</div></div></div>
+    </div>
+
+    <h3>Flow 2: Trial → Payment (Early or At Expiry)</h3>
+    <div class="card">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body"><div class="flow-title">Owner visits /payment (or popup redirects)</div><div class="flow-desc">Sees trial status + available plans. If within 30 days of expiry, popup appears on dashboard after login.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body"><div class="flow-title">Selects plan + clicks "Pay Now"</div><div class="flow-desc">Client calls POST /api/subscription/create-order. Server creates Razorpay order. Returns orderId.</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body"><div class="flow-title">Razorpay checkout opens</div><div class="flow-desc">checkout.js modal shows UPI / Card / Net Banking options. Owner completes payment.</div></div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-body"><div class="flow-title">Success callback → Verify</div><div class="flow-desc">Client sends paymentId + orderId + signature to POST /api/subscription/verify-payment. Server verifies HMAC signature.</div></div></div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-body"><div class="flow-title">Activate subscription</div><div class="flow-desc">Status → ACTIVE. Period start = now (or trial end, whichever is later). Period end = start + plan interval. Owner redirected to dashboard.</div></div></div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-body"><div class="flow-title">Webhook confirms (backup)</div><div class="flow-desc">Razorpay sends payment.captured webhook. Idempotent handler ensures activation even if client callback failed.</div></div></div>
+    </div>
+
+    <h3>Flow 3: Renewal</h3>
+    <div class="card">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body"><div class="flow-title">30 days before currentPeriodEnd</div><div class="flow-desc">Status changes to EXPIRING (via daily cron job). Popup appears on owner dashboard.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body"><div class="flow-title">Owner pays</div><div class="flow-desc">Same flow as initial payment. Period extends from current end date (no gap).</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body"><div class="flow-title">If owner doesn't pay by expiry</div><div class="flow-desc">Daily cron: if currentPeriodEnd &lt; today and status=EXPIRING → set status=SUSPENDED. Owner can only see payment page.</div></div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-body"><div class="flow-title">Late payment (after suspension)</div><div class="flow-desc">Owner pays from suspended payment page. New period starts from payment date (no credit for suspended days). Instant reactivation.</div></div></div>
+    </div>
+
+    <h3>Flow 4: Admin Extends Trial</h3>
+    <div class="card">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body"><div class="flow-title">Admin clicks "Extend" on subscription</div><div class="flow-desc">Modal: "Extend trial by ___ days". Reason field (optional). Confirm.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body"><div class="flow-title">API updates trialEndDate</div><div class="flow-desc">trialEndDate += extensionDays. If was EXPIRING/SUSPENDED, status reverts to TRIAL. Audit logged.</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body"><div class="flow-title">Owner sees updated trial</div><div class="flow-desc">Next login shows extended date. Popup disappears if now > 30 days from new end date.</div></div></div>
+    </div>
+
+    <h3>Flow 5: Offline / Cash Payment</h3>
+    <div class="card">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body"><div class="flow-title">Owner pays via bank transfer / cash</div><div class="flow-desc">Not through Razorpay. Owner informs Platform Admin.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body"><div class="flow-title">Admin clicks "Activate" on subscription</div><div class="flow-desc">Selects plan + payment period. Creates SubscriptionPayment record with status=SUCCESS, method="offline".</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body"><div class="flow-title">Subscription activated</div><div class="flow-desc">Status → ACTIVE. Dates set. No Razorpay involvement. Audit logged with admin who activated.</div></div></div>
+    </div>
+
+    <h3>Daily Cron Job: Subscription Status Check</h3>
+<pre><span style="color:var(--fg-muted)">// Added to cleanup.sh or new subscription-check.sh (runs daily)</span>
+
+1. Find TRIAL subscriptions where trialEndDate - 30 days &lt;= today
+   → Set status = 'EXPIRING' (popup starts showing)
+
+2. Find TRIAL subscriptions where trialEndDate &lt; today
+   → Set status = 'SUSPENDED'
+
+3. Find ACTIVE subscriptions where currentPeriodEnd - 30 days &lt;= today
+   → Set status = 'EXPIRING'
+
+4. Find EXPIRING subscriptions where currentPeriodEnd &lt; today
+   → Set status = 'SUSPENDED'
+
+<span style="color:var(--fg-muted)">// Note: This is a Next.js API route called by cron, not a standalone script</span>
+<span style="color:var(--fg-muted)">// GET /api/cron/subscription-check?secret=CRON_SECRET</span></pre>
+  </div>
+
+  <!-- ═══════════════════ REVENUE ═══════════════════ -->
+  <div class="tab-content" id="revenue">
+    <h2>Revenue & Reconciliation</h2>
+    <p style="color:var(--fg-muted);margin-bottom:16px;">Platform Admin page to track all payments, calculate Razorpay fees, and verify bank settlements.</p>
+
+    <h3>Revenue Dashboard</h3>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        <div class="mockup-dot"></div>
+        admin / revenue
+      </div>
+      <div class="mockup-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:1.1rem;font-weight:700;">Revenue & Reconciliation</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="m-pill pill-blue" style="cursor:default">This Month</span>
+            <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg-muted)">Last Month</span>
+            <span class="m-pill" style="cursor:default;background:var(--surface-alt);color:var(--fg-muted)">All Time</span>
+            <span class="m-btn m-btn-outline" style="padding:4px 10px;font-size:0.75rem;">Export Excel</span>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-stat">
+            <div class="m-stat-label">Total Collected</div>
+            <div class="m-stat-val">₹42,000</div>
+            <div style="font-size:0.72rem;color:var(--fg-muted)">6 payments</div>
+          </div>
+          <div class="m-stat">
+            <div class="m-stat-label">Razorpay Fees</div>
+            <div class="m-stat-val" style="color:var(--danger)">-₹992</div>
+            <div style="font-size:0.72rem;color:var(--fg-muted)">2% + 18% GST</div>
+          </div>
+          <div class="m-stat">
+            <div class="m-stat-label">Expected in Bank</div>
+            <div class="m-stat-val" style="color:var(--success)">₹41,008</div>
+            <div style="font-size:0.72rem;color:var(--fg-muted)">After gateway fees</div>
+          </div>
+          <div class="m-stat">
+            <div class="m-stat-label">Settled</div>
+            <div class="m-stat-val">₹31,244</div>
+            <div style="font-size:0.72rem;color:var(--warning)">2 pending</div>
+          </div>
+        </div>
+
+        <div style="font-weight:600;margin:16px 0 8px;">Payment Details</div>
+        <div class="table-wrap">
+          <table class="m-table">
+            <tr>
+              <th>Date</th><th>Owner</th><th>Plan</th><th>Paid</th><th>Fee (2.36%)</th><th>You Get</th><th>Method</th><th>Razorpay ID</th><th>Settled?</th>
+            </tr>
+            <tr>
+              <td style="font-variant-numeric:tabular-nums">18 Oct</td>
+              <td>Sai Finance</td>
+              <td>Yearly</td>
+              <td style="font-variant-numeric:tabular-nums">₹10,000</td>
+              <td style="font-variant-numeric:tabular-nums;color:var(--danger)">-₹236</td>
+              <td style="font-variant-numeric:tabular-nums;font-weight:600;">₹9,764</td>
+              <td>UPI</td>
+              <td><code style="font-size:0.7rem">pay_Ox8k...</code></td>
+              <td><span class="m-pill pill-green">✓ 20 Oct</span></td>
+            </tr>
+            <tr>
+              <td style="font-variant-numeric:tabular-nums">17 Oct</td>
+              <td>Sri Lakshmi</td>
+              <td>Yearly</td>
+              <td style="font-variant-numeric:tabular-nums">₹10,000</td>
+              <td style="font-variant-numeric:tabular-nums;color:var(--danger)">-₹236</td>
+              <td style="font-variant-numeric:tabular-nums;font-weight:600;">₹9,764</td>
+              <td>Card</td>
+              <td><code style="font-size:0.7rem">pay_Pq3j...</code></td>
+              <td><span class="m-pill pill-green">✓ 19 Oct</span></td>
+            </tr>
+            <tr>
+              <td style="font-variant-numeric:tabular-nums">17 Oct</td>
+              <td>Ganesh Finance</td>
+              <td>Monthly</td>
+              <td style="font-variant-numeric:tabular-nums">₹1,000</td>
+              <td style="font-variant-numeric:tabular-nums;color:var(--danger)">-₹24</td>
+              <td style="font-variant-numeric:tabular-nums;font-weight:600;">₹976</td>
+              <td>UPI</td>
+              <td><code style="font-size:0.7rem">pay_Mn2r...</code></td>
+              <td><span class="m-pill pill-yellow">Pending</span></td>
+            </tr>
+            <tr>
+              <td style="font-variant-numeric:tabular-nums">15 Oct</td>
+              <td>Venkat Finance</td>
+              <td>Monthly</td>
+              <td style="font-variant-numeric:tabular-nums">₹1,000</td>
+              <td style="font-variant-numeric:tabular-nums;color:var(--danger)">-₹24</td>
+              <td style="font-variant-numeric:tabular-nums;font-weight:600;">₹976</td>
+              <td>NB</td>
+              <td><code style="font-size:0.7rem">pay_Kd9x...</code></td>
+              <td><span class="m-pill pill-yellow">Pending</span></td>
+            </tr>
+            <tr>
+              <td style="font-variant-numeric:tabular-nums">10 Oct</td>
+              <td>Ravi Finance</td>
+              <td>Yearly</td>
+              <td style="font-variant-numeric:tabular-nums">₹10,000</td>
+              <td style="font-variant-numeric:tabular-nums;color:var(--danger)">-₹236</td>
+              <td style="font-variant-numeric:tabular-nums;font-weight:600;">₹9,764</td>
+              <td>UPI</td>
+              <td><code style="font-size:0.7rem">pay_Hj5w...</code></td>
+              <td><span class="m-pill pill-green">✓ 12 Oct</span></td>
+            </tr>
+            <tr>
+              <td style="font-variant-numeric:tabular-nums">5 Oct</td>
+              <td>Kumar Finance</td>
+              <td>Yearly</td>
+              <td style="font-variant-numeric:tabular-nums">₹10,000</td>
+              <td style="font-variant-numeric:tabular-nums;color:var(--danger)">-₹236</td>
+              <td style="font-variant-numeric:tabular-nums;font-weight:600;">₹9,764</td>
+              <td>UPI</td>
+              <td><code style="font-size:0.7rem">pay_Fg2m...</code></td>
+              <td><span class="m-pill pill-green">✓ 7 Oct</span></td>
+            </tr>
+          </table>
+        </div>
+        <div style="font-size:0.75rem;color:var(--fg-muted);margin-top:8px;">Click "Pending" → Mark as Settled when you see the credit in your bank account</div>
+      </div>
+    </div>
+
+    <h3>How Reconciliation Works</h3>
+    <div class="card">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body"><div class="flow-title">Owner pays via Razorpay</div><div class="flow-desc">Payment recorded in our DB with razorpayPaymentId. Status: SUCCESS. Settled: Pending.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body"><div class="flow-title">Razorpay settles to your bank (T+2 business days)</div><div class="flow-desc">Razorpay sends the amount minus 2.36% fee to your linked bank account. You can also check in Razorpay Dashboard → Settlements.</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body"><div class="flow-title">Admin verifies in bank statement</div><div class="flow-desc">Check bank account for Razorpay credit. Amount matches "You Get" column.</div></div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-body"><div class="flow-title">Mark as Settled in our app</div><div class="flow-desc">Click "Pending" badge → confirms settlement. Records who confirmed and when. Settlement date stored.</div></div></div>
+    </div>
+
+    <h3>Fee Calculation</h3>
+    <div class="card">
+<pre style="margin:0">Owner pays:           ₹10,000.00
+Razorpay fee (2%):    -  ₹200.00
+GST on fee (18%):     -   ₹36.00
+─────────────────────────────────
+You receive:          ₹ 9,764.00  (in T+2 business days)
+
+Effective rate:       2.36% per transaction</pre>
+    </div>
+
+    <h3>Offline Payment Tracking</h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px;">When admin manually activates (cash/bank transfer), the payment is recorded with method="offline" and auto-marked as settled (no Razorpay fee).</p>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <tr><th>Payment Source</th><th>Fee</th><th>Settlement</th><th>Reconciliation</th></tr>
+          <tr><td>Razorpay (UPI/Card/NB)</td><td>2.36%</td><td>T+2 to bank</td><td>Admin marks settled after bank credit</td></tr>
+          <tr><td>Offline (Cash/Transfer)</td><td>0%</td><td>Immediate</td><td>Auto-settled on admin activation</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <h3>Excel Export</h3>
+    <p style="color:var(--fg-muted);margin-bottom:8px;">Download reconciliation data as Excel for accounting. Columns: Date, Owner, Organization, Plan, Amount Paid, Razorpay Fee, GST on Fee, Net Amount, Payment Method, Razorpay ID, Settled Date, Settled By.</p>
+  </div>
+
+  <!-- ═══════════════════ REQUIREMENTS ═══════════════════ -->
+  <div class="tab-content" id="reqs">
+    <h2>Requirement Mapping</h2>
+    <p style="color:var(--fg-muted);margin-bottom:16px;">All 7 original requirements and how they're handled:</p>
+
+    <div class="req">
+      <div class="req-num">1</div>
+      <div>
+        <div class="req-label">Sales team gives custom trial (e.g., 6 months free, then ₹10,000/year)</div>
+        <div class="req-solution">Platform Admin sets <code>trialDays</code> at registration approval (30/90/180/custom). Plan assigned separately — can be assigned at approval or later. Trial managed in our DB, not Razorpay.</div>
+      </div>
+    </div>
+
+    <div class="req">
+      <div class="req-num">2</div>
+      <div>
+        <div class="req-label">No popups during trial until 30 days before expiry</div>
+        <div class="req-solution">Client-side check: <code>if (daysUntilExpiry &lt;= 30 && !sessionStorage.dismissed)</code>. Popup on owner dashboard only. "Remind me later" dismisses for the session. Payment page always accessible via sidebar for early payment.</div>
+      </div>
+    </div>
+
+    <div class="req">
+      <div class="req-num">3</div>
+      <div>
+        <div class="req-label">Owner can pay early during trial</div>
+        <div class="req-solution">Payment page (/payment) accessible anytime via sidebar. Shows available plans with "Pay Now". On payment: status changes to ACTIVE, period starts from trial end date (gets full paid period, trial days not wasted).</div>
+      </div>
+    </div>
+
+    <div class="req">
+      <div class="req-num">4</div>
+      <div>
+        <div class="req-label">Immediate activation on payment</div>
+        <div class="req-solution">POST /api/subscription/verify-payment sets status=ACTIVE in the same request. Owner redirected to dashboard immediately. Razorpay webhook is backup (idempotent).</div>
+      </div>
+    </div>
+
+    <div class="req">
+      <div class="req-num">5</div>
+      <div>
+        <div class="req-label">Bank settlement (T+2) — when does money reach admin?</div>
+        <div class="req-solution">Razorpay settles to linked bank account in T+2 business days. Our system activates immediately on payment capture (doesn't wait for settlement). Platform Admin can check settlement status in Razorpay dashboard.</div>
+      </div>
+    </div>
+
+    <div class="req">
+      <div class="req-num">6</div>
+      <div>
+        <div class="req-label">Rate change for existing subscribers</div>
+        <div class="req-solution">Admin "Change Plan" action updates the plan on the subscription. Current period is honored — new price applies only at next renewal. Owner sees updated plan on their payment page.</div>
+      </div>
+    </div>
+
+    <div class="req">
+      <div class="req-num">7</div>
+      <div>
+        <div class="req-label">Suspended account — renewal date logic</div>
+        <div class="req-solution">Suspended owner pays → new period starts from <strong>payment date</strong> (not original expiry). No credit for suspended days. This prevents gaming (suspend for 6 months, pay, get backdated period). Admin can override via "Activate" with custom dates if needed.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>Implementation Phases</h2>
+    <div class="card">
+      <div class="card-header"><span class="badge badge-blue">Phase 1</span> Schema + Core APIs (2-3 days)</div>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li>Add SubscriptionPlan, Subscription, SubscriptionPayment models</li>
+        <li>Migrate production DB (ALTER TABLE)</li>
+        <li>Create subscription on registration approval (with trial days)</li>
+        <li>Build /api/admin/subscriptions CRUD</li>
+        <li>Build /api/subscription/status endpoint</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="badge badge-purple">Phase 2</span> Payment Integration (2-3 days)</div>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li>Razorpay account setup + API keys</li>
+        <li>Create-order + verify-payment APIs</li>
+        <li>Webhook handler with signature verification</li>
+        <li>Owner payment page with checkout.js</li>
+        <li>Admin manual activate (offline payments)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="badge badge-yellow">Phase 3</span> Lifecycle + UI Polish (1-2 days)</div>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li>Middleware gate (suspended → payment page)</li>
+        <li>Expiry popup on dashboard (30-day warning)</li>
+        <li>Daily cron for status transitions</li>
+        <li>Admin subscriptions dashboard page</li>
+        <li>Extend trial, suspend, change plan actions</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="badge badge-green">Phase 4</span> Testing + Deploy (1 day)</div>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li>Razorpay test mode end-to-end testing</li>
+        <li>Webhook testing with Razorpay dashboard</li>
+        <li>Production deploy with ALTER TABLEs</li>
+        <li>Create initial plans in Razorpay + our DB</li>
+      </ul>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>File Changes Summary</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>File</th><th>Change</th></tr>
+        <tr><td><code>prisma/schema.prisma</code></td><td>+ SubscriptionPlan, Subscription, SubscriptionPayment models. + relation on User</td></tr>
+        <tr><td><code>deploy/prisma.schema.postgresql</code></td><td>Same as above (production schema)</td></tr>
+        <tr><td><code>src/lib/constants.ts</code></td><td>+ SubscriptionStatus enum</td></tr>
+        <tr><td><code>src/lib/razorpay.ts</code></td><td>NEW — Razorpay client instance + helpers</td></tr>
+        <tr><td><code>src/lib/subscription.ts</code></td><td>NEW — getSubscription(), isTrialExpiring(), etc.</td></tr>
+        <tr><td><code>src/middleware.ts</code></td><td>+ Subscription gate for OWNER role</td></tr>
+        <tr><td><code>src/app/api/admin/subscription-plans/route.ts</code></td><td>NEW — GET + POST</td></tr>
+        <tr><td><code>src/app/api/admin/subscriptions/route.ts</code></td><td>NEW — GET (list)</td></tr>
+        <tr><td><code>src/app/api/admin/subscriptions/[id]/...</code></td><td>NEW — extend-trial, suspend, activate, change-plan</td></tr>
+        <tr><td><code>src/app/api/subscription/...</code></td><td>NEW — status, create-order, verify-payment, invoices, invoice PDF</td></tr>
+        <tr><td><code>src/app/api/admin/revenue/route.ts</code></td><td>NEW — Revenue summary + payment list with fee calculations</td></tr>
+        <tr><td><code>src/app/api/admin/revenue/xlsx/route.ts</code></td><td>NEW — Reconciliation Excel export</td></tr>
+        <tr><td><code>src/app/(main)/admin/revenue/page.tsx</code></td><td>NEW — Revenue & Reconciliation dashboard</td></tr>
+        <tr><td><code>src/app/api/webhooks/razorpay/route.ts</code></td><td>NEW — Webhook handler</td></tr>
+        <tr><td><code>src/app/api/cron/subscription-check/route.ts</code></td><td>NEW — Daily status transitions</td></tr>
+        <tr><td><code>src/app/api/admin/registration-requests/[id]/approve/route.ts</code></td><td>+ Create Subscription on approval</td></tr>
+        <tr><td><code>src/app/(main)/admin/subscriptions/page.tsx</code></td><td>NEW — Admin subscriptions dashboard</td></tr>
+        <tr><td><code>src/app/(main)/admin/subscriptions/plans/page.tsx</code></td><td>NEW — Plans management</td></tr>
+        <tr><td><code>src/app/(main)/payment/page.tsx</code></td><td>NEW — Owner payment/subscription page</td></tr>
+        <tr><td><code>src/components/ui/SubscriptionPopup.tsx</code></td><td>NEW — Expiry warning popup</td></tr>
+        <tr><td><code>src/components/layout/AppShell.tsx</code></td><td>+ Subscription sidebar link + popup trigger</td></tr>
+        <tr><td><code>src/app/(main)/admin/registration-requests/page.tsx</code></td><td>+ Trial period selector on approve modal</td></tr>
+        <tr><td><code>deploy/scripts/cleanup.sh</code></td><td>+ Daily subscription check cron</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ LONG-TERM ═══════════════════ -->
+  <div class="tab-content" id="future">
+    <h2>Long-term Platform Admin Features</h2>
+    <p style="color:var(--fg-muted);margin-bottom:16px;">Features that become valuable as the platform grows from 5 → 50 → 500 owners.</p>
+
+    <h3 style="margin-top:24px;">Priority 1 — Build When 10+ Owners</h3>
+
+    <div class="card">
+      <div class="card-header">📊 Platform Analytics Dashboard</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;margin-bottom:8px;">Business intelligence for platform growth decisions.</p>
+      <div class="m-row">
+        <div class="m-stat"><div class="m-stat-label">MRR</div><div class="m-stat-val">₹22,000</div><div style="font-size:0.72rem;color:var(--success)">↑ 15% vs last month</div></div>
+        <div class="m-stat"><div class="m-stat-label">Churn Rate</div><div class="m-stat-val">4.2%</div><div style="font-size:0.72rem;color:var(--fg-muted)">1 owner left</div></div>
+        <div class="m-stat"><div class="m-stat-label">Avg Revenue / Owner</div><div class="m-stat-val">₹833</div></div>
+      </div>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;margin-top:8px;">
+        <li><strong>MRR (Monthly Recurring Revenue)</strong> — total + trend chart</li>
+        <li><strong>Churn rate</strong> — owners who cancelled or didn't renew</li>
+        <li><strong>LTV (Lifetime Value)</strong> — average revenue per owner over their tenure</li>
+        <li><strong>Conversion rate</strong> — trial → paid percentage</li>
+        <li><strong>Revenue forecast</strong> — projected next 3 months based on renewals</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📱 Owner Usage & Engagement</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;margin-bottom:8px;">Spot dormant owners before they churn. Spot power users for upsell.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Metric</th><th>What It Shows</th><th>Action</th></tr>
+          <tr><td><strong>Last login</strong></td><td>When owner/agents last used the app</td><td>Flag if > 7 days inactive</td></tr>
+          <tr><td><strong>Daily active users</strong></td><td>Agents using app per day per owner</td><td>Adoption health</td></tr>
+          <tr><td><strong>Collections posted</strong></td><td>Payments recorded per week</td><td>Low = not using the app</td></tr>
+          <tr><td><strong>Loans disbursed</strong></td><td>New loans per month</td><td>Business growing or shrinking</td></tr>
+          <tr><td><strong>Feature usage</strong></td><td>Reports, bulk posting, permissions</td><td>Training opportunities</td></tr>
+        </table>
+      </div>
+      <div class="card" style="border-left:3px solid var(--warning);margin-top:8px;">
+        <strong style="font-size:0.85rem;">Churn risk alert</strong>
+        <p style="color:var(--fg-muted);font-size:0.82rem;margin-top:4px;">Auto-flag owners with: no login in 7+ days + expiring subscription + fewer collections than usual. Admin sees a "At Risk" badge and can proactively reach out.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">💬 Automated Reminders</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">WhatsApp/SMS notifications triggered by subscription events.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Trigger</th><th>When</th><th>Message</th></tr>
+          <tr><td>Trial expiring</td><td>30, 15, 7, 1 days before</td><td>"Your trial expires in X days. Pay now to continue."</td></tr>
+          <tr><td>Subscription expiring</td><td>30, 15, 7, 1 days before</td><td>"Your plan renews on {date}. Pay ₹{amount} to avoid interruption."</td></tr>
+          <tr><td>Payment failed</td><td>Immediately</td><td>"Payment of ₹{amount} failed. Please retry."</td></tr>
+          <tr><td>Account suspended</td><td>Day of + 3 days later</td><td>"Your account is suspended. Pay now to reactivate."</td></tr>
+          <tr><td>Payment success</td><td>Immediately</td><td>"Payment of ₹{amount} received. Active until {date}."</td></tr>
+        </table>
+      </div>
+      <p style="color:var(--fg-muted);font-size:0.82rem;margin-top:8px;">Implementation: WhatsApp Business API (Meta Cloud API — free for first 1,000 messages/month) or MSG91/Twilio for SMS. Template-based, auto-sent by cron job.</p>
+    </div>
+
+    <h3 style="margin-top:32px;">Priority 2 — Build When 25+ Owners</h3>
+
+    <div class="card">
+      <div class="card-header">🏷️ Coupon / Discount Codes</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">Promotional pricing for sales team to offer.</p>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li><strong>Coupon model</strong>: code, discount type (% or flat), max uses, valid dates</li>
+        <li><strong>Usage</strong>: Owner enters code on payment page → discounted price</li>
+        <li><strong>Example</strong>: "DIWALI50" = 50% off first payment. "REFER500" = ₹500 off</li>
+        <li><strong>Admin</strong>: Create/deactivate coupons, see usage count, revenue impact</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🤝 Referral Program</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">Owner refers another owner → both get benefit.</p>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li>Each owner gets a unique referral code</li>
+        <li>New owner enters code at registration</li>
+        <li>On first payment: referrer gets 1 month free extension, new owner gets ₹500 off</li>
+        <li>Admin dashboard: referral tree, top referrers, total revenue from referrals</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📢 Broadcast Announcements</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">Send targeted messages to owners.</p>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li><strong>In-app notifications</strong>: Bell icon with unread count (different from system banner)</li>
+        <li><strong>Target</strong>: All owners, trial only, active only, expiring only, by city</li>
+        <li><strong>Content</strong>: New feature announcements, maintenance windows, festival offers</li>
+        <li><strong>History</strong>: Admin sees sent messages + read receipts</li>
+      </ul>
+    </div>
+
+    <h3 style="margin-top:32px;">Priority 3 — Build When 50+ Owners</h3>
+
+    <div class="card">
+      <div class="card-header">🛡️ Platform Health Monitor</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">Admin dashboard for system health (currently only via SSH).</p>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li><strong>Server stats</strong>: CPU, RAM, disk usage (read from monitoring API)</li>
+        <li><strong>App stats</strong>: Active sessions, API response times, error rate</li>
+        <li><strong>DB stats</strong>: Total records, DB size, slow queries</li>
+        <li><strong>Uptime</strong>: Last downtime, current streak, response time graph</li>
+        <li><strong>Alerts</strong>: In-app notification when server metrics cross thresholds</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🎫 Support Tickets</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">In-app support system replacing WhatsApp/call support.</p>
+      <ul style="color:var(--fg-muted);font-size:0.85rem;padding-left:20px;">
+        <li><strong>Owner</strong>: Create ticket from Help page (category, description, screenshot)</li>
+        <li><strong>Admin</strong>: Ticket queue with status (Open/In Progress/Resolved), priority, SLA timer</li>
+        <li><strong>Chat thread</strong>: Messages between admin ↔ owner on each ticket</li>
+        <li><strong>Metrics</strong>: Average resolution time, tickets per owner, common issues</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📊 Multi-tier Plans</div>
+      <p style="color:var(--fg-muted);font-size:0.85rem;">Feature-based pricing when the platform has enough differentiation.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Feature</th><th>Starter ₹500/mo</th><th>Pro ₹1,000/mo</th><th>Enterprise ₹2,500/mo</th></tr>
+          <tr><td>Collections</td><td>1</td><td>3</td><td>Unlimited</td></tr>
+          <tr><td>Agents</td><td>2</td><td>5</td><td>Unlimited</td></tr>
+          <tr><td>Reports</td><td>Basic</td><td>All</td><td>All + Custom</td></tr>
+          <tr><td>Audit Logs</td><td>7 days</td><td>30 days</td><td>90 days</td></tr>
+          <tr><td>Telugu</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Customer Photos</td><td>—</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Bulk Import</td><td>—</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Priority Support</td><td>—</td><td>—</td><td>✓</td></tr>
+        </table>
+      </div>
+      <p style="color:var(--fg-muted);font-size:0.82rem;margin-top:8px;">Requires: feature flag system in middleware that checks plan tier before allowing access to gated features.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3>Implementation Priority Summary</h3>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <tr><th>Phase</th><th>Trigger</th><th>Features</th><th>Effort</th></tr>
+          <tr>
+            <td><span class="badge badge-blue">Current Sprint</span></td>
+            <td>Now</td>
+            <td>Subscription plans, trial, payment, reconciliation, invoice</td>
+            <td>6-8 days</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">Priority 1</span></td>
+            <td>10+ owners</td>
+            <td>Analytics, usage tracking, churn alerts, auto-reminders</td>
+            <td>4-5 days</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-yellow">Priority 2</span></td>
+            <td>25+ owners</td>
+            <td>Coupons, referrals, broadcast notifications</td>
+            <td>3-4 days</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-purple">Priority 3</span></td>
+            <td>50+ owners</td>
+            <td>Platform health, support tickets, multi-tier plans</td>
+            <td>6-8 days</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      const target = document.getElementById(tab.dataset.tab);
+      if (target) target.classList.add('active');
+    });
+  });
+</script>

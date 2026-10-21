@@ -1,0 +1,251 @@
+<title>New Loan Preview</title>
+<style>
+  /* Mobile-first finance form — matches Daily Finance app design */
+  :root {
+    --bg: #f8fafc; --fg: #111827; --muted: #6b7280; --muted-light: #9ca3af;
+    --card: #ffffff; --card-border: #e5e7eb;
+    --primary: #2563eb; --primary-hover: #1d4ed8; --primary-light: #eff6ff;
+    --input-border: #d1d5db; --input-bg: #ffffff; --input-focus: #2563eb;
+    --label: #374151; --calc-bg: #f0fdf4; --calc-border: #bbf7d0; --calc-text: #166534;
+    --danger: #dc2626; --section-title: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8; --muted-light: #64748b;
+    --card: #1e293b; --card-border: #334155;
+    --primary: #3b82f6; --primary-hover: #60a5fa; --primary-light: #1e3a5f;
+    --input-border: #475569; --input-bg: #1e293b; --input-focus: #3b82f6;
+    --label: #cbd5e1; --calc-bg: #14532d20; --calc-border: #166534; --calc-text: #86efac;
+    --danger: #ef4444; --section-title: #94a3b8;
+    color-scheme: dark;
+  }}
+  :root[data-theme="dark"] {
+    --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8; --muted-light: #64748b;
+    --card: #1e293b; --card-border: #334155;
+    --primary: #3b82f6; --primary-hover: #60a5fa; --primary-light: #1e3a5f;
+    --input-border: #475569; --input-bg: #1e293b; --input-focus: #3b82f6;
+    --label: #cbd5e1; --calc-bg: #14532d20; --calc-border: #166534; --calc-text: #86efac;
+    --danger: #ef4444; --section-title: #94a3b8;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding-inline: 16px; padding-block: 0; max-width: 480px; margin: 0 auto; }
+  a.back { display: inline-block; font-size: 13px; color: var(--primary); text-decoration: none; margin-top: 16px; }
+  a.back:hover { text-decoration: underline; }
+  h1 { font-size: 20px; font-weight: 700; margin: 12px 0 4px; }
+  .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .section-title { font-size: 11px; font-weight: 600; color: var(--section-title); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--label); margin-bottom: 5px; }
+  .field label .req { color: var(--danger); }
+  .field input, .field select, .field textarea {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 15px;
+    border: 1px solid var(--input-border); border-radius: 8px;
+    background: var(--input-bg); color: var(--fg);
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--input-focus); box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+  }
+  .field input.large { font-size: 18px; font-weight: 600; }
+  .field .hint { font-size: 11px; color: var(--muted-light); margin-top: 4px; }
+
+  .calc-summary { background: var(--calc-bg); border: 1px solid var(--calc-border); border-radius: 10px; padding: 14px; margin-top: 16px; }
+  .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 14px; }
+  .calc-row:not(:last-child) { border-bottom: 1px solid var(--calc-border); }
+  .calc-label { color: var(--calc-text); font-weight: 500; }
+  .calc-value { color: var(--calc-text); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .calc-header { font-size: 11px; font-weight: 600; color: var(--calc-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; opacity: 0.8; }
+
+  .btn-primary {
+    display: block; width: 100%; padding: 13px; font-size: 15px; font-weight: 600;
+    background: var(--primary); color: #fff; border: none; border-radius: 10px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary {
+    display: block; width: 100%; padding: 13px; font-size: 15px; font-weight: 600;
+    background: transparent; color: var(--muted); border: 1px solid var(--card-border); border-radius: 10px;
+    cursor: pointer;
+  }
+  .btn-row { display: flex; gap: 12px; margin-top: 8px; }
+  .btn-row > * { flex: 1; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--primary-light); color: var(--primary); }
+  .customer-card { display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--primary-light); border-radius: 8px; margin-bottom: 14px; }
+  .customer-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .customer-info { min-width: 0; }
+  .customer-name { font-size: 14px; font-weight: 600; }
+  .customer-id { font-size: 11px; color: var(--muted); }
+</style>
+
+<a class="back" href="#">&larr; Back to Customer</a>
+<h1>New Loan</h1>
+<p class="subtitle">Ravi Kumar · CUST-0042</p>
+
+<!-- Customer Card -->
+<div class="customer-card">
+  <div class="customer-avatar">R</div>
+  <div class="customer-info">
+    <div class="customer-name">Ravi Kumar</div>
+    <div class="customer-id">CUST-0042 · 9876543210 · Amalapuram</div>
+  </div>
+</div>
+
+<!-- Loan Details — merged section -->
+<div class="card">
+  <div class="section-title">Loan Details</div>
+
+  <div class="field">
+    <label>Agent <span class="req">*</span></label>
+    <select id="agent">
+      <option value="">Select agent</option>
+      <option value="a1" selected>Suresh Reddy</option>
+      <option value="a2">Venkat Rao</option>
+      <option value="a3">Lakshmi Devi</option>
+    </select>
+    <div class="hint">Who is giving the loan</div>
+  </div>
+
+  <div class="field">
+    <label>Loan Creation Date <span class="req">*</span></label>
+    <input type="date" id="startDate" />
+    <div class="hint">Today auto-selected. Can backdate up to 1 month.</div>
+  </div>
+
+  <div class="field">
+    <label>Principal Amount (₹) <span class="req">*</span></label>
+    <input type="number" id="principal" class="large" placeholder="e.g. 50000" value="50000" min="1" />
+  </div>
+
+  <div class="field">
+    <label>Number of Installments <span class="req">*</span></label>
+    <input type="number" id="numInstallments" placeholder="e.g. 100" value="100" min="1" />
+  </div>
+
+  <div class="field">
+    <label>Total Repayment Amount (₹) <span class="req">*</span></label>
+    <input type="number" id="totalRepayment" class="large" value="60000" min="1" />
+    <div class="hint">Auto-calculated: Principal × 1.20 (editable)</div>
+  </div>
+
+  <!-- Auto-Calculated Summary -->
+  <div class="calc-summary" id="calcSummary">
+    <div class="calc-header">Auto-Calculated</div>
+    <div class="calc-row">
+      <span class="calc-label">Interest Amount</span>
+      <span class="calc-value" id="calcInterest">₹10,000</span>
+    </div>
+    <div class="calc-row">
+      <span class="calc-label">Installment Amount</span>
+      <span class="calc-value" id="calcInstallment">₹600</span>
+    </div>
+    <div class="calc-row">
+      <span class="calc-label">Due Date</span>
+      <span class="calc-value" id="calcDueDate">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Additional — unchanged -->
+<div class="card">
+  <div class="section-title">Additional</div>
+
+  <div class="field">
+    <label>Notes</label>
+    <textarea rows="2" placeholder="Optional loan notes"></textarea>
+  </div>
+</div>
+
+<!-- Buttons -->
+<div class="btn-row" style="margin-bottom: 32px;">
+  <button class="btn-primary" onclick="return false">Create Loan</button>
+  <button class="btn-secondary" onclick="return false">Cancel</button>
+</div>
+
+<script>
+  const principalEl = document.getElementById('principal');
+  const numInstEl = document.getElementById('numInstallments');
+  const totalRepEl = document.getElementById('totalRepayment');
+  const startDateEl = document.getElementById('startDate');
+  const calcInterestEl = document.getElementById('calcInterest');
+  const calcInstallmentEl = document.getElementById('calcInstallment');
+  const calcDueDateEl = document.getElementById('calcDueDate');
+
+  // Set today's date
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  startDateEl.value = `${yyyy}-${mm}-${dd}`;
+
+  // Max backdate: 1 month
+  const minDate = new Date(today);
+  minDate.setMonth(minDate.getMonth() - 1);
+  startDateEl.min = `${minDate.getFullYear()}-${String(minDate.getMonth()+1).padStart(2,'0')}-${String(minDate.getDate()).padStart(2,'0')}`;
+  startDateEl.max = `${yyyy}-${mm}-${dd}`;
+
+  let userEditedTotal = false;
+
+  function fmt(n) {
+    return '₹' + n.toLocaleString('en-IN');
+  }
+
+  function addDays(dateStr, days) {
+    const d = new Date(dateStr + 'T00:00:00');
+    let added = 0;
+    while (added < days) {
+      d.setDate(d.getDate() + 1);
+      // Skip Sundays
+      if (d.getDay() !== 0) added++;
+    }
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function recalc() {
+    const principal = parseInt(principalEl.value) || 0;
+    const numInst = parseInt(numInstEl.value) || 0;
+    const totalRep = parseInt(totalRepEl.value) || 0;
+
+    // Auto-calc total if user hasn't manually edited it
+    if (!userEditedTotal && principal > 0) {
+      const autoTotal = Math.round(principal * 1.20);
+      totalRepEl.value = autoTotal;
+    }
+
+    const finalTotal = parseInt(totalRepEl.value) || 0;
+
+    // Interest
+    const interest = finalTotal - principal;
+    calcInterestEl.textContent = principal > 0 && finalTotal > 0 ? fmt(interest) : '—';
+
+    // Installment
+    if (numInst > 0 && finalTotal > 0) {
+      const instAmount = Math.floor(finalTotal / numInst);
+      const lastInst = finalTotal - instAmount * (numInst - 1);
+      if (lastInst !== instAmount) {
+        calcInstallmentEl.textContent = `${fmt(instAmount)} (last: ${fmt(lastInst)})`;
+      } else {
+        calcInstallmentEl.textContent = fmt(instAmount);
+      }
+    } else {
+      calcInstallmentEl.textContent = '—';
+    }
+
+    // Due date
+    if (startDateEl.value && numInst > 0) {
+      calcDueDateEl.textContent = addDays(startDateEl.value, numInst);
+    } else {
+      calcDueDateEl.textContent = '—';
+    }
+  }
+
+  principalEl.addEventListener('input', () => { userEditedTotal = false; recalc(); });
+  numInstEl.addEventListener('input', recalc);
+  startDateEl.addEventListener('input', recalc);
+  totalRepEl.addEventListener('input', () => { userEditedTotal = true; recalc(); });
+
+  recalc();
+</script>

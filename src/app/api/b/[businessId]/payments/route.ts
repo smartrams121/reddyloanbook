@@ -7,7 +7,7 @@ import { todayIST, parseISODate, addMonths } from '@/lib/date'
 import { Role } from '@/lib/constants'
 import { z } from 'zod'
 import { createAuditLog } from '@/lib/audit'
-import { assertBackdateAllowed, assertRecordEditAllowed } from '@/lib/backdate'
+import { assertRecordEditAllowed, assertPaymentDateAllowed } from '@/lib/backdate'
 
 interface Props {
   params: Promise<{ businessId: string }>
@@ -137,8 +137,11 @@ export async function POST(request: Request, { params }: Props) {
   if (payDate > todayDate) {
     return NextResponse.json({ error: 'Payment date cannot be in the future' }, { status: 400 })
   }
-  try { assertBackdateAllowed(user, paymentDate) } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  try { assertPaymentDateAllowed(user, paymentDate) } catch (e) {
+    return NextResponse.json({
+      error: 'BACKDATING_NOT_ALLOWED',
+      message: (e as Error).message,
+    }, { status: 400 })
   }
   const loan = await prisma.loan.findFirst({
     where: { id: loanId, businessId },

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Header Color Options</title>
+<style>
+* { box-sizing: border-box; margin: 0; }
+body { font-family: -apple-system, sans-serif; background: #f3f4f6; padding: 20px; }
+h1 { text-align: center; margin-bottom: 24px; color: #333; }
+.option { margin-bottom: 32px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.option-label { padding: 8px 16px; background: white; font-size: 14px; color: #666; font-weight: 600; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; height: 56px; }
+.left { display: flex; align-items: center; gap: 10px; }
+.logo { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
+.org-name { color: white; font-weight: 600; font-size: 15px; }
+.icons { display: flex; gap: 12px; }
+.icon { display: flex; flex-direction: column; align-items: center; gap: 2px; color: white; opacity: 0.9; }
+.icon svg { width: 22px; height: 22px; }
+.icon span { font-size: 9px; font-weight: 500; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: bold; }
+.footer { display: flex; justify-content: space-around; padding: 10px 0 14px; }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; color: rgba(255,255,255,0.5); }
+.tab.active { color: white; }
+.tab svg { width: 24px; height: 24px; }
+.tab span { font-size: 10px; font-weight: 500; }
+.tab .dot { width: 20px; height: 2px; border-radius: 1px; background: white; margin-bottom: 2px; }
+.page-content { background: white; padding: 16px; min-height: 80px; }
+.stat-row { display: flex; gap: 8px; }
+.stat { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+.stat-val { font-size: 18px; font-weight: 700; color: #111; }
+.stat-lbl { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.selected { border: 3px solid #22c55e; border-radius: 12px; }
+</style>
+</head>
+<body>
+<h1>Pick a Header Color</h1>
+
+<!-- Option 1: Current -->
+<div class="option">
+  <div class="option-label">1. Current — Bold Blue</div>
+  <div class="header" style="background: linear-gradient(to right, #1e40af, #2563eb)">
+    <div class="left">
+      <svg width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <div class="logo">₹</div>
+      <span class="org-name">Friday morning</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="icons">
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg><span>Customers</span></div>
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Payments</span></div>
+      </div>
+      <div class="avatar">S</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val">₹2.28L</div><div class="stat-lbl">Total Loan</div></div>
+      <div class="stat"><div class="stat-val">₹2.77L</div><div class="stat-lbl">Repayable</div></div>
+      <div class="stat"><div class="stat-val">₹2.66L</div><div class="stat-lbl">Outstanding</div></div>
+    </div>
+  </div>
+  <div class="footer" style="background: linear-gradient(to right, #1e40af, #2563eb)">
+    <div class="tab active"><div class="dot"></div><svg fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg><span>Home</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12"/></svg><span>Collect</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg><span>Bulk</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>Reports</span></div>
+  </div>
+</div>
+
+<!-- Option 2: Softer Blue -->
+<div class="option">
+  <div class="option-label">2. Softer Blue — Easy on eyes (Recommended)</div>
+  <div class="header" style="background: linear-gradient(to right, #3b5998, #4a90d9)">
+    <div class="left">
+      <svg width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <div class="logo">₹</div>
+      <span class="org-name">Friday morning</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="icons">
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg><span>Customers</span></div>
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Payments</span></div>
+      </div>
+      <div class="avatar">S</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val">₹2.28L</div><div class="stat-lbl">Total Loan</div></div>
+      <div class="stat"><div class="stat-val">₹2.77L</div><div class="stat-lbl">Repayable</div></div>
+      <div class="stat"><div class="stat-val">₹2.66L</div><div class="stat-lbl">Outstanding</div></div>
+    </div>
+  </div>
+  <div class="footer" style="background: linear-gradient(to right, #3b5998, #4a90d9)">
+    <div class="tab active"><div class="dot"></div><svg fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg><span>Home</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12"/></svg><span>Collect</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg><span>Bulk</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>Reports</span></div>
+  </div>
+</div>
+
+<!-- Option 3: Teal/Blue -->
+<div class="option">
+  <div class="option-label">3. Teal Blue — Fresh, natural</div>
+  <div class="header" style="background: linear-gradient(to right, #0f766e, #0891b2)">
+    <div class="left">
+      <svg width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <div class="logo">₹</div>
+      <span class="org-name">Friday morning</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="icons">
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg><span>Customers</span></div>
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Payments</span></div>
+      </div>
+      <div class="avatar">S</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val">₹2.28L</div><div class="stat-lbl">Total Loan</div></div>
+      <div class="stat"><div class="stat-val">₹2.77L</div><div class="stat-lbl">Repayable</div></div>
+      <div class="stat"><div class="stat-val">₹2.66L</div><div class="stat-lbl">Outstanding</div></div>
+    </div>
+  </div>
+  <div class="footer" style="background: linear-gradient(to right, #0f766e, #0891b2)">
+    <div class="tab active"><div class="dot"></div><svg fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg><span>Home</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12"/></svg><span>Collect</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg><span>Bulk</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>Reports</span></div>
+  </div>
+</div>
+
+<!-- Option 4: Slate -->
+<div class="option">
+  <div class="option-label">4. Slate Blue — Professional, neutral</div>
+  <div class="header" style="background: linear-gradient(to right, #334155, #475569)">
+    <div class="left">
+      <svg width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <div class="logo">₹</div>
+      <span class="org-name">Friday morning</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="icons">
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg><span>Customers</span></div>
+        <div class="icon"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Payments</span></div>
+      </div>
+      <div class="avatar">S</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val">₹2.28L</div><div class="stat-lbl">Total Loan</div></div>
+      <div class="stat"><div class="stat-val">₹2.77L</div><div class="stat-lbl">Repayable</div></div>
+      <div class="stat"><div class="stat-val">₹2.66L</div><div class="stat-lbl">Outstanding</div></div>
+    </div>
+  </div>
+  <div class="footer" style="background: linear-gradient(to right, #334155, #475569)">
+    <div class="tab active"><div class="dot"></div><svg fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg><span>Home</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12"/></svg><span>Collect</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg><span>Bulk</span></div>
+    <div class="tab"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>Reports</span></div>
+  </div>
+</div>
+
+</body>
+</html>

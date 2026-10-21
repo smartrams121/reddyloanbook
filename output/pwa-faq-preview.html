@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PWA Install FAQ Preview</title>
+<style>
+  :root {
+    --bg: #f9fafb;
+    --card-bg: #ffffff;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --accent-green: #059669;
+    --accent-green-light: #ecfdf5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111827;
+      --card-bg: #1f2937;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --border: #374151;
+      --primary: #60a5fa;
+      --primary-light: #1e3a5f;
+      --accent-green: #34d399;
+      --accent-green-light: #064e3b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111827;
+    --card-bg: #1f2937;
+    --text: #f9fafb;
+    --text-muted: #9ca3af;
+    --border: #374151;
+    --primary: #60a5fa;
+    --primary-light: #1e3a5f;
+    --accent-green: #34d399;
+    --accent-green-light: #064e3b;
+    color-scheme: dark;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .header {
+    margin-bottom: 24px;
+  }
+  .header .back { color: var(--primary); font-size: 14px; text-decoration: none; }
+  .header h1 { font-size: 20px; font-weight: 700; margin-top: 8px; }
+  .header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    margin-bottom: 8px;
+  }
+  .badge-new {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .card-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+  }
+  .card-btn:hover { background: var(--primary-light); }
+  .card-btn span { font-size: 14px; font-weight: 500; padding-right: 8px; }
+  .card-btn .arrow {
+    width: 16px; height: 16px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .card-btn .arrow.open { transform: rotate(180deg); }
+  .card-body {
+    padding: 0 16px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .card-body p, .card-body li {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-top: 10px;
+  }
+  .card-body ol {
+    padding-left: 20px;
+  }
+  .card-body li {
+    margin-top: 6px;
+  }
+  .card-body .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-body .section-title .icon {
+    font-size: 16px;
+  }
+  .card-body .tip {
+    background: var(--primary-light);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--primary);
+    line-height: 1.5;
+  }
+  .preview-label {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 12px;
+    border-top: 2px dashed var(--border);
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="#" class="back">&larr; Back</a>
+  <h1>FAQ</h1>
+  <p>Frequently asked questions</p>
+</div>
+
+<!-- NEW FAQ entries for PWA install -->
+
+<span class="badge badge-new">NEW</span>
+<div class="card" id="card-android">
+  <button class="card-btn" onclick="toggle('android')">
+    <span>How do I install this app on my Android phone?</span>
+    <svg class="arrow" id="arrow-android" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+    </svg>
+  </button>
+  <div class="card-body" id="body-android" style="display:none">
+    <div class="section-title"><span class="icon">📱</span> Install on Android (Chrome)</div>
+    <ol>
+      <li>Open <strong>Chrome</strong> browser and go to the Daily Finance website</li>
+      <li>Tap the <strong>three-dot menu (⋮)</strong> at the top-right corner</li>
+      <li>Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></li>
+      <li>Tap <strong>"Install"</strong> in the confirmation popup</li>
+      <li>The app icon will appear on your home screen — tap it to open</li>
+    </ol>
+
+    <div class="section-title"><span class="icon">🌐</span> Using Samsung Internet Browser</div>
+    <ol>
+      <li>Open the Daily Finance website in Samsung Internet</li>
+      <li>Tap the <strong>menu (☰)</strong> at the bottom-right</li>
+      <li>Tap <strong>"Add page to" → "Home screen"</strong></li>
+      <li>Tap <strong>"Add"</strong> to confirm</li>
+    </ol>
+
+    <div class="tip">💡 The app will open in full screen like a regular app — no browser address bar!</div>
+  </div>
+</div>
+
+<span class="badge badge-new">NEW</span>
+<div class="card" id="card-ios">
+  <button class="card-btn" onclick="toggle('ios')">
+    <span>How do I install this app on my iPhone / iPad?</span>
+    <svg class="arrow" id="arrow-ios" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+    </svg>
+  </button>
+  <div class="card-body" id="body-ios" style="display:none">
+    <div class="section-title"><span class="icon">🍎</span> Install on iPhone / iPad (Safari)</div>
+    <ol>
+      <li>Open <strong>Safari</strong> browser (this does NOT work in Chrome on iOS)</li>
+      <li>Go to the Daily Finance website</li>
+      <li>Tap the <strong>Share button (⬆)</strong> at the bottom of the screen</li>
+      <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+      <li>Tap <strong>"Add"</strong> in the top-right corner</li>
+      <li>The app icon will appear on your home screen — tap it to open</li>
+    </ol>
+
+    <div class="tip">⚠️ Important: You must use Safari. Chrome, Firefox, and other browsers on iOS do not support "Add to Home Screen" as an app.</div>
+  </div>
+</div>
+
+<span class="badge badge-new">NEW</span>
+<div class="card" id="card-benefits">
+  <button class="card-btn" onclick="toggle('benefits')">
+    <span>What are the benefits of installing as an app?</span>
+    <svg class="arrow" id="arrow-benefits" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+    </svg>
+  </button>
+  <div class="card-body" id="body-benefits" style="display:none">
+    <p>Installing Daily Finance as an app gives you:</p>
+    <ol>
+      <li><strong>Quick access</strong> — Open directly from your home screen, no need to type the website address</li>
+      <li><strong>Full screen</strong> — The app opens without the browser address bar, giving more screen space</li>
+      <li><strong>Faster loading</strong> — Common pages are cached for faster access on repeat visits</li>
+      <li><strong>Offline notice</strong> — If your internet is down, you'll see a friendly message instead of a browser error</li>
+      <li><strong>App-like feel</strong> — It appears in your recent apps list and can be switched like any other app</li>
+    </ol>
+
+    <div class="tip">📌 No app store download needed. No storage space used. It's a shortcut to the website that looks and feels like a native app.</div>
+  </div>
+</div>
+
+<!-- Existing FAQ example for context -->
+<div style="margin-top: 16px; padding-top: 8px; border-top: 1px dashed var(--border);">
+  <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">EXISTING FAQ ITEMS (for context)</p>
+</div>
+
+<div class="card">
+  <button class="card-btn" onclick="toggle('existing1')">
+    <span>How do I register as a new owner?</span>
+    <svg class="arrow" id="arrow-existing1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+    </svg>
+  </button>
+  <div class="card-body" id="body-existing1" style="display:none">
+    <p>Go to the Register page and fill in your full name, phone number, username, password, business name, city, and at least one location/village.</p>
+  </div>
+</div>
+
+<div class="card">
+  <button class="card-btn" onclick="toggle('existing2')">
+    <span>What happens after too many failed login attempts?</span>
+    <svg class="arrow" id="arrow-existing2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+    </svg>
+  </button>
+  <div class="card-body" id="body-existing2" style="display:none">
+    <p>After 5 consecutive failed login attempts, your account is temporarily locked for 15 minutes.</p>
+  </div>
+</div>
+
+<div class="preview-label">
+  PREVIEW — 3 new FAQ entries will be added to the existing 47 items<br>
+  PWA setup (service worker, icons, offline page) included in the same commit
+</div>
+
+<script>
+function toggle(id) {
+  const body = document.getElementById('body-' + id);
+  const arrow = document.getElementById('arrow-' + id);
+  const isOpen = body.style.display !== 'none';
+  // close all
+  document.querySelectorAll('.card-body').forEach(b => b.style.display = 'none');
+  document.querySelectorAll('.arrow').forEach(a => a.classList.remove('open'));
+  if (!isOpen) {
+    body.style.display = 'block';
+    arrow.classList.add('open');
+  }
+}
+</script>
+</body>
+</html>

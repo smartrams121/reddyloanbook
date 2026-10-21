@@ -20,14 +20,14 @@ export async function GET() {
     where: { businessId: { in: bizIds } },
     include: {
       user: {
-        select: { id: true, fullName: true, username: true, phone: true, email: true, role: true, isActive: true, createdAt: true, backdateValue: true, backdateUnit: true },
+        select: { id: true, fullName: true, username: true, phone: true, email: true, role: true, isActive: true, createdAt: true, backdateValue: true, backdateUnit: true, backdatingDays: true },
       },
     },
   })
 
   const employeeMap = new Map<string, {
     id: string; fullName: string; username: string; phone: string | null; email: string | null
-    role: string; isActive: boolean; createdAt: Date; businesses: string[]; backdateValue: number; backdateUnit: string
+    role: string; isActive: boolean; createdAt: Date; businesses: string[]; backdateValue: number; backdateUnit: string; backdatingDays: number | null
   }>()
 
   for (const a of assignments) {
@@ -49,7 +49,7 @@ export async function GET() {
       role: { in: ['AGENT', 'BUSINESS_ADMIN'] },
       id: { notIn: Array.from(employeeMap.keys()) },
     },
-    select: { id: true, fullName: true, username: true, phone: true, email: true, role: true, isActive: true, createdAt: true, backdateValue: true, backdateUnit: true },
+    select: { id: true, fullName: true, username: true, phone: true, email: true, role: true, isActive: true, createdAt: true, backdateValue: true, backdateUnit: true, backdatingDays: true },
   })
 
   // Filter to only users that are NOT assigned to any other owner's businesses
@@ -80,6 +80,7 @@ const createEmployeeSchema = z.object({
   password: z.string().min(4),
   backdateValue: z.number().int().min(1).optional(),
   backdateUnit: z.enum(['HOURS', 'DAYS', 'MONTHS']).optional(),
+  backdatingDays: z.number().int().min(0).max(365).nullable().optional(),
 })
 
 export async function POST(request: Request) {
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten().fieldErrors }, { status: 400 })
   }
 
-  const { fullName, username, phone, role, password, backdateValue, backdateUnit } = parsed.data
+  const { fullName, username, phone, role, password, backdateValue, backdateUnit, backdatingDays } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { username } })
   if (existing) {
@@ -112,6 +113,7 @@ export async function POST(request: Request) {
       mustChangePassword: true,
       ...(role === 'AGENT' && backdateValue !== undefined ? { backdateValue } : {}),
       ...(role === 'AGENT' && backdateUnit ? { backdateUnit } : {}),
+      ...(role === 'AGENT' && backdatingDays !== undefined ? { backdatingDays } : {}),
     },
   })
 

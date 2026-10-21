@@ -1,0 +1,737 @@
+<title>Telugu UI Preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap">
+
+<style>
+  /* Mobile-first finance app mockup — phone frame with screen tabs */
+  :root {
+    --bg: #f5f6fa;
+    --fg: #1a1d2e;
+    --surface: #ffffff;
+    --muted: #6b7085;
+    --accent: #2563eb;
+    --accent-light: #e8edfb;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --orange: #ea580c;
+    --orange-light: #fff1e6;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --border: #e2e4ec;
+    --nav-bg: #ffffff;
+    --shadow: 0 1px 3px rgba(26,29,46,0.08);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1117;
+      --fg: #e4e5ed;
+      --surface: #1a1d2e;
+      --muted: #8b8fa6;
+      --accent: #5b8def;
+      --accent-light: #1e2744;
+      --green: #4ade80;
+      --green-light: #14261c;
+      --orange: #fb923c;
+      --orange-light: #2a1a0e;
+      --red: #f87171;
+      --red-light: #2a1010;
+      --border: #2a2d3e;
+      --nav-bg: #1a1d2e;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117;
+    --fg: #e4e5ed;
+    --surface: #1a1d2e;
+    --muted: #8b8fa6;
+    --accent: #5b8def;
+    --accent-light: #1e2744;
+    --green: #4ade80;
+    --green-light: #14261c;
+    --orange: #fb923c;
+    --orange-light: #2a1a0e;
+    --red: #f87171;
+    --red-light: #2a1010;
+    --border: #2a2d3e;
+    --nav-bg: #1a1d2e;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Noto Sans Telugu', sans-serif;
+    padding-inline: 16px;
+    padding-block: 0;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    text-align: center;
+    padding: 24px 0 8px;
+  }
+  .page-header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .page-header p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 4px 0 0;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin: 16px 0 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .screen {
+    display: none;
+    padding: 16px 0 80px;
+  }
+  .screen.active { display: block; }
+
+  .lang-toggle {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .lang-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .lang-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Phone frame */
+  .phone {
+    background: var(--surface);
+    border-radius: 24px;
+    border: 2px solid var(--border);
+    overflow: hidden;
+    max-width: 375px;
+    margin: 0 auto 24px;
+    box-shadow: var(--shadow), 0 8px 24px rgba(26,29,46,0.06);
+  }
+
+  /* App header bar */
+  .app-bar {
+    background: var(--accent);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-bar .brand {
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .app-bar .brand .logo {
+    width: 28px;
+    height: 28px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .app-bar .icons {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  .app-content {
+    padding: 16px;
+    min-height: 420px;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--nav-bg);
+  }
+  .nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px 12px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-icon {
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+  }
+
+  /* Stat cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.accent .stat-value { color: var(--accent); }
+  .stat-card.orange .stat-value { color: var(--orange); }
+
+  /* Welcome */
+  .welcome {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .welcome-sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* Section header */
+  .section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 16px 0 8px;
+  }
+
+  /* Business card */
+  .biz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 8px;
+  }
+  .biz-name { font-weight: 700; font-size: 0.9rem; }
+  .biz-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .biz-collection {
+    font-size: 0.7rem;
+    color: var(--green);
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  /* Login form */
+  .login-card {
+    padding: 32px 20px;
+    text-align: center;
+  }
+  .login-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .login-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 4px 0 24px;
+  }
+  .form-label {
+    display: block;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .form-input::placeholder { color: var(--muted); opacity: 0.7; }
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .link-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 0.75rem;
+  }
+  .link-row a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .register-prompt {
+    margin-top: 20px;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .register-prompt a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+  /* Customer list */
+  .filter-chips {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    margin: 8px 0 12px;
+    padding-bottom: 4px;
+  }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .chip.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .search-box {
+    width: 100%;
+    padding: 10px 12px 10px 34px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .search-wrap {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .search-wrap::before {
+    content: '🔍';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+  }
+
+  .cust-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cust-name { font-weight: 700; font-size: 0.85rem; }
+  .cust-phone { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+  .cust-village { font-size: 0.65rem; color: var(--muted); }
+  .cust-right { text-align: right; }
+  .cust-loans { font-size: 0.7rem; color: var(--accent); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+  .badge-active { background: var(--green-light); color: var(--green); }
+  .badge-overdue { background: var(--orange-light); color: var(--orange); }
+  .badge-defaulter { background: var(--red-light); color: var(--red); }
+
+  /* Posting cards */
+  .posting-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .posting-card:hover { border-color: var(--accent); }
+  .posting-icon { font-size: 1.5rem; margin-bottom: 8px; }
+  .posting-title { font-weight: 700; font-size: 0.9rem; }
+  .posting-desc { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+  .page-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .page-title { font-size: 1.1rem; font-weight: 700; }
+  .add-btn {
+    padding: 6px 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .subtitle { font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; }
+
+  .note-box {
+    background: var(--accent-light);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 20px 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--fg);
+  }
+  .note-box strong { font-weight: 700; }
+</style>
+
+<div class="page-header">
+  <h1>డైలీ ఫైనాన్స్ — తెలుగు UI ప్రివ్యూ</h1>
+  <p>Daily Finance app screens rendered in Telugu for client review</p>
+</div>
+
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('te')">తెలుగు</button>
+  <button class="lang-btn" onclick="setLang('en')">English</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showScreen('login')">లాగిన్</button>
+  <button class="tab" onclick="showScreen('dashboard')">డాష్‌బోర్డ్</button>
+  <button class="tab" onclick="showScreen('customers')">కస్టమర్లు</button>
+  <button class="tab" onclick="showScreen('posting')">పేమెంట్లు</button>
+</div>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="phone">
+    <div class="login-card">
+      <div class="login-title" data-te="డైలీ ఫైనాన్స్" data-en="Daily Finance">డైలీ ఫైనాన్స్</div>
+      <div class="login-sub" data-te="ఫైనాన్స్ కలెక్షన్ మేనేజ్‌మెంట్" data-en="Finance Collection Management">ఫైనాన్స్ కలెక్షన్ మేనేజ్‌మెంట్</div>
+
+      <label class="form-label" data-te="యూజర్‌నేమ్" data-en="Username">యూజర్‌నేమ్</label>
+      <input class="form-input" data-te-ph="యూజర్‌నేమ్ నమోదు చేయండి" data-en-ph="Enter username" placeholder="యూజర్‌నేమ్ నమోదు చేయండి">
+
+      <label class="form-label" data-te="పాస్‌వర్డ్" data-en="Password">పాస్‌వర్డ్</label>
+      <input class="form-input" type="password" data-te-ph="పాస్‌వర్డ్ నమోదు చేయండి" data-en-ph="Enter password" placeholder="పాస్‌వర్డ్ నమోదు చేయండి">
+
+      <div class="link-row">
+        <a href="#" data-te="పాస్‌వర్డ్ మర్చిపోయారా?" data-en="Forgot Password?">పాస్‌వర్డ్ మర్చిపోయారా?</a>
+      </div>
+
+      <button class="btn-primary" data-te="సైన్ ఇన్" data-en="Sign In">సైన్ ఇన్</button>
+
+      <div class="register-prompt">
+        <span data-te="ఓనర్‌గా రిజిస్టర్ చేయాలనుకుంటున్నారా?" data-en="Want to register as an Owner?">ఓనర్‌గా రిజిస్టర్ చేయాలనుకుంటున్నారా?</span>
+        <a href="#" data-te="ఇక్కడ రిజిస్టర్ చేయండి" data-en="Register Here">ఇక్కడ రిజిస్టర్ చేయండి</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ DASHBOARD ═══════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="phone">
+    <div class="app-bar">
+      <div class="brand">
+        <div class="logo">₹</div>
+        <span data-te="డైలీ ఫైనాన్స్" data-en="Daily Finance">డైలీ ఫైనాన్స్</span>
+      </div>
+      <div class="icons">☰</div>
+    </div>
+    <div class="app-content">
+      <div class="welcome" data-te="స్వాగతం, రామ్ ప్రసాద్" data-en="Welcome, Ram Prasad">స్వాగతం, రామ్ ప్రసాద్</div>
+      <div class="welcome-sub" data-te="2 వ్యాపారాలు · వ్యాపారాన్ని ఎంచుకోండి" data-en="2 businesses · Select a business to manage">2 వ్యాపారాలు · వ్యాపారాన్ని ఎంచుకోండి</div>
+
+      <div class="stats-grid">
+        <div class="stat-card accent">
+          <div class="stat-label" data-te="యాక్టివ్ కస్టమర్లు" data-en="Active Customers">యాక్టివ్ కస్టమర్లు</div>
+          <div class="stat-value">248</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label" data-te="మొత్తం బకాయి" data-en="Total Outstanding">మొత్తం బకాయి</div>
+          <div class="stat-value">₹18.5L</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="stat-label" data-te="యాక్టివ్ లోన్లు" data-en="Active Loans">యాక్టివ్ లోన్లు</div>
+          <div class="stat-value">312</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-label" data-te="ఈరోజు కలెక్షన్" data-en="Today's Collection">ఈరోజు కలెక్షన్</div>
+          <div class="stat-value">₹24,500</div>
+        </div>
+      </div>
+
+      <div class="section-title" data-te="నా వ్యాపారాలు" data-en="My Businesses">నా వ్యాపారాలు</div>
+
+      <div class="biz-card">
+        <div class="biz-name">సాయి డైలీ ఫైనాన్స్</div>
+        <div class="biz-meta" data-te="విశాఖపట్నం · 180 కస్టమర్లు" data-en="Visakhapatnam · 180 customers">విశాఖపట్నం · 180 కస్టమర్లు</div>
+        <div class="biz-collection" data-te="+₹18,200 ఈరోజు" data-en="+₹18,200 today">+₹18,200 ఈరోజు</div>
+      </div>
+
+      <div class="biz-card">
+        <div class="biz-name">శ్రీ లక్ష్మీ ఫైనాన్స్</div>
+        <div class="biz-meta" data-te="హైదరాబాద్ · 68 కస్టమర్లు" data-en="Hyderabad · 68 customers">హైదరాబాద్ · 68 కస్టమర్లు</div>
+        <div class="biz-collection" data-te="+₹6,300 ఈరోజు" data-en="+₹6,300 today">+₹6,300 ఈరోజు</div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active">
+        <div class="nav-icon">🏠</div>
+        <span data-te="హోమ్" data-en="Home">హోమ్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">💰</div>
+        <span data-te="కలెక్ట్" data-en="Collect">కలెక్ట్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">📋</div>
+        <span data-te="బల్క్" data-en="Bulk">బల్క్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">📊</div>
+        <span data-te="రిపోర్ట్‌లు" data-en="Reports">రిపోర్ట్‌లు</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CUSTOMERS ═══════════════════ -->
+<div class="screen" id="screen-customers">
+  <div class="phone">
+    <div class="app-bar">
+      <div class="brand">
+        <div class="logo">₹</div>
+        <span>సాయి డైలీ ఫైనాన్స్</span>
+      </div>
+      <div class="icons">☰</div>
+    </div>
+    <div class="app-content">
+      <div class="page-title-row">
+        <div class="page-title" data-te="కస్టమర్లు" data-en="Customers">కస్టమర్లు</div>
+        <button class="add-btn" data-te="+ కొత్త" data-en="+ New">+ కొత్త</button>
+      </div>
+      <div class="subtitle" data-te="సాయి డైలీ ఫైనాన్స్ · 180 కస్టమర్లు" data-en="Sai Daily Finance · 180 customers">సాయి డైలీ ఫైనాన్స్ · 180 కస్టమర్లు</div>
+
+      <div class="search-wrap">
+        <input class="search-box" data-te-ph="పేరు, ఫోన్, చిరునామా ద్వారా వెతకండి..." data-en-ph="Search by name, phone, address..." placeholder="పేరు, ఫోన్, చిరునామా ద్వారా వెతకండి...">
+      </div>
+
+      <div class="filter-chips">
+        <span class="chip active" data-te="అన్నీ" data-en="All">అన్నీ</span>
+        <span class="chip" data-te="యాక్టివ్" data-en="Active">యాక్టివ్</span>
+        <span class="chip" data-te="ఆలస్యం" data-en="Overdue">ఆలస్యం</span>
+        <span class="chip" data-te="డిఫాల్టర్" data-en="Defaulter">డిఫాల్టర్</span>
+        <span class="chip" data-te="పూర్తయింది" data-en="Completed">పూర్తయింది</span>
+        <span class="chip" data-te="లోన్లు లేవు" data-en="No Loans">లోన్లు లేవు</span>
+      </div>
+
+      <div class="cust-card">
+        <div>
+          <div class="cust-name">వెంకట రమణ</div>
+          <div class="cust-phone">98765 43210</div>
+          <div class="cust-village">పి.ఎం. పాలెం</div>
+        </div>
+        <div class="cust-right">
+          <div class="cust-loans" data-te="2 లోన్లు" data-en="2 loans">2 లోన్లు</div>
+          <div class="badge badge-active" data-te="యాక్టివ్" data-en="ACTIVE">యాక్టివ్</div>
+        </div>
+      </div>
+
+      <div class="cust-card">
+        <div>
+          <div class="cust-name">లక్ష్మీ దేవి</div>
+          <div class="cust-phone">87654 32109</div>
+          <div class="cust-village">మధురవాడ</div>
+        </div>
+        <div class="cust-right">
+          <div class="cust-loans" data-te="1 లోన్" data-en="1 loan">1 లోన్</div>
+          <div class="badge badge-overdue" data-te="ఆలస్యం" data-en="OVERDUE">ఆలస్యం</div>
+        </div>
+      </div>
+
+      <div class="cust-card">
+        <div>
+          <div class="cust-name">సురేష్ కుమార్</div>
+          <div class="cust-phone">76543 21098</div>
+          <div class="cust-village">గాజువాక</div>
+        </div>
+        <div class="cust-right">
+          <div class="cust-loans" data-te="3 లోన్లు" data-en="3 loans">3 లోన్లు</div>
+          <div class="badge badge-defaulter" data-te="డిఫాల్టర్" data-en="DEFAULTER">డిఫాల్టర్</div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item">
+        <div class="nav-icon">🏠</div>
+        <span data-te="హోమ్" data-en="Home">హోమ్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">💰</div>
+        <span data-te="కలెక్ట్" data-en="Collect">కలెక్ట్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">📋</div>
+        <span data-te="బల్క్" data-en="Bulk">బల్క్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">📊</div>
+        <span data-te="రిపోర్ట్‌లు" data-en="Reports">రిపోర్ట్‌లు</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ POSTING ═══════════════════ -->
+<div class="screen" id="screen-posting">
+  <div class="phone">
+    <div class="app-bar">
+      <div class="brand">
+        <div class="logo">₹</div>
+        <span>సాయి డైలీ ఫైనాన్స్</span>
+      </div>
+      <div class="icons">☰</div>
+    </div>
+    <div class="app-content">
+      <div class="page-title" data-te="పేమెంట్లు" data-en="Payments">పేమెంట్లు</div>
+      <div class="subtitle" data-te="పోస్టింగ్ పద్ధతిని ఎంచుకోండి" data-en="Choose a posting method" style="margin-bottom:16px">పోస్టింగ్ పద్ధతిని ఎంచుకోండి</div>
+
+      <div class="posting-card">
+        <div class="posting-icon">👤</div>
+        <div class="posting-title" data-te="వ్యక్తిగత పోస్టింగ్" data-en="Individual Posting">వ్యక్తిగత పోస్టింగ్</div>
+        <div class="posting-desc" data-te="కస్టమర్‌ని వెతికి ఒక పేమెంట్ రికార్డ్ చేయండి" data-en="Search a customer and record a single payment">కస్టమర్‌ని వెతికి ఒక పేమెంట్ రికార్డ్ చేయండి</div>
+      </div>
+
+      <div class="posting-card">
+        <div class="posting-icon">📋</div>
+        <div class="posting-title" data-te="బల్క్ పోస్టింగ్" data-en="Bulk Posting">బల్క్ పోస్టింగ్</div>
+        <div class="posting-desc" data-te="ఒక లొకేషన్‌లో అన్ని కస్టమర్ల పేమెంట్లు ఒకేసారి రికార్డ్ చేయండి" data-en="Collect payments for all customers in a location at once">ఒక లొకేషన్‌లో అన్ని కస్టమర్ల పేమెంట్లు ఒకేసారి రికార్డ్ చేయండి</div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item">
+        <div class="nav-icon">🏠</div>
+        <span data-te="హోమ్" data-en="Home">హోమ్</span>
+      </div>
+      <div class="nav-item active">
+        <div class="nav-icon">💰</div>
+        <span data-te="కలెక్ట్" data-en="Collect">కలెక్ట్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">📋</div>
+        <span data-te="బల్క్" data-en="Bulk">బల్క్</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">📊</div>
+        <span data-te="రిపోర్ట్‌లు" data-en="Reports">రిపోర్ట్‌లు</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note-box">
+  <strong>Implementation Note:</strong> ~128 unique UI strings across all screens. Uses <code>next-intl</code> with JSON translation files. Telugu font: Noto Sans Telugu (Google Fonts, 0 cost). Effort: ~2 days. Language toggle stored per user in browser. No backend changes needed.
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function setLang(lang) {
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  document.querySelectorAll('[data-' + lang + ']').forEach(el => {
+    el.textContent = el.getAttribute('data-' + lang);
+  });
+  document.querySelectorAll('[data-' + lang + '-ph]').forEach(el => {
+    el.placeholder = el.getAttribute('data-' + lang + '-ph');
+  });
+
+  const tabLabels = lang === 'te'
+    ? ['లాగిన్', 'డాష్‌బోర్డ్', 'కస్టమర్లు', 'పేమెంట్లు']
+    : ['Login', 'Dashboard', 'Customers', 'Payments'];
+  document.querySelectorAll('.tab').forEach((t, i) => { t.textContent = tabLabels[i]; });
+}
+</script>

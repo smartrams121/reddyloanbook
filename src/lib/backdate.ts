@@ -1,5 +1,5 @@
 import { Role } from '@/lib/constants'
-import { nowIST, addDays, addMonths, formatDateISO } from '@/lib/date'
+import { nowIST, addDays, addMonths, formatDateISO, formatDateDisplay } from '@/lib/date'
 import type { AuthUser } from '@/lib/auth'
 
 function getBackdateCutoff(user: AuthUser): Date | null {
@@ -60,5 +60,27 @@ export function assertRecordEditAllowed(user: AuthUser, recordCreatedAt: Date) {
 
   if (now.getTime() > editDeadline.getTime()) {
     throw new Error(`This record was created outside your allowed edit window (${value} ${unit.toLowerCase()})`)
+  }
+}
+
+export function getPaymentMinDate(user: AuthUser): string | null {
+  if (user.role !== Role.AGENT) return null
+  if (user.backdatingDays === null || user.backdatingDays === undefined) return null
+  const today = nowIST()
+  if (user.backdatingDays === 0) return formatDateISO(today)
+  return formatDateISO(addDays(today, -user.backdatingDays))
+}
+
+export function assertPaymentDateAllowed(user: AuthUser, dateStr: string): void {
+  const minDate = getPaymentMinDate(user)
+  if (!minDate) return
+  if (dateStr < minDate) {
+    const display = formatDateDisplay(minDate)
+    if (user.backdatingDays === 0) {
+      throw new Error('You can only record payments for today.')
+    }
+    throw new Error(
+      `Payment date exceeds your backdating limit of ${user.backdatingDays} day(s). Earliest allowed: ${display}`
+    )
   }
 }
