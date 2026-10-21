@@ -19,6 +19,7 @@ interface Employee {
   businessIds?: string[]
   backdateValue: number
   backdateUnit: string
+  backdatingDays: number | null
 }
 
 export default function EmployeesPage() {
@@ -40,6 +41,8 @@ export default function EmployeesPage() {
   const [password, setPassword] = useState('')
   const [backdateValue, setBackdateValue] = useState('4')
   const [backdateUnit, setBackdateUnit] = useState('HOURS')
+  const [backdatingPermission, setBackdatingPermission] = useState<'unlimited' | 'restrict'>('unlimited')
+  const [backdatingDays, setBackdatingDays] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -51,6 +54,8 @@ export default function EmployeesPage() {
   const [editRole, setEditRole] = useState('')
   const [editBackdateValue, setEditBackdateValue] = useState('4')
   const [editBackdateUnit, setEditBackdateUnit] = useState('HOURS')
+  const [editBackdatingPermission, setEditBackdatingPermission] = useState<'unlimited' | 'restrict'>('unlimited')
+  const [editBackdatingDays, setEditBackdatingDays] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Search + pagination
@@ -100,6 +105,15 @@ export default function EmployeesPage() {
     e.preventDefault()
     setError('')
     setSuccess('')
+    if (!fullName || !username || !password) { setError('Required fields missing'); return }
+
+    if (role === 'AGENT' && backdatingPermission === 'restrict') {
+      if (backdatingDays === '') { setError('Please enter the number of backdating days'); return }
+      const days = parseInt(backdatingDays)
+      if (days < 0) { setError('Must be 0 or greater'); return }
+      if (days > 365) { setError('Cannot exceed 365 days'); return }
+    }
+
     setCreating(true)
     try {
       const res = await fetch('/api/owner/employees', {
@@ -107,14 +121,18 @@ export default function EmployeesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName, username, phone: phone || undefined, role, password,
-          ...(role === 'AGENT' ? { backdateValue: parseInt(backdateValue) || 4, backdateUnit } : {}),
+          ...(role === 'AGENT' ? {
+            backdateValue: parseInt(backdateValue) || 4,
+            backdateUnit,
+            backdatingDays: backdatingPermission === 'restrict' ? parseInt(backdatingDays) : null
+          } : {}),
         }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Failed to create'); return }
       const createdPassword = password
       setShareTarget({ variant: 'employee-created', fullName: data.fullName, username: data.username, phone: phone || null, email: null, password: createdPassword })
-      setFullName(''); setUsername(''); setPhone(''); setPassword(''); setRole('AGENT'); setBackdateValue('4'); setBackdateUnit('HOURS')
+      setFullName(''); setUsername(''); setPhone(''); setPassword(''); setRole('AGENT'); setBackdateValue('4'); setBackdateUnit('HOURS'); setBackdatingPermission('unlimited'); setBackdatingDays('')
       setShowCreate(false)
       loadEmployees()
     } catch { setError('Network error') }
@@ -128,11 +146,21 @@ export default function EmployeesPage() {
     setEditRole(emp.role)
     setEditBackdateValue(String(emp.backdateValue ?? 4))
     setEditBackdateUnit(emp.backdateUnit ?? 'HOURS')
+    setEditBackdatingPermission(emp.backdatingDays !== null && emp.backdatingDays !== undefined ? 'restrict' : 'unlimited')
+    setEditBackdatingDays(emp.backdatingDays?.toString() ?? '')
     setActionMenu(null)
   }
 
   async function handleSaveEdit() {
     if (!editingId) return
+
+    if (editRole === 'AGENT' && editBackdatingPermission === 'restrict') {
+      if (editBackdatingDays === '') { setError('Please enter the number of backdating days'); return }
+      const days = parseInt(editBackdatingDays)
+      if (days < 0) { setError('Must be 0 or greater'); return }
+      if (days > 365) { setError('Cannot exceed 365 days'); return }
+    }
+
     setSaving(true)
     try {
       const res = await fetch(`/api/owner/employees/${editingId}`, {
@@ -140,7 +168,11 @@ export default function EmployeesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: editName, phone: editPhone, role: editRole,
-          ...(editRole === 'AGENT' ? { backdateValue: parseInt(editBackdateValue) || 4, backdateUnit: editBackdateUnit } : {}),
+          ...(editRole === 'AGENT' ? {
+            backdateValue: parseInt(editBackdateValue) || 4,
+            backdateUnit: editBackdateUnit,
+            backdatingDays: editBackdatingPermission === 'restrict' ? parseInt(editBackdatingDays) : null
+          } : {}),
         }),
       })
       if (res.ok) {
@@ -310,25 +342,43 @@ export default function EmployeesPage() {
               </div>
             </div>
             {role === 'AGENT' && (
-              <div>
-                <label className="label">Edit Window</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="number"
-                    className="input"
-                    value={backdateValue}
-                    onChange={(e) => setBackdateValue(e.target.value)}
-                    min={1}
-                    placeholder="Value"
-                  />
-                  <select className="input" value={backdateUnit} onChange={(e) => setBackdateUnit(e.target.value)}>
-                    <option value="HOURS">Hours</option>
-                    <option value="DAYS">Days</option>
-                    <option value="MONTHS">Months</option>
-                  </select>
+              <>
+                <div>
+                  <label className="label">Edit Window</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      className="input"
+                      value={backdateValue}
+                      onChange={(e) => setBackdateValue(e.target.value)}
+                      min={1}
+                      placeholder="Value"
+                    />
+                    <select className="input" value={backdateUnit} onChange={(e) => setBackdateUnit(e.target.value)}>
+                      <option value="HOURS">Hours</option>
+                      <option value="DAYS">Days</option>
+                      <option value="MONTHS">Months</option>
+                    </select>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Agent can edit records created within this window (from creation time)</p>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Agent can edit records created within this window (from creation time)</p>
-              </div>
+                <div>
+                  <label className="label">Backdating Permission</label>
+                  <select className="input" value={backdatingPermission} onChange={(e) => setBackdatingPermission(e.target.value as 'unlimited' | 'restrict')}>
+                    <option value="unlimited">Unlimited</option>
+                    <option value="restrict">Restrict backdating</option>
+                  </select>
+                  {backdatingPermission === 'unlimited' ? (
+                    <p className="text-[10px] text-gray-400 mt-1">Agent can select any past date when recording payments.</p>
+                  ) : (
+                    <div className="mt-2">
+                      <label className="label text-xs">Number of days agent can backdate</label>
+                      <input type="number" className="input" min={0} max={365} placeholder="e.g. 5" value={backdatingDays} onChange={(e) => setBackdatingDays(e.target.value)} />
+                      <p className="text-[10px] text-gray-400 mt-1">Enter 0 to allow today only. Enter 5 to allow up to 5 days back.</p>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
             <div className="flex gap-2">
               <button type="submit" disabled={creating} className="btn-primary text-sm flex-1">
@@ -372,23 +422,41 @@ export default function EmployeesPage() {
                     </div>
                   </div>
                   {editRole === 'AGENT' && (
-                    <div>
-                      <label className="label text-xs">Edit Window</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="number"
-                          className="input"
-                          value={editBackdateValue}
-                          onChange={(e) => setEditBackdateValue(e.target.value)}
-                          min={1}
-                        />
-                        <select className="input" value={editBackdateUnit} onChange={(e) => setEditBackdateUnit(e.target.value)}>
-                          <option value="HOURS">Hours</option>
-                          <option value="DAYS">Days</option>
-                          <option value="MONTHS">Months</option>
-                        </select>
+                    <>
+                      <div>
+                        <label className="label text-xs">Edit Window</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="number"
+                            className="input"
+                            value={editBackdateValue}
+                            onChange={(e) => setEditBackdateValue(e.target.value)}
+                            min={1}
+                          />
+                          <select className="input" value={editBackdateUnit} onChange={(e) => setEditBackdateUnit(e.target.value)}>
+                            <option value="HOURS">Hours</option>
+                            <option value="DAYS">Days</option>
+                            <option value="MONTHS">Months</option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
+                      <div>
+                        <label className="label text-xs">Backdating Permission</label>
+                        <select className="input" value={editBackdatingPermission} onChange={(e) => setEditBackdatingPermission(e.target.value as 'unlimited' | 'restrict')}>
+                          <option value="unlimited">Unlimited</option>
+                          <option value="restrict">Restrict backdating</option>
+                        </select>
+                        {editBackdatingPermission === 'unlimited' ? (
+                          <p className="text-[10px] text-gray-400 mt-1">Agent can select any past date when recording payments.</p>
+                        ) : (
+                          <div className="mt-2">
+                            <label className="label text-xs">Number of days agent can backdate</label>
+                            <input type="number" className="input" min={0} max={365} placeholder="e.g. 5" value={editBackdatingDays} onChange={(e) => setEditBackdatingDays(e.target.value)} />
+                            <p className="text-[10px] text-gray-400 mt-1">Enter 0 to allow today only. Enter 5 to allow up to 5 days back.</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                   <div className="flex gap-2">
                     <button onClick={handleSaveEdit} disabled={saving} className="btn-primary text-xs flex-1">
@@ -411,9 +479,18 @@ export default function EmployeesPage() {
                         {emp.role === 'BUSINESS_ADMIN' ? t('profile.role_admin') : t('profile.role_agent')}
                       </span>
                       {emp.role === 'AGENT' && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700" title="Edit window">
-                          {emp.backdateValue ?? 4}{(emp.backdateUnit ?? 'HOURS').charAt(0)}
-                        </span>
+                        <>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700" title="Edit window">
+                            {emp.backdateValue ?? 4}{(emp.backdateUnit ?? 'HOURS').charAt(0)}
+                          </span>
+                          {emp.backdatingDays === null ? (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700" title="Payment backdating">Unlimited</span>
+                          ) : emp.backdatingDays === 0 ? (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-700" title="Payment backdating">Today Only</span>
+                          ) : (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-cyan-50 text-cyan-700" title="Payment backdating">{emp.backdatingDays}d back</span>
+                          )}
+                        </>
                       )}
                       {!emp.isActive && (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">{t('common.suspended')}</span>
