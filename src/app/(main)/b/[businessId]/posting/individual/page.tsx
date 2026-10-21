@@ -37,6 +37,11 @@ function formatPaiseShort(paise: number): string {
   return `₹${rupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+function formatDisplayDate(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
 type Step = 'search' | 'selectLoan' | 'payment' | 'success'
 
 
