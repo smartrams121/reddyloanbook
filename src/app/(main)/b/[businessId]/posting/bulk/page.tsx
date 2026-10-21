@@ -583,14 +583,14 @@ export default function VillageBulkPostingPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSubmit}
-                    disabled={posting || filledRows.length === 0 || !backdatingLoaded || (paymentMinDate && postingDate < paymentMinDate)}
+                    disabled={posting || filledRows.length === 0 || !backdatingLoaded || (paymentMinDate !== null && postingDate < paymentMinDate)}
                     className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
                   >
                     {posting ? t('common.posting') : `${t('common.submit')} ${filledRows.length}`}
                   </button>
                   <button
                     onClick={handleSubmitAndNext}
-                    disabled={posting || filledRows.length === 0 || !backdatingLoaded || (paymentMinDate && postingDate < paymentMinDate)}
+                    disabled={posting || filledRows.length === 0 || !backdatingLoaded || (paymentMinDate !== null && postingDate < paymentMinDate)}
                     className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
                   >
                     {posting ? '...' : t('payments.submit_and_next')}
