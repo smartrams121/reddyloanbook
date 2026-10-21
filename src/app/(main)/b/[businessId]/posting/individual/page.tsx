@@ -68,14 +68,6 @@ export default function RecordPaymentPage() {
   const [selectedLoan, setSelectedLoan] = useState<LoanResult | null>(null)
   const [loadingLoans, setLoadingLoans] = useState(false)
 
-  const [amountStr, setAmountStr] = useState('')
-  const [collectorId, setCollectorId] = useState('')
-  const [note, setNote] = useState('Cash')
-  const [postingDate, setPostingDate] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  })
-  const [loanSummaryOpen, setLoanSummaryOpen] = useState(false)
   const todayStr = (() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -93,8 +85,6 @@ export default function RecordPaymentPage() {
   const [error, setError] = useState('')
   const [paymentMinDate, setPaymentMinDate] = useState<string | null>(todayStr)
   const [backdatingLoaded, setBackdatingLoaded] = useState(false)
-  const [posting, setPosting] = useState(false)
-  const [error, setError] = useState('')
 
   const [existingPaymentId, setExistingPaymentId] = useState<string | null>(null)
   const [existingAmountPaise, setExistingAmountPaise] = useState(0)
