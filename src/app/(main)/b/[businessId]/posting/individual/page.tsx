@@ -429,7 +429,7 @@ export default function RecordPaymentPage() {
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
                 max={todayStr}
-                min={minDateStr}
+                min="2020-01-01"
               />
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
