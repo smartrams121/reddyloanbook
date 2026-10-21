@@ -78,6 +78,8 @@ export default function RecordPaymentPage() {
   const [loanSummaryOpen, setLoanSummaryOpen] = useState(false)
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
+  const [paymentMinDate, setPaymentMinDate] = useState<string | null>(todayStr)
+  const [backdatingLoaded, setBackdatingLoaded] = useState(false)
 
   const todayStr = (() => {
     const d = new Date()
@@ -99,11 +101,30 @@ export default function RecordPaymentPage() {
     Promise.all([
       fetch(`/api/b/${businessId}/customers`).then(r => r.json()),
       fetch(`/api/b/${businessId}/users`).then(r => r.json()),
-    ]).then(([custs, users]) => {
+      fetch('/api/me').then(r => r.json()),
+    ]).then(([custs, users, me]) => {
       if (Array.isArray(custs)) setCustomers(custs)
       if (Array.isArray(users)) setAgents(users)
-    }).catch(() => {})
-  }, [businessId])
+
+      // Compute paymentMinDate from backdatingDays
+      if (me && typeof me === 'object' && 'backdatingDays' in me) {
+        const backdatingDays = me.backdatingDays
+        if (backdatingDays === null || backdatingDays === undefined) {
+          setPaymentMinDate(null) // unlimited
+        } else if (backdatingDays === 0) {
+          setPaymentMinDate(todayStr)
+        } else {
+          const d = new Date()
+          d.setDate(d.getDate() - backdatingDays)
+          setPaymentMinDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)
+        }
+      }
+    }).catch(() => {
+      // On error, keep paymentMinDate as todayStr (safe default)
+    }).finally(() => {
+      setBackdatingLoaded(true)
+    })
+  }, [businessId, todayStr])
 
   useEffect(() => {
     Promise.all([
@@ -258,6 +279,11 @@ export default function RecordPaymentPage() {
     e.preventDefault()
     if (!selectedLoan) return
     setError('')
+
+    if (paymentMinDate && postingDate < paymentMinDate) {
+      setError('Payment date exceeds your backdating limit')
+      return
+    }
 
     const amount = parseFloat(amountStr)
     if (isNaN(amount) || amount < 0) { setError('Enter a valid amount'); return }
@@ -666,12 +692,16 @@ export default function RecordPaymentPage() {
                 className="input w-full min-w-0 text-xs py-1.5"
                 value={postingDate}
                 onChange={(e) => setPostingDate(e.target.value)}
-                min={selectedLoan.startDate > minDateStr ? selectedLoan.startDate : minDateStr}
+                min={paymentMinDate ? (selectedLoan.startDate > paymentMinDate ? selectedLoan.startDate : paymentMinDate) : selectedLoan.startDate}
                 max={todayStr}
+                disabled={!backdatingLoaded || posting}
                 required
               />
               {postingDate !== todayStr && (
                 <p className="text-[10px] text-amber-600 mt-1">Backdated to {formatDisplayDate(postingDate)}</p>
+              )}
+              {paymentMinDate && postingDate < paymentMinDate && (
+                <p className="text-[10px] text-danger-600 mt-1">Payment date exceeds your backdating limit</p>
               )}
             </div>
 
@@ -742,12 +772,12 @@ export default function RecordPaymentPage() {
           </div>
 
           <div className="flex gap-2">
-            <button type="submit" disabled={posting} className="btn-primary flex-1 text-sm font-medium rounded-lg px-3 py-2.5">
+            <button type="submit" disabled={posting || !backdatingLoaded} className="btn-primary flex-1 text-sm font-medium rounded-lg px-3 py-2.5 disabled:opacity-50">
               {posting ? '...' : existingPaymentId ? t('common.update') : t('payments.post')}
             </button>
             <button
               type="button"
-              disabled={posting}
+              disabled={posting || !backdatingLoaded}
               onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, 'next')}
               className="flex-1 text-sm font-medium rounded-lg px-3 py-2.5 bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
             >
@@ -755,7 +785,7 @@ export default function RecordPaymentPage() {
             </button>
             <button
               type="button"
-              disabled={posting}
+              disabled={posting || !backdatingLoaded}
               onClick={(e) => handlePostPayment(e as unknown as React.FormEvent, 'nextDay')}
               className="flex-1 text-sm font-medium rounded-lg px-3 py-2.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
             >

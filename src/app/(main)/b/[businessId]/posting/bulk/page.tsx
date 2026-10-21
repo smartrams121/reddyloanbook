@@ -66,6 +66,8 @@ export default function VillageBulkPostingPage() {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
+  const [paymentMinDate, setPaymentMinDate] = useState<string | null>(null)
+  const [backdatingLoaded, setBackdatingLoaded] = useState(false)
 
   const todayStr = (() => {
     const d = new Date()
@@ -99,11 +101,29 @@ export default function VillageBulkPostingPage() {
     Promise.all([
       fetch(`/api/b/${businessId}/villages`).then(r => r.json()),
       fetch(`/api/b/${businessId}/users`).then(r => r.json()),
-    ]).then(([vils, users]) => {
+      fetch('/api/me').then(r => r.json()),
+    ]).then(([vils, users, me]) => {
       if (Array.isArray(vils)) setVillages(vils)
       if (Array.isArray(users)) setAgents(users)
-    }).catch(() => {})
-  }, [businessId])
+
+      if (me && typeof me === 'object' && 'backdatingDays' in me) {
+        const backdatingDays = me.backdatingDays
+        if (backdatingDays === null || backdatingDays === undefined) {
+          setPaymentMinDate(null)
+        } else if (backdatingDays === 0) {
+          setPaymentMinDate(todayStr)
+        } else {
+          const d = new Date()
+          d.setDate(d.getDate() - backdatingDays)
+          setPaymentMinDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)
+        }
+      }
+    }).catch(() => {
+      setPaymentMinDate(todayStr)
+    }).finally(() => {
+      setBackdatingLoaded(true)
+    })
+  }, [businessId, todayStr])
 
   const [initialLoaded, setInitialLoaded] = useState(false)
 
@@ -215,6 +235,12 @@ export default function VillageBulkPostingPage() {
 
   async function handleSubmit() {
     setError('')
+
+    if (paymentMinDate && postingDate < paymentMinDate) {
+      setError('Payment date exceeds your backdating limit')
+      return
+    }
+
     const payments = filledRows.map(r => ({
       loanId: r.loanId,
       amount: Math.round(parseFloat(r.amountStr) * 100),
@@ -363,12 +389,16 @@ export default function VillageBulkPostingPage() {
                       className="input min-w-0 max-w-full text-xs py-1.5"
                       value={postingDate}
                       onChange={(e) => setPostingDate(e.target.value)}
-                      min={minDateStr}
+                      min={paymentMinDate ?? minDateStr}
                       max={todayStr}
+                      disabled={!backdatingLoaded}
                       required
                     />
                     {postingDate !== todayStr && (
                       <p className="text-[10px] text-amber-600 mt-1">{t('common.backdated')}</p>
+                    )}
+                    {paymentMinDate && postingDate < paymentMinDate && (
+                      <p className="text-[10px] text-danger-600 mt-1">Payment date exceeds your backdating limit</p>
                     )}
                   </div>
                   <div>
@@ -553,14 +583,14 @@ export default function VillageBulkPostingPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSubmit}
-                    disabled={posting || filledRows.length === 0}
+                    disabled={posting || filledRows.length === 0 || !backdatingLoaded || (paymentMinDate && postingDate < paymentMinDate)}
                     className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
                   >
                     {posting ? t('common.posting') : `${t('common.submit')} ${filledRows.length}`}
                   </button>
                   <button
                     onClick={handleSubmitAndNext}
-                    disabled={posting || filledRows.length === 0}
+                    disabled={posting || filledRows.length === 0 || !backdatingLoaded || (paymentMinDate && postingDate < paymentMinDate)}
                     className="flex-1 text-sm font-medium px-4 py-2.5 rounded-lg bg-success-600 text-white hover:bg-success-700 disabled:opacity-50 transition-colors"
                   >
                     {posting ? '...' : t('payments.submit_and_next')}

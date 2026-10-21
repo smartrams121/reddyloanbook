@@ -18,6 +18,7 @@ interface UserProfile {
   phone: string | null
   photoPath: string | null
   businesses: BusinessInfo[]
+  backdatingDays?: number | null
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -242,15 +243,32 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 2. Organization Details (Owner/BA only) */}
+      {/* 2. Payment Backdating Limit (Agent only) */}
+      {profile.role === 'AGENT' && (
+        <div className="card p-4">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Payment Backdating</h2>
+          <div className="flex items-center gap-3">
+            {profile.backdatingDays === null || profile.backdatingDays === undefined ? (
+              <span className="inline-block text-xs font-medium bg-green-50 text-green-700 px-3 py-1.5 rounded-full">Unlimited</span>
+            ) : profile.backdatingDays === 0 ? (
+              <span className="inline-block text-xs font-medium bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full">Today only</span>
+            ) : (
+              <span className="inline-block text-xs font-medium bg-cyan-50 text-cyan-700 px-3 py-1.5 rounded-full">Up to {profile.backdatingDays} day{profile.backdatingDays === 1 ? '' : 's'} back</span>
+            )}
+            <p className="text-xs text-gray-500">When recording payments</p>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Organization Details (Owner/BA only) */}
       {(isOwner || profile.role === 'BUSINESS_ADMIN') && (
         <OrganizationSection />
       )}
 
-      {/* 3. Language */}
+      {/* 4. Language */}
       <LanguageSection />
 
-      {/* 4. Change Password (collapsed) */}
+      {/* 5. Change Password (collapsed) */}
       <div className="card">
         <button type="button" onClick={() => setPwOpen(!pwOpen)} className="w-full p-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">{t('auth.change_password')}</h2>
@@ -280,7 +298,7 @@ export default function ProfilePage() {
         </form>}
       </div>
 
-      {/* 5. Danger Zone (Owner only, collapsed) */}
+      {/* 6. Danger Zone (Owner only, collapsed) */}
       {isOwner && (
         <DeleteOrganizationSection businessCount={profile.businesses?.filter(b => b.isActive).length || 0} />
       )}
