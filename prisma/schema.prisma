@@ -33,7 +33,7 @@ model User {
   preferredLanguage  String   @default("en")
   backdateValue      Int      @default(4)
   backdateUnit       String   @default("HOURS")
-  backdatingDays     Int?     @default(null)
+  backdatingDays     Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
