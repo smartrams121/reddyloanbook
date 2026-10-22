@@ -105,7 +105,7 @@ export default function ViewPaymentsPage() {
       if (Array.isArray(payData) && Array.isArray(allPayData)) {
         const paidNums = new Set(payData.map((p: PaymentRow) => p.loan?.loanNumber).filter(Boolean))
         const allNums = new Set((allPayData as PaymentRow[]).map(p => p.loan?.loanNumber).filter(Boolean))
-        setZeroLoanNumbers(new Set([...allNums].filter(n => !paidNums.has(n))))
+        setZeroLoanNumbers(new Set(Array.from(allNums).filter(n => !paidNums.has(n))))
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [businessId, fromDate, toDate, villageId, collectorId, selectedCustomer])
