@@ -33,7 +33,7 @@ export async function GET(request: Request, { params }: Props) {
 
   const [payments, total] = await Promise.all([
     prisma.payment.findMany({
-      where: { loanId, isDeleted: false },
+      where: { loanId, isDeleted: false, amount: { gt: 0 } },
       include: {
         collector: { select: { id: true, fullName: true } },
       },
@@ -42,7 +42,7 @@ export async function GET(request: Request, { params }: Props) {
       take: limit,
     }),
     prisma.payment.count({
-      where: { loanId, isDeleted: false },
+      where: { loanId, isDeleted: false, amount: { gt: 0 } },
     }),
   ])
 

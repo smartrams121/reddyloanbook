@@ -126,7 +126,7 @@ export default function RecordPaymentPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/b/${businessId}/payments?date=${filterDate}`).then(r => r.json()),
+      fetch(`/api/b/${businessId}/payments?date=${filterDate}&includeZeroAmount=true`).then(r => r.json()),
       fetch(`/api/b/${businessId}/loans?activeOnDate=${filterDate}`).then(r => r.json()),
     ]).then(([payments, loans]) => {
       const paidLoans = new Set<string>()
@@ -187,7 +187,12 @@ export default function RecordPaymentPage() {
       )
     }
 
-    return list.sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
+    return list.sort((a, b) => {
+      const aNum = parseInt(a.customerId, 10)
+      const bNum = parseInt(b.customerId, 10)
+      if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum
+      return a.customerId.localeCompare(b.customerId, 'en', { numeric: true })
+    })
   }, [customers, searchQuery, showCompleted, customerLoanCounts, eligibleCustomerIds])
 
   const checkExistingPayment = useCallback(async (loanId: string, date: string) => {
@@ -453,7 +458,7 @@ export default function RecordPaymentPage() {
               type="button"
               onClick={() => {
                 Promise.all([
-                  fetch(`/api/b/${businessId}/payments?date=${filterDate}`).then(r => r.json()),
+                  fetch(`/api/b/${businessId}/payments?date=${filterDate}&includeZeroAmount=true`).then(r => r.json()),
                   fetch(`/api/b/${businessId}/loans?activeOnDate=${filterDate}`).then(r => r.json()),
                 ]).then(([payments, loans]) => {
                   const paidLoans = new Set<string>()

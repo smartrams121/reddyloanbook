@@ -483,6 +483,7 @@ async function getPaymentsReport(businessId: string, from: string, to: string) {
     where: {
       businessId,
       isDeleted: false,
+      amount: { gt: 0 },
       paymentDate: { gte: from, lte: to },
     },
     include: {

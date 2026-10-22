@@ -43,7 +43,9 @@ export async function GET(request: Request, { params }: Props) {
   const villageId = searchParams.get('villageId')
   const collectorId = searchParams.get('collectorId')
 
-  const where: Record<string, unknown> = { businessId, isDeleted: false, amount: { gt: 0 } }
+  const includeZeroAmount = searchParams.get('includeZeroAmount') === 'true'
+  const where: Record<string, unknown> = { businessId, isDeleted: false }
+  if (!includeZeroAmount) where.amount = { gt: 0 }
 
   if (loanId) where.loanId = loanId
   if (date) where.paymentDate = date

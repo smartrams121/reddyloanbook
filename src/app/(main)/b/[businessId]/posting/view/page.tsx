@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatPaiseShort } from '@/lib/money'
-import { formatDateDisplay } from '@/lib/date'
+import { formatDateDisplay, formatDateTimeFull } from '@/lib/date'
 import { useTranslation } from '@/lib/i18n'
 
 interface Village { id: string; name: string }
 interface Employee { id: string; fullName: string }
 interface PaymentRow {
-  id: string; amount: number; paymentDate: string; receiptNumber: string; note: string | null
+  id: string; amount: number; paymentDate: string; receiptNumber: string; note: string | null; createdAt: string
   loan: {
     loanNumber: string; totalRepayable: number
     customer: { id: string; fullName: string; customerId: string; village: { id: string; name: string } }
@@ -410,6 +410,7 @@ export default function ViewPaymentsPage() {
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('village')}>{t('customers.location')}{sortIcon('village')}</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-gray-700 select-none text-[11px] md:text-xs" onClick={() => toggleSort('collector')}>{t('payments.collected_by')}{sortIcon('collector')}</th>
                 <th className="py-2 px-2 hidden md:table-cell cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleSort('mode')}>{t('common.mode')}{sortIcon('mode')}</th>
+                <th className="py-2 px-2 hidden md:table-cell text-gray-500 select-none">Created At</th>
               </tr>
             </thead>
             <tbody>
@@ -424,6 +425,7 @@ export default function ViewPaymentsPage() {
                   <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.loan.customer.village.name}</td>
                   <td className="py-2 px-2 text-[10px] md:text-xs"><Link href={`/b/${businessId}/users/${p.collector.id}`} className="text-primary-600 hover:underline">{p.collector.fullName}</Link></td>
                   <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{p.note || '-'}</td>
+                  <td className="py-2 px-2 text-gray-400 text-[10px] hidden md:table-cell whitespace-nowrap">{formatDateTimeFull(new Date(p.createdAt))}</td>
                 </tr>
               ))}
             </tbody>
@@ -431,7 +433,7 @@ export default function ViewPaymentsPage() {
               <tr className="border-t-2 border-gray-200 bg-gray-50">
                 <td className="py-2 px-2 font-semibold text-gray-700" colSpan={4}>{t('common.total')} ({loanFiltered.length})</td>
                 <td className="py-2 px-3 text-right font-bold text-green-700">{formatPaiseShort(totalAmount)}</td>
-                <td className="hidden md:table-cell" colSpan={3}></td>
+                <td className="hidden md:table-cell" colSpan={4}></td>
               </tr>
             </tfoot>
           </table>
