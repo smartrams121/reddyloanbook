@@ -45,6 +45,7 @@ export default function VillageBulkPostingPage() {
   const preVillageId = searchParams.get('villageId')
   const preDate = searchParams.get('date')
   const preCompleted = searchParams.get('completed')
+  const preZeroOnly = searchParams.get('zeroOnly')
   const preDetails = searchParams.get('details')
 
   const [agents, setAgents] = useState<Agent[]>([])
@@ -84,11 +85,15 @@ export default function VillageBulkPostingPage() {
   const [bulkPage, setBulkPage] = useState(0)
   const BULK_PAGE_SIZE = 10
 
+  // Use state for zeroOnly to avoid Next.js useSearchParams SSR/hydration timing issues
+  const [zeroOnly, setZeroOnly] = useState(preZeroOnly === '1')
+  useEffect(() => { setZeroOnly(preZeroOnly === '1') }, [preZeroOnly])
+
   const statusFilteredRows = showDefaulters
     ? allRows.filter(r => r.status !== 'COMPLETED')
     : allRows.filter(r => r.status !== 'COMPLETED' && r.status !== 'DEFAULTER')
   const filteredRows = (showCompleted
-    ? statusFilteredRows.filter(r => r.existingPaymentId)
+    ? statusFilteredRows.filter(r => r.existingPaymentId && (!zeroOnly || Number(r.existingAmountPaise) === 0))
     : statusFilteredRows.filter(r => !r.existingPaymentId)
   ).sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
@@ -477,6 +482,12 @@ export default function VillageBulkPostingPage() {
           )}
 
           {/* Customer Rows */}
+          {!loading && zeroOnly && showCompleted && (
+            <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+              Showing ₹0 (Unpaid) payments only — {filteredRows.length} loans
+            </div>
+          )}
+
           {!loading && rows.length > 0 && (
             <>
               <div className="text-sm text-gray-500 mb-3 space-y-2">

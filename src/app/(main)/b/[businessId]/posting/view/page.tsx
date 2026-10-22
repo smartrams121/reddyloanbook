@@ -52,6 +52,7 @@ export default function ViewPaymentsPage() {
 
   const [totalActiveLoans, setTotalActiveLoans] = useState(0)
   const [totalExpected, setTotalExpected] = useState(0)
+  const [zeroLoanNumbers, setZeroLoanNumbers] = useState<Set<string>>(new Set())
 
   // Customer search
   const [customers, setCustomers] = useState<{ id: string; fullName: string; phone: string; customerId: string; village: { name: string } }[]>([])
@@ -88,14 +89,23 @@ export default function ViewPaymentsPage() {
     if (collectorId) params.set('collectorId', collectorId)
     if (selectedCustomer) params.set('customerId', selectedCustomer.id)
 
+    const zeroParams = new URLSearchParams(params)
+    zeroParams.set('includeZeroAmount', 'true')
+
     Promise.all([
       fetch(`/api/b/${businessId}/payments?${params}`).then(r => r.json()),
       fetch(`/api/b/${businessId}/loans?activeOnDate=${toDate}`).then(r => r.json()).catch(() => []),
-    ]).then(([payData, loanData]) => {
+      fetch(`/api/b/${businessId}/payments?${zeroParams}`).then(r => r.json()).catch(() => []),
+    ]).then(([payData, loanData, allPayData]) => {
       if (Array.isArray(payData)) setPayments(payData)
       if (Array.isArray(loanData)) {
         setTotalActiveLoans(loanData.length)
         setTotalExpected(loanData.reduce((sum: number, l: { installmentAmount: number }) => sum + (l.installmentAmount || 0), 0))
+      }
+      if (Array.isArray(payData) && Array.isArray(allPayData)) {
+        const paidNums = new Set(payData.map((p: PaymentRow) => p.loan?.loanNumber).filter(Boolean))
+        const allNums = new Set((allPayData as PaymentRow[]).map(p => p.loan?.loanNumber).filter(Boolean))
+        setZeroLoanNumbers(new Set([...allNums].filter(n => !paidNums.has(n))))
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [businessId, fromDate, toDate, villageId, collectorId, selectedCustomer])
@@ -353,36 +363,45 @@ export default function ViewPaymentsPage() {
       {!loading && (
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           {(() => {
-            const uniquePaidLoanIds = new Set(payments.map(p => p.loan?.loanNumber).filter(Boolean))
-            const paidCount = uniquePaidLoanIds.size
-            const unpaidCount = Math.max(0, totalActiveLoans - paidCount)
+            const uniquePaidLoanNums = new Set(payments.map(p => p.loan?.loanNumber).filter(Boolean))
+            const paidCount = uniquePaidLoanNums.size
             const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0)
             const pct = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0
-            const bulkDate = preset === 'today' ? today
-              : preset === 'yesterday' ? yesterdayStr()
-              : preset === '7d' ? daysAgo(6)
-              : preset === '15d' ? daysAgo(14)
-              : preset === '30d' ? daysAgo(29)
-              : preset === 'custom' ? fromDate
-              : today
+            const showBadges = preset === 'today' || preset === 'yesterday'
+            const bulkDate = preset === 'yesterday' ? yesterdayStr() : today
+            if (showBadges) {
+              const zeroCount = zeroLoanNumbers.size
+              const pendingCount = Math.max(0, totalActiveLoans - paidCount - zeroCount)
+              return (
+                <>
+                  <Link
+                    href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1`}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                  >
+                    {t('payments.paid')}: {paidCount}
+                  </Link>
+                  <Link
+                    href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1&zeroOnly=1`}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
+                  >
+                    {t('dashboard.unpaid')}: {zeroCount}
+                  </Link>
+                  <Link
+                    href={`/b/${businessId}/posting/bulk?date=${bulkDate}`}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
+                  >
+                    Pending: {pendingCount}
+                  </Link>
+                  <span className="text-xs text-gray-500">
+                    {t('dashboard.expected')}: {formatPaiseShort(totalExpected)} · {t('dashboard.collected')}: {formatPaiseShort(totalCollected)} · {pct}%
+                  </span>
+                </>
+              )
+            }
             return (
-              <>
-                <Link
-                  href={`/b/${businessId}/posting/bulk?date=${bulkDate}&completed=1&collector=self`}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
-                >
-                  {t('payments.paid')}: {paidCount}
-                </Link>
-                <Link
-                  href={`/b/${businessId}/posting/bulk`}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
-                >
-                  {t('dashboard.unpaid')}: {unpaidCount}
-                </Link>
-                <span className="text-xs text-gray-500">
-                  {t('dashboard.expected')}: {formatPaiseShort(totalExpected)} · {t('dashboard.collected')}: {formatPaiseShort(totalCollected)} · {pct}%
-                </span>
-              </>
+              <span className="text-xs text-gray-500">
+                {t('dashboard.expected')}: {formatPaiseShort(totalExpected)} · {t('dashboard.collected')}: {formatPaiseShort(totalCollected)} · {pct}%
+              </span>
             )
           })()}
         </div>
