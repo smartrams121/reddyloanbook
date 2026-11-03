@@ -55,7 +55,7 @@ export default function VillageBulkPostingPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [paymentMode, setPaymentMode] = useState('Cash')
   const [showCompleted, setShowCompleted] = useState(preCompleted === '1')
-  const [showDefaulters, setShowDefaulters] = useState(false)
+  const [showDefaulters, setShowDefaulters] = useState(true)
   const [isHoliday, setIsHoliday] = useState(false)
   const [allRows, setAllRows] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(false)
