@@ -93,7 +93,7 @@ export default function VillageBulkPostingPage() {
     ? allRows.filter(r => r.status !== 'COMPLETED')
     : allRows.filter(r => r.status !== 'COMPLETED' && r.status !== 'DEFAULTER')
   const filteredRows = (showCompleted
-    ? statusFilteredRows.filter(r => r.existingPaymentId && (!zeroOnly || Number(r.existingAmountPaise) === 0))
+    ? statusFilteredRows.filter(r => r.existingPaymentId && (zeroOnly ? Number(r.existingAmountPaise) === 0 : Number(r.existingAmountPaise) > 0))
     : statusFilteredRows.filter(r => !r.existingPaymentId)
   ).sort((a, b) => a.customerId.localeCompare(b.customerId, undefined, { numeric: true }))
 
